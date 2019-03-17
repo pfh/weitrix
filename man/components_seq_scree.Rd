@@ -4,7 +4,7 @@
 \alias{components_seq_scree}
 \title{Proportion more variance explained by adding components one at a time}
 \usage{
-components_seq_scree(components_seq)
+components_seq_scree(comp_seq)
 }
 \description{
 Proportion more variance explained by adding components one at a time

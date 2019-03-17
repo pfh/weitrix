@@ -1,5 +1,5 @@
 
-#' Generate a random normally distributed version of a weitrix.
+#' Generate a random normally distributed version of a weitrix
 #'
 #' Weights are used to choose the standard deviation of values generated.
 #'

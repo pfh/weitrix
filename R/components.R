@@ -106,13 +106,16 @@ orthogonalize_decomp <- function(rows,cols) {
 # (A %*% t(B)) - (decomp$rows %*% t(decomp$cols))
 
 
-
+#' Principal components of a weitrix
+#'
 #' @export
 weitrix_components <- function(
         weitrix, p=2, design=NULL, max_iter=100, tol=1e-5, 
         verbose=TRUE, initial=NULL) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
+    assert_that(p >= 1)
+
     x <- weitrix_x(weitrix)
     weights <- weitrix_weights(weitrix)
 
@@ -192,7 +195,7 @@ weitrix_components <- function(
     rownames(row_mat) <- rownames(weitrix)
     rownames(col_mat) <- colnames(weitrix)
     colnames(row_mat) <- c(colnames(design), 
-        map_chr(seq_len(p), ~paste0("factor",.)))
+        map_chr(seq_len(p), ~paste0("C",.)))
     colnames(col_mat) <- colnames(row_mat)
 
     result <- new("Components", list(
@@ -202,35 +205,53 @@ weitrix_components <- function(
     components_order_and_flip(result)
 }
 
+
+#' Seek meaningful components by varimax rotation
+#'
+#' Varimax rotation rotates components in a decomposition so that
+#'     each component has a few large loadings and the rest small.
+#' By the grace of sparsity we hope that these components 
+#'     are then individually interpretable.
+#'
+#' @param comp A Components object.
+#'
 #' @export
 components_varimax <- function(comp) {
     if (length(comp$ind_factors) < 2)
         return(comp)
 
-    rotation <- varimax(comp$row_mat[,comp$ind_factors,drop=FALSE], normalize=FALSE)
-    comp$row_mat[,comp$ind_factors] <- row_mat[,comp$ind_factors] %*% rotation$rotmat
-    comp$col_mat[,comp$ind_factors] <- col_mat[,comp$ind_factors] %*% rotation$rotmat
+    rotation <- varimax(comp$row[,comp$ind_factors,drop=FALSE], normalize=FALSE)
+    comp$row[,comp$ind_factors] <- 
+        comp$row[,comp$ind_factors] %*% rotation$rotmat
+    comp$col[,comp$ind_factors] <- 
+        comp$col[,comp$ind_factors] %*% rotation$rotmat
 
     components_order_and_flip(comp)
 }
 
+
 #' Progressively produce decompositions with varying number of components
 #'
 #' @export
-weitrix_components_seq <- function(elist, p=10, design=NULL, max_iter=100, tol=1e-5, verbose=TRUE) {
+weitrix_components_seq <- function(
+        weitrix, p=10, design=NULL, max_iter=100, tol=1e-5, verbose=TRUE) {
+    weitrix <- as_weitrix(weitrix)
+    assert_that(is.number(p))
+    assert_that(p >= 1)
+
     result <- rep(list(NULL), p)
 
     if (verbose)
         message("Finding ",p," components")
 
-    result[[p]] <- weitrix_components(elist, p=p, 
+    result[[p]] <- weitrix_components(weitrix, p=p, 
         design=design, max_iter=max_iter, tol=tol, verbose=verbose)
     
     for(i in rev(seq_len(p-1))) {
         if (verbose)
             message("Finding ",i," components")
 
-        result[[i]] <- weitrix_components(elist, p=i, 
+        result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, max_iter=max_iter, tol=tol, verbose=verbose,
             initial=result[[i+1]]$col[, result[[i+1]]$ind_factors[seq_len(i)]])
     }
@@ -238,11 +259,12 @@ weitrix_components_seq <- function(elist, p=10, design=NULL, max_iter=100, tol=1
     result
 }
 
+
 #' Proportion more variance explained by adding components one at a time
 #'
 #' @export
-components_seq_scree <- function(components_seq) {
-    R2 <- map_dbl(components_seq, "R2")
+components_seq_scree <- function(comp_seq) {
+    R2 <- map_dbl(comp_seq, "R2")
     R2 - c(0, R2[-length(R2)])
 }
 

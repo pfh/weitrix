@@ -2,7 +2,7 @@
 % Please edit documentation in R/randomize.R
 \name{weitrix_randomize}
 \alias{weitrix_randomize}
-\title{Generate a random normally distributed version of a weitrix.}
+\title{Generate a random normally distributed version of a weitrix}
 \usage{
 weitrix_randomize(weitrix)
 }

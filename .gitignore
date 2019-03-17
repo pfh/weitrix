@@ -1,5 +1,6 @@
 *.sublime-*
 *.Rproj
+/docs/
 
 # History files
 .Rhistory
