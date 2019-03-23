@@ -5,7 +5,7 @@
 \title{Progressively produce decompositions with varying number of components}
 \usage{
 weitrix_components_seq(weitrix, p = 10, design = NULL,
-  max_iter = 100, tol = 1e-05, verbose = TRUE)
+  max_iter = 100, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
 }
 \description{
 Progressively produce decompositions with varying number of components

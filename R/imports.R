@@ -7,9 +7,10 @@
 #'     assert_that is.string is.number
 #'
 #' @importFrom purrr
-#'     map_chr map_dbl
+#'     map map_chr map_dbl
 #'
-#' @importClassesFrom SummarizedExperiment SummarizedExperiment
+#' @importClassesFrom SummarizedExperiment 
+#'     SummarizedExperiment
 #' @importFrom SummarizedExperiment
 #'     SummarizedExperiment assay assay<- rowData colData
 #'

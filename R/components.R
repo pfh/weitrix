@@ -26,6 +26,29 @@ components_order_and_flip <- function(comp) {
     comp
 }
 
+#' Seek meaningful components by varimax rotation
+#'
+#' Varimax rotation rotates components in a decomposition so that
+#'     each component has a few large loadings and the rest small.
+#' By the grace of sparsity we hope that these components 
+#'     are then individually interpretable.
+#'
+#' @param comp A Components object.
+#'
+#' @export
+components_varimax <- function(comp) {
+    if (length(comp$ind_factors) < 2)
+        return(comp)
+
+    rotation <- varimax(comp$row[,comp$ind_factors,drop=FALSE], normalize=FALSE)
+    comp$row[,comp$ind_factors] <- 
+        comp$row[,comp$ind_factors] %*% rotation$rotmat
+    comp$col[,comp$ind_factors] <- 
+        comp$col[,comp$ind_factors] %*% rotation$rotmat
+
+    components_order_and_flip(comp)
+}
+
 
 scale_cols <- function(A,s) {
     assert_that(ncol(A) == length(s))
@@ -111,7 +134,7 @@ orthogonalize_decomp <- function(rows,cols) {
 #' @export
 weitrix_components <- function(
         weitrix, p=2, design=NULL, max_iter=100, tol=1e-5, 
-        verbose=TRUE, initial=NULL) {
+        use_varimax=TRUE, initial=NULL, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
     assert_that(p >= 1)
@@ -149,8 +172,10 @@ weitrix_components <- function(
     row_mat_center <- fit_all_rows(design, x, weights)
     centered <- x - row_mat_center %*% t(design)
     ss_total <- sum(centered^2*weights, na.rm=TRUE)
+    R2 <- 0
 
-    R2 <- -Inf
+    if (p == 0) 
+        max_iter <- 1
 
     for(i in seq_len(max_iter)) {
         start <- proc.time()["elapsed"]
@@ -202,31 +227,12 @@ weitrix_components <- function(
         row=row_mat, col=col_mat, 
         ind_design=ind_design, ind_factors=ind_factors, R2=R2, iters=i))
 
-    components_order_and_flip(result)
-}
+    if (use_varimax)
+        result <- components_varimax(result)
+    else
+        result <- components_order_and_flip(result)
 
-
-#' Seek meaningful components by varimax rotation
-#'
-#' Varimax rotation rotates components in a decomposition so that
-#'     each component has a few large loadings and the rest small.
-#' By the grace of sparsity we hope that these components 
-#'     are then individually interpretable.
-#'
-#' @param comp A Components object.
-#'
-#' @export
-components_varimax <- function(comp) {
-    if (length(comp$ind_factors) < 2)
-        return(comp)
-
-    rotation <- varimax(comp$row[,comp$ind_factors,drop=FALSE], normalize=FALSE)
-    comp$row[,comp$ind_factors] <- 
-        comp$row[,comp$ind_factors] %*% rotation$rotmat
-    comp$col[,comp$ind_factors] <- 
-        comp$col[,comp$ind_factors] %*% rotation$rotmat
-
-    components_order_and_flip(comp)
+    result
 }
 
 
@@ -234,7 +240,8 @@ components_varimax <- function(comp) {
 #'
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p=10, design=NULL, max_iter=100, tol=1e-5, verbose=TRUE) {
+        weitrix, p=10, design=NULL, max_iter=100, tol=1e-5, 
+        use_varimax=TRUE, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
     assert_that(p >= 1)
@@ -252,9 +259,13 @@ weitrix_components_seq <- function(
             message("Finding ",i," components")
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
-            design=design, max_iter=max_iter, tol=tol, verbose=verbose,
+            design=design, max_iter=max_iter, tol=tol, 
+            use_varimax=FALSE, verbose=verbose,
             initial=result[[i+1]]$col[, result[[i+1]]$ind_factors[seq_len(i)]])
     }
+
+    if (use_varimax)
+        result <- map(result, components_varimax)
 
     result
 }

@@ -60,11 +60,15 @@ bless_weitrix <- function(object, x_name, weights_name) {
     object
 }
 
+#' Get a weitrix object's "x" matrix 
+#'
 #' @export
 weitrix_x <- function(weitrix) {
     assay(weitrix, metadata(weitrix)$weitrix$x_name)
 }
 
+#' Get a weitrix object's "weights" matrix
+#'
 #' @export
 weitrix_weights <- function(weitrix) {
     assay(weitrix, metadata(weitrix)$weitrix$weights_name)
@@ -82,6 +86,18 @@ weitrix_weights <- function(weitrix) {
     x
 }
 
+#' Convert a weitrix object to a limma EList object
+#'
+#' @export
+weitrix_elist <- function(weitrix) {
+    weitrix <- as_weitrix(weitrix)
+
+    new("EList", list(
+        E=weitrix_x(weitrix),
+        weights=weitrix_weights(weitrix),
+        genes=as.data.frame(rowData(weitrix)),
+        targets=as.data.frame(colData(weitrix))))
+}
 
 
 

@@ -5,7 +5,7 @@
 \title{Principal components of a weitrix}
 \usage{
 weitrix_components(weitrix, p = 2, design = NULL, max_iter = 100,
-  tol = 1e-05, verbose = TRUE, initial = NULL)
+  tol = 1e-05, use_varimax = TRUE, initial = NULL, verbose = TRUE)
 }
 \description{
 Principal components of a weitrix
