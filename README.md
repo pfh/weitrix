@@ -40,3 +40,19 @@ A weitrix can be converted to an EList object for use with limma: `weitrix_elist
 
 The `$col` matrix of a `Components` may be used as a design matrix. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
 
+## Big data
+
+weitrix can be used with DelayedArray assays.
+
+weitrix will attempt to perform calculations blockwise in parallel.
+
+weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
+`DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`. If using `DelayedArray::setRealizationBackend("HDF5Array")` you may also want to set `HDF5Array::setHDF5DumpDir`.
+
+Set the DelayedArray realization backend to `RleMatrix` or `HDF5Array` if weitrices will be too big to fit in memory uncompressed. A weitrix is most conveniently stored to disk using `HDF5Array::saveHDF5SummarizedExperiment`.
+
+
+
+
+
+

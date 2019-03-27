@@ -37,7 +37,7 @@ as_weitrix <- function(object, weights=NULL) {
     assert_that(requireNamespace("limma", quietly=TRUE), msg=
         "Will try limma::getEAWP to understand object. Please install limma.")
 
-    eawp <- limma::getEAWP(object)
+    eawp <- getEAWP(object)
     if (!is.null(weights)) {
         if (!is.null(eawp$weights))
             warning("Overwriting existing weights")

@@ -77,7 +77,10 @@ least_squares <- function(A,w,b) {
     result
 }
 
-fit_all_cols_inner <- function(x,y,w, fixed_row,fixed_col) {
+fit_all_cols_inner <- function(args) with(args, {
+    y <- as.matrix(y)
+    w <- as.matrix(w)
+
     result <- lapply(seq_len(ncol(y)), function(i) {
         wi <- w[,i]
         present <- wi != 0
@@ -86,26 +89,32 @@ fit_all_cols_inner <- function(x,y,w, fixed_row,fixed_col) {
     })
     
     do.call(rbind, result)
-}
+})
 
-fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
+fit_all_cols <- function(x,y,w, fixed_row,fixed_col, BPPARAM) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=ncol(y), ncol=0))
 
     parts <- partitions(ncol(y), nrow(y)*2)
-    result <- lapply(parts, function(part) {
-        fit_all_cols_inner(
-            x,
-            as.matrix(y[,part,drop=F]),
-            as.matrix(w[,part,drop=F]),
-            fixed_row,
-            fixed_col[part,,drop=F])
+    cat("cols",length(parts),"\n")
+    feed <- map(parts, function(part) {
+        list(
+            x=x,
+            y=y[,part,drop=F],
+            w=w[,part,drop=F],
+            fixed_row=fixed_row,
+            fixed_col=fixed_col[part,,drop=F])
     })
+
+    result <- bplapply(feed, fit_all_cols_inner, BPPARAM=BPPARAM)
 
     do.call(rbind, result)
 }
 
-fit_all_rows_inner <- function(x,y,w) {
+fit_all_rows_inner <- function(args) with(args, {
+    y <- as.matrix(y)
+    w <- as.matrix(w)
+
     result <- lapply(seq_len(nrow(y)), function(i) {
         wi <- w[i,]
         present <- wi != 0
@@ -113,19 +122,22 @@ fit_all_rows_inner <- function(x,y,w) {
     })
     
     do.call(rbind, result)
-}
+})
 
-fit_all_rows <- function(x,y,w) {
+fit_all_rows <- function(x,y,w, BPPARAM) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=nrow(y), ncol=0))
 
     parts <- partitions(nrow(y), ncol(y)*2)
-    result <- lapply(parts, function(part) {
-        fit_all_rows_inner(
-            x, 
-            as.matrix(y[part,,drop=F]), 
-            as.matrix(w[part,,drop=F]))
+    feed <- map(parts, function(part) {
+        list(
+            x=x,
+            y=y[part,,drop=F],
+            w=w[part,,drop=F],
+            least_squares=least_squares)
     })
+    cat("rows",length(parts),"\n")
+    result <- bplapply(feed, fit_all_rows_inner, BPPARAM=BPPARAM)
 
     do.call(rbind, result)
 }
@@ -149,7 +161,10 @@ orthogonalize_decomp <- function(rows,cols) {
 
 
 # Weighted sum of squares error of a matrix decomposition
-calc_weighted_ss_inner <- function(x, w, row, col) {
+calc_weighted_ss_inner <- function(args) with(args, {
+    x <- as.matrix(x)
+    w <- as.matrix(w)
+
     total <- 0
     for(i in seq_len(ncol(x))) {
         wi <- w[,i]
@@ -158,17 +173,19 @@ calc_weighted_ss_inner <- function(x, w, row, col) {
         total <- total + sum(errors*errors*wi[present])
     }
     total
-}
+})
 
-calc_weighted_ss <- function(x, w, row, col) {
+calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
     parts <- partitions(ncol(x), nrow(x)*2)
-    result <- lapply(parts, function(part) {
-        calc_weighted_ss_inner(
-            as.matrix(x[,part,drop=F]), 
-            as.matrix(w[,part,drop=F]), 
-            row, 
-            col[part,,drop=F])
+    feed <- map(parts, function(part) {
+        list(
+            x=x[,part,drop=F],
+            w=w[,part,drop=F],
+            row=row,
+            col=col[part,,drop=F])
     })
+    cat("ss",length(parts),"\n")
+    result <- bplapply(feed, calc_weighted_ss_inner, BPPARAM=BPPARAM)
     sum(unlist(result))
 }
 
@@ -187,7 +204,8 @@ calc_weighted_ss <- function(x, w, row, col) {
 #' @export
 weitrix_components <- function(
         weitrix, p=2, design=~1, max_iter=100, tol=1e-5, 
-        use_varimax=TRUE, initial=NULL, verbose=TRUE) {
+        use_varimax=TRUE, initial=NULL, verbose=TRUE,
+        BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p), p >= 1)
 
@@ -226,10 +244,10 @@ weitrix_components <- function(
         matrix(rnorm(m*(p_total-ncol(col_mat))), nrow=m))
 
     # Centering to compare against
-    row_mat_center <- fit_all_rows(design, x, weights)
+    row_mat_center <- fit_all_rows(design, x, weights, BPPARAM=BPPARAM)
     #centered <- x - row_mat_center %*% t(design)
     #ss_total <- sum(centered^2*weights, na.rm=TRUE)
-    ss_total <- calc_weighted_ss(x, weights, row_mat_center, design)
+    ss_total <- calc_weighted_ss(x, weights, row_mat_center, design, BPPARAM=BPPARAM)
     R2 <- 0
 
     if (p == 0) 
@@ -244,12 +262,12 @@ weitrix_components <- function(
         col_mat[,ind_factors] <- qr.Q(qr(col_mat))[,ind_factors,drop=F]
 
         # Update row_mat
-        row_mat <- fit_all_rows(col_mat, x, weights)
+        row_mat <- fit_all_rows(col_mat, x, weights, BPPARAM=BPPARAM)
 
         # Update col_mat
         #centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
         col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], 
-            x, weights, row_mat[,ind_design,drop=F], design)
+            x, weights, row_mat[,ind_design,drop=F], design, BPPARAM=BPPARAM)
         col_mat <- cbind(design, col_mat)
 
         # Make decomposition matrices orthogonal
@@ -260,7 +278,7 @@ weitrix_components <- function(
         # Check R^2
         #resid <- x - row_mat %*% t(col_mat)
         #ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
-        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat)
+        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat, BPPARAM=BPPARAM)
         ratio <- ss_resid/ss_total
         last_R2 <- R2
         R2 <- 1-ratio
@@ -301,7 +319,8 @@ weitrix_components <- function(
 #' @export
 weitrix_components_seq <- function(
         weitrix, p=10, design=~1, max_iter=100, tol=1e-5, 
-        use_varimax=TRUE, verbose=TRUE) {
+        use_varimax=TRUE, verbose=TRUE,
+        BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
     assert_that(p >= 1)
@@ -312,7 +331,8 @@ weitrix_components_seq <- function(
         message("Finding ",p," components")
 
     result[[p]] <- weitrix_components(weitrix, p=p, 
-        design=design, max_iter=max_iter, tol=tol, verbose=verbose)
+        design=design, max_iter=max_iter, tol=tol, 
+        verbose=verbose, BPPARAM=BPPARAM)
     
     for(i in rev(seq_len(p-1))) {
         if (verbose)
@@ -320,7 +340,7 @@ weitrix_components_seq <- function(
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, max_iter=max_iter, tol=tol, 
-            use_varimax=FALSE, verbose=verbose,
+            use_varimax=FALSE, verbose=verbose, BPPARAM=BPPARAM,
             initial=result[[i+1]]$col[, result[[i+1]]$ind_factors[seq_len(i)]])
     }
 

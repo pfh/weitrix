@@ -7,7 +7,7 @@ License: LGPL-2.1 | file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R
+    R (>= 3.5)
 Imports:
     methods,
     assertthat,
@@ -15,5 +15,8 @@ Imports:
     SummarizedExperiment,
     DelayedArray,
     DelayedMatrixStats,
+    BiocParallel,
+    BiocGenerics,
+    limma,
     purrr
 RoxygenNote: 6.1.1

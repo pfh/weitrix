@@ -3,6 +3,11 @@
 document :
 	Rscript -e "devtools::document()"
 
+check : document
+	R CMD build .
+	R_CHECK_ENVIRON=check.Renviron R CMD check weitrix_*.tar.gz
+	rm weitrix_*.tar.gz
+
 test :
 	Rscript -e "devtools::test()"
 
