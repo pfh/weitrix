@@ -1,9 +1,17 @@
 
 #' Ensure data is a weighted matrix
 #'
-#' Ensure data is a weighted matrix. 
-#' This is a SummarizedExperiment or subclass thereof with some metadata fields set. 
+#' Ensure data is a weighted matrix or "weitrix". 
+#' A weitrix is a SummarizedExperiment or subclass thereof with some metadata fields set. 
 #' If it is ambiguous how to do this, produce an error.
+#'
+#' Input can be a matrix or DelayedArray.
+#'
+#' Input can be anything the limma package recognizing,
+#' notably the EList class (for example as output by voom or vooma).
+#'
+#' If weights are not present in "object" and not given with "weights",
+#' they default for 0 for NA values and 1 for everything else.
 #'
 #' @export
 as_weitrix <- function(object, weights=NULL) {
@@ -14,6 +22,16 @@ as_weitrix <- function(object, weights=NULL) {
             "Use bless_weitrix() to specify x and weights assays ",
             "to use in a SummarizedExperiment object."))
         return(object)
+    }
+
+    if (is(object, "DelayedArray")) {
+        if (is.null(weights))
+            weights <- !is.na(object)
+
+        result <- SummarizedExperiment(
+            assays=list(x=object, weights=weights))
+        result <- bless_weitrix(result, "x", "weights")
+        return(result)
     }
 
     assert_that(requireNamespace("limma", quietly=TRUE), msg=
@@ -30,15 +48,17 @@ as_weitrix <- function(object, weights=NULL) {
     weights <- eawp$weights
     probes <- eawp$probes
 
-    # Missingness always encoded as 0 weight, value irrelevant
+    # Default to weights representing non-missingness
+    if (is.null(weights))
+        weights <- !is.na(x)
+
+    ## Missingness always encoded as 0 weight, value irrelevant
     assert_that(identical( dim(x), dim(weights) ))
-    assert_that(!any(is.na(weights)))
+    #assert_that(!any(is.na(weights)))
+    #assert_that(!any(is.na(x[ weights != 0 ])))
 
     result <- SummarizedExperiment(
-        assays = list(
-            x = eawp$exprs,
-            weights = eawp$weights
-        ),
+        assays = list(x = x, weights = weights),
         rowData = probes
     )
 

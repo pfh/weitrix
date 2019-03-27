@@ -18,12 +18,15 @@ weitrix_filter <- function(weitrix, n, weight_thresh=0) {
     weitrix <- as_weitrix(weitrix)
     present <- weitrix_weights(weitrix) > weight_thresh
 
+    # TODO: chunk
+    present <- as.matrix(present)
+
     keep_row <- rep(T, nrow(weitrix))
     keep_col <- rep(T, ncol(weitrix))
     total <- sum(keep_row) + sum(keep_col)
     repeat {
-        keep_row[keep_row] <- rowSums(present[keep_row, keep_col, drop=F]) >= n
-        keep_col[keep_col] <- colSums(present[keep_row, keep_col, drop=F]) >= n
+        keep_row[keep_row] <- rowSums2(present[keep_row, keep_col, drop=F]) >= n
+        keep_col[keep_col] <- colSums2(present[keep_row, keep_col, drop=F]) >= n
         new_total <- sum(keep_row) + sum(keep_col)
         if (new_total == total) break
         total <- new_total

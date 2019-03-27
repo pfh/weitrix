@@ -13,5 +13,7 @@ Imports:
     assertthat,
     S4Vectors,
     SummarizedExperiment,
+    DelayedArray,
+    DelayedMatrixStats,
     purrr
 RoxygenNote: 6.1.1

@@ -77,14 +77,39 @@ least_squares <- function(A,w,b) {
     result
 }
 
-fit_all_cols <- function(x,y,w) {
+fit_all_cols_inner <- function(x,y,w, fixed_row,fixed_col) {
+    result <- lapply(seq_len(ncol(y)), function(i) {
+        wi <- w[,i]
+        present <- wi != 0
+        fixed <- as.vector(fixed_row[present,,drop=F] %*% fixed_col[i,])
+        least_squares(x[present,,drop=F],wi[present],y[present,i] - fixed)
+    })
+    
+    do.call(rbind, result)
+}
+
+fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=ncol(y), ncol=0))
 
-    result <- lapply(seq_len(ncol(y)), function(i) {
-        wi <- w[,i]
-        present <- wi > 0
-        least_squares(x[present,,drop=F],wi[present],y[present,i])
+    parts <- partitions(ncol(y), nrow(y)*2)
+    result <- lapply(parts, function(part) {
+        fit_all_cols_inner(
+            x,
+            as.matrix(y[,part,drop=F]),
+            as.matrix(w[,part,drop=F]),
+            fixed_row,
+            fixed_col[part,,drop=F])
+    })
+
+    do.call(rbind, result)
+}
+
+fit_all_rows_inner <- function(x,y,w) {
+    result <- lapply(seq_len(nrow(y)), function(i) {
+        wi <- w[i,]
+        present <- wi != 0
+        least_squares(x[present,,drop=F],wi[present],y[i,present])
     })
     
     do.call(rbind, result)
@@ -94,12 +119,14 @@ fit_all_rows <- function(x,y,w) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=nrow(y), ncol=0))
 
-    result <- lapply(seq_len(nrow(y)), function(i) {
-        wi <- w[i,]
-        present <- wi > 0
-        least_squares(x[present,,drop=F],wi[present],y[i,present])
+    parts <- partitions(nrow(y), ncol(y)*2)
+    result <- lapply(parts, function(part) {
+        fit_all_rows_inner(
+            x, 
+            as.matrix(y[part,,drop=F]), 
+            as.matrix(w[part,,drop=F]))
     })
-    
+
     do.call(rbind, result)
 }
 
@@ -119,6 +146,32 @@ orthogonalize_decomp <- function(rows,cols) {
     list(rows=rows,cols=cols)
 }
 
+
+
+# Weighted sum of squares error of a matrix decomposition
+calc_weighted_ss_inner <- function(x, w, row, col) {
+    total <- 0
+    for(i in seq_len(ncol(x))) {
+        wi <- w[,i]
+        present <- wi != 0
+        errors <- as.vector(x[present,i]) - as.vector(row[present,,drop=F] %*% col[i,]) 
+        total <- total + sum(errors*errors*wi[present])
+    }
+    total
+}
+
+calc_weighted_ss <- function(x, w, row, col) {
+    parts <- partitions(ncol(x), nrow(x)*2)
+    result <- lapply(parts, function(part) {
+        calc_weighted_ss_inner(
+            as.matrix(x[,part,drop=F]), 
+            as.matrix(w[,part,drop=F]), 
+            row, 
+            col[part,,drop=F])
+    })
+    sum(unlist(result))
+}
+
 ## Test:
 # n <- 10
 # m <- 7
@@ -133,14 +186,20 @@ orthogonalize_decomp <- function(rows,cols) {
 #'
 #' @export
 weitrix_components <- function(
-        weitrix, p=2, design=NULL, max_iter=100, tol=1e-5, 
+        weitrix, p=2, design=~1, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
-    assert_that(is.number(p))
-    assert_that(p >= 1)
+    assert_that(is.number(p), p >= 1)
 
     x <- weitrix_x(weitrix)
     weights <- weitrix_weights(weitrix)
+
+    # TODO: chunking
+    #x <- as.matrix(x)
+    #weights <- as.matrix(weights)
+
+    if (is(design, "formula"))
+        design <- model.matrix(design, data=colData(weitrix))
 
     rownames(x) <- NULL
     colnames(x) <- NULL
@@ -149,13 +208,11 @@ weitrix_components <- function(
 
     n <- nrow(x)
     m <- ncol(x)
-    assert_that(n >= p, m >= p)
-
-    if (is.null(design))
-        design <- cbind(intercept=rep(1,m))
-
     p_design <- ncol(design)
     p_total <- p_design+p
+
+    assert_that(nrow(design) == m, n >= p_total, m >= p)
+
     ind_design <- seq_len(p_design)
     ind_factors <- p_design+seq_len(p)
 
@@ -170,8 +227,9 @@ weitrix_components <- function(
 
     # Centering to compare against
     row_mat_center <- fit_all_rows(design, x, weights)
-    centered <- x - row_mat_center %*% t(design)
-    ss_total <- sum(centered^2*weights, na.rm=TRUE)
+    #centered <- x - row_mat_center %*% t(design)
+    #ss_total <- sum(centered^2*weights, na.rm=TRUE)
+    ss_total <- calc_weighted_ss(x, weights, row_mat_center, design)
     R2 <- 0
 
     if (p == 0) 
@@ -189,8 +247,9 @@ weitrix_components <- function(
         row_mat <- fit_all_rows(col_mat, x, weights)
 
         # Update col_mat
-        centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
-        col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], centered, weights)
+        #centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
+        col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], 
+            x, weights, row_mat[,ind_design,drop=F], design)
         col_mat <- cbind(design, col_mat)
 
         # Make decomposition matrices orthogonal
@@ -199,8 +258,9 @@ weitrix_components <- function(
         col_mat[,ind_factors] <- decomp$cols
 
         # Check R^2
-        resid <- x - row_mat %*% t(col_mat)
-        ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
+        #resid <- x - row_mat %*% t(col_mat)
+        #ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
+        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat)
         ratio <- ss_resid/ss_total
         last_R2 <- R2
         R2 <- 1-ratio
@@ -240,7 +300,7 @@ weitrix_components <- function(
 #'
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p=10, design=NULL, max_iter=100, tol=1e-5, 
+        weitrix, p=10, design=~1, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
