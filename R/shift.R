@@ -74,7 +74,7 @@ counts_shift_inner <- function(counts, groups, min_reads) {
 }
 
 #' @export
-counts_shift <- function(counts, grouping, biovar=TRUE, design=~1, min_reads=1, verbose=TRUE) {
+counts_shift <- function(counts, grouping, min_reads=1, biovar=TRUE, design=~0, p=0, verbose=TRUE) {
     assert_that(
         is.data.frame(grouping), 
         "group" %in% colnames(grouping), 
@@ -95,8 +95,13 @@ counts_shift <- function(counts, grouping, biovar=TRUE, design=~1, min_reads=1, 
     result <- do.call(rbind, result)
     result <- bless_weitrix(result, "x", "weights")
     
-    #if (biovar)
-    #    elist <- biovar_reweight(elist, design, bio_weights=bio_weights)
+    if (biovar) {
+        if (verbose)
+            message("Calculating biological noise component")
+        result <- weight_balance(result, rowData(result)$per_read_weight, design=design, p=p)
+        metadata(result)$weitrix$effective_max_reads <- 
+            metadata(result)$weitrix$tech_scale / metadata(result)$weitrix$bio_scale
+    }
     
     result
 }
