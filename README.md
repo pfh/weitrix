@@ -40,16 +40,35 @@ A weitrix can be converted to an EList object for use with limma: `weitrix_elist
 
 The `$col` matrix of a `Components` may be used as a design matrix. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
 
-## Big data
+## Big datasets
 
-weitrix can be used with DelayedArray assays.
+weitrix uses DelayedArray assays. weitrix will attempt to perform calculations blockwise in parallel. weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
+`DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`. 
 
-weitrix will attempt to perform calculations blockwise in parallel.
+Set the DelayedArray realization backend to `RleMatrix` or `HDF5Array` if weitrices will be too big to fit in memory uncompressed. The `RleMatrix` stores data in memory in a compressed form. The `HDF5Array` backend stores data on disk, in temporary files.
 
-weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
-`DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`. If using `DelayedArray::setRealizationBackend("HDF5Array")` you may also want to set `HDF5Array::setHDF5DumpDir`.
+* `DelayedArray::setRealizationBackend("RleArray")` may require copying the complete matrix to all members of the cluster (not sure on this point). HDF5Array seems better, since all the actual data is stored on disk and the disk cache will be shared between processes.
 
-Set the DelayedArray realization backend to `RleMatrix` or `HDF5Array` if weitrices will be too big to fit in memory uncompressed. A weitrix is most conveniently stored to disk using `HDF5Array::saveHDF5SummarizedExperiment`.
+* If using `DelayedArray::setRealizationBackend("HDF5Array")` you may also want to set `HDF5Array::setHDF5DumpDir`.
+
+* A weitrix can be permanently stored to disk using `HDF5Array::saveHDF5SummarizedExperiment`.
+
+Example setup:
+
+```
+library(DelayedArray)
+library(HDF5Array)
+library(BiocParallel)
+
+# Start a 4 worker cluster (Linux or Mac OS)
+param <- bpstart(MulticoreParam(4))
+setAutoBPPARAM(param)
+
+# Store intermediate results in a directory called __dump__
+# You may need to clean up this directory manually
+setRealizationBackend("HDF5Array")
+setHDF5DumpDir("__dump__")
+```
 
 
 

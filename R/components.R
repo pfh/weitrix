@@ -58,23 +58,28 @@ scale_cols <- function(A,s) {
 # Least squares
 # Where multiple solutions exist, one should be chosen arbitrarily
 least_squares <- function(A,w,b) {
-    #sw <- sqrt(w)
+    if (length(b) == 0) 
+        return(rep(0, ncol(A)))
+
+    sw <- sqrt(w)
     # qr.solve(A*sw,b*sw)
 
-    #decomp <- svd(A*sw)
-    #as.vector( decomp$v %*% ((t(decomp$u) %*% (b*sw))/decomp$d) )
+    decomp <- svd(A*sw)
+    as.vector( decomp$v %*% ((t(decomp$u) %*% (b*sw))/decomp$d) )
 
-    WA <- A*w
-    good <- apply(WA != 0, 2, any)
-    WA <- WA[,good,drop=F]
-    A <- A[,good,drop=F]
-    tAWA <- crossprod(WA, A)
-    tAWb <- as.vector(crossprod(WA,b))
-    L <- chol(tAWA)
+    ## May be slightly faster, 
+    ## but fails rather than choosing an arbitrary minimum
+    # WA <- A*w
+    # good <- apply(WA != 0, 2, any)
+    # WA <- WA[,good,drop=F]
+    # A <- A[,good,drop=F]
+    # tAWA <- crossprod(WA, A)
+    # tAWb <- as.vector(crossprod(WA,b))
+    # L <- chol(tAWA)
 
-    result <- rep(0, length(good))
-    result[good] <- backsolve(L, forwardsolve(L, tAWb, upper.tri=TRUE, transpose=TRUE))
-    result
+    # result <- rep(0, length(good))
+    # result[good] <- backsolve(L, forwardsolve(L, tAWb, upper.tri=TRUE, transpose=TRUE))
+    # result
 }
 
 fit_all_cols_inner <- function(args) with(args, {
@@ -96,7 +101,7 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col, BPPARAM) {
         return(matrix(0, nrow=ncol(y), ncol=0))
 
     parts <- partitions(ncol(y), nrow(y)*2)
-    cat("cols",length(parts),"\n")
+    #cat("cols",length(parts),"\n")
     feed <- map(parts, function(part) {
         list(
             x=x,
@@ -136,7 +141,7 @@ fit_all_rows <- function(x,y,w, BPPARAM) {
             w=w[part,,drop=F],
             least_squares=least_squares)
     })
-    cat("rows",length(parts),"\n")
+    #cat("rows",length(parts),"\n")
     result <- bplapply(feed, fit_all_rows_inner, BPPARAM=BPPARAM)
 
     do.call(rbind, result)
@@ -184,7 +189,7 @@ calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
             row=row,
             col=col[part,,drop=F])
     })
-    cat("ss",length(parts),"\n")
+    #cat("ss",length(parts),"\n")
     result <- bplapply(feed, calc_weighted_ss_inner, BPPARAM=BPPARAM)
     sum(unlist(result))
 }
@@ -207,7 +212,7 @@ weitrix_components <- function(
         use_varimax=TRUE, initial=NULL, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
-    assert_that(is.number(p), p >= 1)
+    assert_that(is.number(p), p >= 0)
 
     x <- weitrix_x(weitrix)
     weights <- weitrix_weights(weitrix)
@@ -230,6 +235,10 @@ weitrix_components <- function(
     p_total <- p_design+p
 
     assert_that(nrow(design) == m, n >= p_total, m >= p)
+
+    df_total <- sum(weights > 0)
+    df_model <- n*p_total-m*p
+    df_residual <- df_total-df_model
 
     ind_design <- seq_len(p_design)
     ind_factors <- p_design+seq_len(p)
@@ -303,7 +312,13 @@ weitrix_components <- function(
 
     result <- new("Components", list(
         row=row_mat, col=col_mat, 
-        ind_design=ind_design, ind_factors=ind_factors, R2=R2, iters=i))
+        ind_design=ind_design, 
+        ind_factors=ind_factors, 
+        R2=R2, 
+        df_total=df_total,
+        df_model=df_model,
+        df_residual=df_residual, 
+        iters=i))
 
     if (use_varimax)
         result <- components_varimax(result)
