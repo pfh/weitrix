@@ -25,7 +25,7 @@ weitrix_randomize <- function(weitrix, BPPARAM=getAutoBPPARAM()) {
         w[,part,drop=F]
     })
     result <- bplapply(feed, weitrix_randomize_inner, BPPARAM=BPPARAM)
-    weitrix_x(weitrix) <- do.call(rbind, result)
+    weitrix_x(weitrix) <- do.call(cbind, result)
 
     weitrix
 }
