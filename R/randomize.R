@@ -12,7 +12,7 @@ weitrix_randomize_inner <- function(w) {
 #' Weights are used to choose the standard deviation of values generated.
 #'
 #' @export
-weitrix_randomize <- function(weitrix, BPPARAM=getAutoBPPARAM()) {
+weitrix_randomize <- function(weitrix) {
     weitrix <- as_weitrix(weitrix)
 
     #weitrix_x(weitrix) <- 
@@ -24,7 +24,9 @@ weitrix_randomize <- function(weitrix, BPPARAM=getAutoBPPARAM()) {
     feed <- map(parts, function(part) {
         w[,part,drop=F]
     })
-    result <- bplapply(feed, weitrix_randomize_inner, BPPARAM=BPPARAM)
+    #Realization currently not working in workers
+    #result <- bplapply(feed, weitrix_randomize_inner, BPPARAM=BPPARAM)
+    result <- lapply(feed, weitrix_randomize_inner)
     weitrix_x(weitrix) <- do.call(cbind, result)
 
     weitrix
