@@ -9,12 +9,13 @@
 #'
 #' @param weitrix A weitrix, or something that can be cast to a weitrix with \code{as_weitrix( )}.
 #'
-#' @param n Number of observations required in each row and in each column.
+#' @param n_per_row Number of observations required in each row.
+#' @param n_per_col Number of observations required in each column.
 #'
 #' @param weigh_thresh Threshold weight. Can be changed from zero if weights smaller than a certain amount should be disregarded as observations.
 #'
 #' @export
-weitrix_filter <- function(weitrix, n, weight_thresh=0) {
+weitrix_filter <- function(weitrix, n_per_row, n_per_col=n_per_row, weight_thresh=0) {
     weitrix <- as_weitrix(weitrix)
     present <- weitrix_weights(weitrix) > weight_thresh
 
@@ -25,8 +26,8 @@ weitrix_filter <- function(weitrix, n, weight_thresh=0) {
     keep_col <- rep(T, ncol(weitrix))
     total <- sum(keep_row) + sum(keep_col)
     repeat {
-        keep_row[keep_row] <- rowSums2(present[keep_row, keep_col, drop=F]) >= n
-        keep_col[keep_col] <- colSums2(present[keep_row, keep_col, drop=F]) >= n
+        keep_row[keep_row] <- rowSums2(present[keep_row, keep_col, drop=F]) >= n_per_row
+        keep_col[keep_col] <- colSums2(present[keep_row, keep_col, drop=F]) >= n_per_col
         new_total <- sum(keep_row) + sum(keep_col)
         if (new_total == total) break
         total <- new_total

@@ -4,9 +4,9 @@
 \alias{weitrix_components}
 \title{Principal components of a weitrix}
 \usage{
-weitrix_components(weitrix, p = 2, design = ~1, max_iter = 100,
-  tol = 1e-05, use_varimax = TRUE, initial = NULL, verbose = TRUE,
-  BPPARAM = getAutoBPPARAM())
+weitrix_components(weitrix, p = 2, design = ~1, n_restarts = 2,
+  max_iter = 100, tol = 1e-05, use_varimax = TRUE, initial = NULL,
+  verbose = TRUE, BPPARAM = getAutoBPPARAM())
 }
 \description{
 Principal components of a weitrix

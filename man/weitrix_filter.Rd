@@ -4,12 +4,15 @@
 \alias{weitrix_filter}
 \title{Filter a weitrix to ensure each row and column contains sufficient observations}
 \usage{
-weitrix_filter(weitrix, n, weight_thresh = 0)
+weitrix_filter(weitrix, n_per_row, n_per_col = n_per_row,
+  weight_thresh = 0)
 }
 \arguments{
 \item{weitrix}{A weitrix, or something that can be cast to a weitrix with \code{as_weitrix( )}.}
 
-\item{n}{Number of observations required in each row and in each column.}
+\item{n_per_row}{Number of observations required in each row.}
+
+\item{n_per_col}{Number of observations required in each column.}
 
 \item{weigh_thresh}{Threshold weight. Can be changed from zero if weights smaller than a certain amount should be disregarded as observations.}
 }
