@@ -308,7 +308,7 @@ weitrix_components <- function(
     ind_factors <- p_design+seq_len(p)
 
     if (is.null(colnames(design)))
-        colnames(design) <- paste0("design", seq_len(p_design))
+        colnames(design) <- map_chr(seq_len(p_design), ~paste0("design",.))
 
     col_mat <- design
     if (!is.null(initial))
