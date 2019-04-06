@@ -100,7 +100,7 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col, BPPARAM) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=ncol(y), ncol=0))
 
-    parts <- partitions(ncol(y), nrow(y)*2)
+    parts <- partitions(ncol(y), nrow(y)*2, BPPARAM=BPPARAM)
     #cat("cols",length(parts),"\n")
     feed <- map(parts, function(part) {
         list(
@@ -134,7 +134,7 @@ fit_all_rows <- function(x,y,w, BPPARAM) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=nrow(y), ncol=0))
 
-    parts <- partitions(nrow(y), ncol(y)*2)
+    parts <- partitions(nrow(y), ncol(y)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
             x=x,
@@ -182,7 +182,7 @@ calc_weighted_ss_inner <- function(args) with(args, {
 })
 
 calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
-    parts <- partitions(ncol(x), nrow(x)*2)
+    parts <- partitions(ncol(x), nrow(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
             x=x[,part,drop=F],
@@ -322,8 +322,10 @@ weitrix_components <- function(
     #ss_total <- sum(centered^2*weights, na.rm=TRUE)
     ss_total <- calc_weighted_ss(x, weights, row_mat_center, design, BPPARAM=BPPARAM)
 
-    if (p == 0) 
+    if (p == 0) {
         max_iter <- 1
+        n_restarts <- 1
+    }
 
     result <- NULL
     best_R2 <- -1
@@ -365,7 +367,7 @@ weitrix_components <- function(
 #'
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p=10, design=~1, max_iter=100, tol=1e-5, 
+        weitrix, p=10, design=~1, n_restarts=2, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
@@ -378,7 +380,7 @@ weitrix_components_seq <- function(
         message("Finding ",p," components")
 
     result[[p]] <- weitrix_components(weitrix, p=p, 
-        design=design, max_iter=max_iter, tol=tol, 
+        design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
         verbose=verbose, BPPARAM=BPPARAM)
     
     for(i in rev(seq_len(p-1))) {
@@ -386,7 +388,7 @@ weitrix_components_seq <- function(
             message("Finding ",i," components")
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
-            design=design, max_iter=max_iter, tol=tol, 
+            design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
             use_varimax=FALSE, verbose=verbose, BPPARAM=BPPARAM,
             initial=result[[i+1]]$col[, result[[i+1]]$ind_factors[seq_len(i)]])
     }

@@ -27,7 +27,7 @@
 #'     metadata metadata<-
 #'
 #' @importFrom BiocParallel
-#'     bplapply
+#'     bplapply bpnworkers
 #'
 #' @importFrom BiocGenerics
 #'     rowSums colSums rbind cbind

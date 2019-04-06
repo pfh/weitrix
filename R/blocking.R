@@ -8,11 +8,16 @@
 #
 
 # item_size is how many doubles per item
-partitions <- function(n, item_size, max_bytes=getAutoBlockSize()) {
+partitions <- function(n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL) {
     if (n == 0L) return(list())
 
     step <- max(1L, as.integer(max_bytes/(8*item_size)))
-    step <- max(1L, as.integer(ceiling(n/ceiling(n/step))))
+    step <- as.integer(ceiling(n/ceiling(n/step)))
+    
+    if (!is.null(BPPARAM))
+        step <- min(step, as.integer(ceiling(n/bpnworkers(BPPARAM))))
+    step <- max(1L, step)
+    
     starts <- seq(1L, n, by=step)
     ends <- c(starts[-1L]-1L, n)
 
