@@ -88,7 +88,7 @@ fit_all_cols_inner <- function(args) with(args, {
 
     result <- lapply(seq_len(ncol(y)), function(i) {
         wi <- w[,i]
-        present <- wi != 0
+        present <- wi > 0
         fixed <- as.vector(fixed_row[present,,drop=F] %*% fixed_col[i,])
         least_squares(x[present,,drop=F],wi[present],y[present,i] - fixed)
     })
@@ -123,7 +123,7 @@ fit_all_rows_inner <- function(args) with(args, {
 
     result <- lapply(seq_len(nrow(y)), function(i) {
         wi <- w[i,]
-        present <- wi != 0
+        present <- wi > 0
         least_squares(x[present,,drop=F],wi[present],y[i,present])
     })
     
@@ -174,7 +174,7 @@ calc_weighted_ss_inner <- function(args) with(args, {
     total <- 0
     for(i in seq_len(ncol(x))) {
         wi <- w[,i]
-        present <- wi != 0
+        present <- wi > 0
         errors <- as.vector(x[present,i]) - as.vector(row[present,,drop=F] %*% col[i,]) 
         total <- total + sum(errors*errors*wi[present])
     }
@@ -205,11 +205,74 @@ calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
 # (A %*% t(B)) - (decomp$rows %*% t(decomp$cols))
 
 
+
+weitrix_components_inner <- function(
+        weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
+        ind_factors, ind_design, ss_total, tol, verbose, BPPARAM, outer_iter) {
+    R2 <- 0
+
+    for(i in seq_len(max_iter)) {
+        start <- proc.time()["elapsed"]
+
+        #gc()
+
+        # Esure col_mat[,ind_factors] are orthogonal col_mat[,ind_design]
+        col_mat[,ind_factors] <- qr.Q(qr(col_mat))[,ind_factors,drop=F]
+
+        # Update row_mat
+        row_mat <- fit_all_rows(col_mat, x, weights, BPPARAM=BPPARAM)
+
+        # Update col_mat
+        #centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
+        col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], 
+            x, weights, row_mat[,ind_design,drop=F], design, BPPARAM=BPPARAM)
+        col_mat <- cbind(design, col_mat)
+
+        # Make decomposition matrices orthogonal
+        decomp <- orthogonalize_decomp(row_mat[,ind_factors,drop=F], col_mat[,ind_factors,drop=F])
+        row_mat[,ind_factors] <- decomp$rows
+        col_mat[,ind_factors] <- decomp$cols
+
+        # Check R^2
+        #resid <- x - row_mat %*% t(col_mat)
+        #ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
+        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat, BPPARAM=BPPARAM)
+        ratio <- ss_resid/ss_total
+        last_R2 <- R2
+        R2 <- 1-ratio
+
+        end <- proc.time()["elapsed"]
+        if (verbose) {
+            message(sprintf("Iter %2d/%3d R^2=%7.5f %.1fsec",outer_iter, i,R2,end-start))
+        }
+
+        if (R2 - last_R2 <= tol) 
+            break
+    }
+
+
+    # Use original row and column names
+    # Give factors in the decomposition meaningful names
+    rownames(row_mat) <- rownames(weitrix)
+    rownames(col_mat) <- colnames(weitrix)
+    colnames(row_mat) <- c(colnames(design), 
+        map_chr(seq_len(p), ~paste0("C",.)))
+    colnames(col_mat) <- colnames(row_mat)
+
+    new("Components", list(
+        row=row_mat, col=col_mat, 
+        ind_design=ind_design, 
+        ind_factors=ind_factors, 
+        R2=R2, 
+        iters=i))
+}
+
+
 #' Principal components of a weitrix
 #'
 #' @export
 weitrix_components <- function(
-        weitrix, p=2, design=~1, max_iter=100, tol=1e-5, 
+        weitrix, p=2, design=~1, n_restarts=2, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
@@ -258,68 +321,36 @@ weitrix_components <- function(
     #centered <- x - row_mat_center %*% t(design)
     #ss_total <- sum(centered^2*weights, na.rm=TRUE)
     ss_total <- calc_weighted_ss(x, weights, row_mat_center, design, BPPARAM=BPPARAM)
-    R2 <- 0
 
     if (p == 0) 
         max_iter <- 1
 
-    for(i in seq_len(max_iter)) {
-        start <- proc.time()["elapsed"]
+    result <- NULL
+    best_R2 <- -1
+    R2s <- numeric(n_restarts)
+    for(i in seq_len(n_restarts)) {
+        col_mat <- design
+        # If initial given, only use for first restart
+        if (i == 1 && !is.null(initial))
+            col_mat <- cbind(col_mat, initial)
+        col_mat <- cbind(col_mat, 
+            matrix(rnorm(m*(p_total-ncol(col_mat))), nrow=m))
 
-        #gc()
-
-        # Esure col_mat[,ind_factors] are orthogonal col_mat[,ind_design]
-        col_mat[,ind_factors] <- qr.Q(qr(col_mat))[,ind_factors,drop=F]
-
-        # Update row_mat
-        row_mat <- fit_all_rows(col_mat, x, weights, BPPARAM=BPPARAM)
-
-        # Update col_mat
-        #centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
-        col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], 
-            x, weights, row_mat[,ind_design,drop=F], design, BPPARAM=BPPARAM)
-        col_mat <- cbind(design, col_mat)
-
-        # Make decomposition matrices orthogonal
-        decomp <- orthogonalize_decomp(row_mat[,ind_factors,drop=F], col_mat[,ind_factors,drop=F])
-        row_mat[,ind_factors] <- decomp$rows
-        col_mat[,ind_factors] <- decomp$cols
-
-        # Check R^2
-        #resid <- x - row_mat %*% t(col_mat)
-        #ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
-        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat, BPPARAM=BPPARAM)
-        ratio <- ss_resid/ss_total
-        last_R2 <- R2
-        R2 <- 1-ratio
-
-        end <- proc.time()["elapsed"]
-        if (verbose) {
-            message(sprintf("Iter %3d R^2=%7.5f %.1fsec",i,R2,end-start))
+        this_result <- weitrix_components_inner(
+            weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design, max_iter=max_iter, col_mat=col_mat, 
+            ind_factors=ind_factors, ind_design=ind_design, ss_total=ss_total, tol=tol, 
+            verbose=verbose, BPPARAM=BPPARAM, outer_iter=i)
+        R2s[i] <- this_result$R2
+        if (this_result$R2 > best_R2) {
+            result <- this_result
+            best_R2 <- this_result$R2
         }
-
-        if (R2 - last_R2 <= tol) 
-            break
     }
 
-
-    # Use original row and column names
-    # Give factors in the decomposition meaningful names
-    rownames(row_mat) <- rownames(weitrix)
-    rownames(col_mat) <- colnames(weitrix)
-    colnames(row_mat) <- c(colnames(design), 
-        map_chr(seq_len(p), ~paste0("C",.)))
-    colnames(col_mat) <- colnames(row_mat)
-
-    result <- new("Components", list(
-        row=row_mat, col=col_mat, 
-        ind_design=ind_design, 
-        ind_factors=ind_factors, 
-        R2=R2, 
-        df_total=df_total,
-        df_model=df_model,
-        df_residual=df_residual, 
-        iters=i))
+    result$df_total <- df_total
+    result$df_model <- df_model
+    result$df_residual <- df_residual
+    result$all_R2s <- R2s
 
     if (use_varimax)
         result <- components_varimax(result)

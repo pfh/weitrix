@@ -113,8 +113,8 @@ weitrix_elist <- function(weitrix) {
     weitrix <- as_weitrix(weitrix)
 
     new("EList", list(
-        E=weitrix_x(weitrix),
-        weights=weitrix_weights(weitrix),
+        E=as.matrix(weitrix_x(weitrix)),
+        weights=as.matrix(weitrix_weights(weitrix)),
         genes=as.data.frame(rowData(weitrix)),
         targets=as.data.frame(colData(weitrix))))
 }
