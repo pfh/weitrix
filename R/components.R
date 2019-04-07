@@ -408,8 +408,28 @@ components_seq_scree <- function(comp_seq) {
     R2 - c(0, R2[-length(R2)])
 }
 
-
-
+#' Produce a scree plot
+#' 
+#' @export
+components_seq_screeplot <- function(comp_seq, rand_seq=NULL) {
+    n <- length(comp_seq)
+    var_exp <- components_seq_scree(comp_seq)
+    line <- geom_point(aes(x=seq_len(n), y=var_exp), color="blue", size=2)
+    labels <- labs(x="Number of components", y="Further variance explained")
+    coord <- coord_cartesian(ylim=c(0,max(var_exp)))
+    scale_y <- scale_y_continuous(labels=percent)
+    scale_x <- scale_x_continuous(minor_breaks = c())
+    ruler0 <- geom_hline(yintercept=0)
+    
+    if (is.null(rand_seq))
+        return( ggplot() + ruler0 + line + coord + labels + scale_y + scale_x)
+    
+    rand_var_exp <- components_seq_scree(rand_seq)
+    rand_line <-  geom_point(aes(x=seq_along(rand_var_exp), y=rand_var_exp), color="red", size=2)
+    ruler <- geom_hline(yintercept=max(rand_var_exp), color="red")
+    
+    ggplot() + ruler0 + rand_line + line + ruler + coord + labels + scale_y + scale_x
+}
 
 
 

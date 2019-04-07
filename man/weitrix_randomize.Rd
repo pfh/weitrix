@@ -4,7 +4,7 @@
 \alias{weitrix_randomize}
 \title{Generate a random normally distributed version of a weitrix}
 \usage{
-weitrix_randomize(weitrix, BPPARAM = getAutoBPPARAM())
+weitrix_randomize(weitrix)
 }
 \description{
 Weights are used to choose the standard deviation of values generated.

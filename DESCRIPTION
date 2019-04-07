@@ -18,5 +18,7 @@ Imports:
     BiocParallel,
     BiocGenerics,
     limma,
-    purrr
+    purrr,
+    ggplot2,
+    scales
 RoxygenNote: 6.1.1
