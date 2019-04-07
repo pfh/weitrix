@@ -53,8 +53,8 @@ counts_shift_inner <- function(counts, groups, min_reads) {
     rownames(shifts) <- names(groups)
     rownames(weights) <- names(groups)
     #rownames(totals) <- names(groups)
-    colnames(shifts) <- colnames(counts)
-    colnames(weights) <- colnames(counts)
+    #colnames(shifts) <- colnames(counts)
+    #colnames(weights) <- colnames(counts)
     #colnames(totals) <- colnames(counts)
     
     # Drop genes with zero count counts only in a single peak
@@ -63,7 +63,7 @@ counts_shift_inner <- function(counts, groups, min_reads) {
     weights <- weights[good,,drop=F]
     #totals <- totals[good,,drop=F]
     per_read_weights <- per_read_weights[good]
-    
+
     SummarizedExperiment(
         assays=list(
             x=realize(shifts),
@@ -93,6 +93,7 @@ counts_shift <- function(counts, grouping, min_reads=1, biovar=TRUE, design=~0, 
         counts_shift_inner(counts, groups[part], min_reads)
     })
     result <- do.call(rbind, result)
+    colnames(result) <- colnames(counts)
     result <- bless_weitrix(result, "x", "weights")
     
     if (biovar) {
