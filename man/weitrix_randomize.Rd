@@ -6,6 +6,15 @@
 \usage{
 weitrix_randomize(weitrix)
 }
+\arguments{
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+}
 \description{
-Weights are used to choose the standard deviation of values generated.
+Values are generated with variance equal to 1/weight.
+This can be use see what R-squared would be achieved with purely random data,
+and therefore an appropriate number of components to use.
+This is known as Parallel Analysis.
+}
+\seealso{
+\code{\link{components_seq_screeplot}}
 }

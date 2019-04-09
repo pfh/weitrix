@@ -2,10 +2,23 @@
 % Please edit documentation in R/weitrix.R
 \name{weitrix_weights}
 \alias{weitrix_weights}
+\alias{weitrix_weights<-}
 \title{Get a weitrix object's "weights" matrix}
 \usage{
 weitrix_weights(weitrix)
+
+weitrix_weights(x) <- value
+}
+\arguments{
+\item{value}{New value.}
 }
 \description{
 Get a weitrix object's "weights" matrix
 }
+\section{Functions}{
+\itemize{
+\item \code{weitrix_weights}: Get the weights of a weitrix.
+
+\item \code{weitrix_weights<-}: Set the weights of a weitrix.
+}}
+

@@ -2,12 +2,69 @@
 % Please edit documentation in R/components.R
 \name{weitrix_components}
 \alias{weitrix_components}
+\alias{weitrix_components_seq}
 \title{Principal components of a weitrix}
 \usage{
 weitrix_components(weitrix, p = 2, design = ~1, n_restarts = 2,
   max_iter = 100, tol = 1e-05, use_varimax = TRUE, initial = NULL,
   verbose = TRUE, BPPARAM = getAutoBPPARAM())
+
+weitrix_components_seq(weitrix, p = 10, design = ~1, n_restarts = 2,
+  max_iter = 100, tol = 1e-05, use_varimax = TRUE, verbose = TRUE,
+  BPPARAM = getAutoBPPARAM())
+}
+\arguments{
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+
+\item{p}{Number of components to find.}
+
+\item{design}{A formula referring to \code{colData(weitrix)} or a matrix, giving predictors of a linear model for the experimental design. By default only an intercept term is used, ie rows are centered before finding components. A more complex formula might be used to account for batch effects. \code{~0} can be used if rows are already centered.}
+
+\item{n_restarts}{Number of restarts of the iteration to use.}
+
+\item{max_iter}{Maximum iterations.}
+
+\item{tol}{Stop iterating if R-squared increased by less than this amount in an iteration.}
+
+\item{use_varimax}{Use varimax rotation to enhance interpretability of components.}
+
+\item{initial}{Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.}
+
+\item{verbose}{Show messages about the progress of the iterations.}
+
+\item{BPPARAM}{BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.}
 }
 \description{
-Principal components of a weitrix
+Finds principal components of a weitrix.
+If varimax rotation is enabled, these are then rotated to enhance interpretability.
+}
+\details{
+An iterative method is used, starting from a random initial set of components.
+It is possible for this to get stuck at a local minimum.
+To ameliorate this, the iteration is run \code{n_restarts} times and the best result used.
+Examine \code{all_R2s} in the output to see if this is happening -- 
+if the values are not all nearly identital, the iteration is sometimes getting stuck at local minima..
+Increase \code{n_restarts} to increase the odds of finding the global minimum.
+
+No automatic scaling of the weitrix is performed --
+all the measurements in the weitrix are assumed to be on a comparable scale.
+}
+\section{Functions}{
+\itemize{
+\item \code{weitrix_components}: Find a matrix decomposition with the specified number of components.
+
+\item \code{weitrix_components_seq}: Produce a sequence of weitrix decompositions with 1 to p components.
+}}
+
+\examples{
+# Variables in rows, observations in columns, as is the Bioconductor convention
+dat <- t(iris[,1:4])
+
+# Find two components
+comp <- weitrix_components(dat, p=2, max_iter=5, n_restart=1)
+
+# Examine row and col matrices
+pairs(comp$row, panel=function(x,y) text(x,y,rownames(comp$row)))
+pairs(comp$col)
+
 }

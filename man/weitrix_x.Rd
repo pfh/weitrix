@@ -2,10 +2,25 @@
 % Please edit documentation in R/weitrix.R
 \name{weitrix_x}
 \alias{weitrix_x}
+\alias{weitrix_x<-}
 \title{Get a weitrix object's "x" matrix}
 \usage{
 weitrix_x(weitrix)
+
+weitrix_x(x) <- value
+}
+\arguments{
+\item{weitrix}{A weitrix object.}
+
+\item{value}{New value.}
 }
 \description{
 Get a weitrix object's "x" matrix
 }
+\section{Functions}{
+\itemize{
+\item \code{weitrix_x}: Get the observations matrix of a weitrix.
+
+\item \code{weitrix_x<-}: Set the observations matrix of a weitrix.
+}}
+

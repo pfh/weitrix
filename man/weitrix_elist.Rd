@@ -6,6 +6,10 @@
 \usage{
 weitrix_elist(weitrix)
 }
+\arguments{
+\item{weitrix}{A weitrix object.}
+}
 \description{
-Convert a weitrix object to a limma EList object
+The resulting object can be used as input to \code{limma::lmFit}
+for a limma analysis.
 }

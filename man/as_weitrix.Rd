@@ -2,21 +2,39 @@
 % Please edit documentation in R/weitrix.R
 \name{as_weitrix}
 \alias{as_weitrix}
-\title{Ensure data is a weighted matrix}
+\title{Convert data to a weitrix}
 \usage{
 as_weitrix(object, weights = NULL)
 }
-\description{
-Ensure data is a weighted matrix or "weitrix". 
-A weitrix is a SummarizedExperiment or subclass thereof with some metadata fields set. 
-If it is ambiguous how to do this, produce an error.
-}
-\details{
+\arguments{
+\item{object}{Object to convert.}
+
+\item{weights}{Optional, weights matrix if not present in \code{object}.
+
 Input can be a matrix or DelayedArray.
 
 Input can be anything the limma package recognizing,
 notably the EList class (for example as output by voom or vooma).
 
 If weights are not present in "object" and not given with "weights",
-they default for 0 for NA values and 1 for everything else.
+they default for 0 for NA values and 1 for everything else.}
+}
+\value{
+A SummarizedExperiment object with metadata fields marking it as a weitrix.
+}
+\description{
+Ensure data is a weighted matrix or "weitrix". 
+A weitrix is a SummarizedExperiment or subclass thereof with some metadata fields set. 
+If it is ambiguous how to do this, produce an error.
+}
+\examples{
+library(SummarizedExperiment)
+
+mat <- matrix(c(1,2,NA,3,NA,4), ncol=2)
+weitrix <- as_weitrix(mat)
+
+metadata(weitrix)
+weitrix_x(weitrix)
+weitrix_weights(weitrix)
+
 }

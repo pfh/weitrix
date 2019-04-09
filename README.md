@@ -9,6 +9,7 @@ BiocManager::install("pfh/weitrix")
 ```
 
 * [GitHub page](https://github.com/pfh/weitrix)
+* [Documentation site](http://logarithmic.net/weitrix/)
 
 ## Weights
 

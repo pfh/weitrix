@@ -6,7 +6,7 @@ setMethod("show", "Components", function(object) {
     cat("Components are:", paste(colnames(object$row), collapse=", "),"\n")
     cat("$row : ", nrow(object$row),"x",ncol(object$row),"matrix\n")
     cat("$col : ", nrow(object$col),"x",ncol(object$col),"matrix\n")
-    cat("$R2  : ", object$R2)
+    cat("$R2  : ", object$R2,"\n")
 })
 
 
@@ -262,7 +262,7 @@ weitrix_components_inner <- function(
     new("Components", list(
         row=row_mat, col=col_mat, 
         ind_design=ind_design, 
-        ind_factors=ind_factors, 
+        ind_components=ind_factors, 
         R2=R2, 
         iters=i))
 }
@@ -270,6 +270,57 @@ weitrix_components_inner <- function(
 
 #' Principal components of a weitrix
 #'
+#' Finds principal components of a weitrix.
+#' If varimax rotation is enabled, these are then rotated to enhance interpretability.
+#'
+#' An iterative method is used, starting from a random initial set of components.
+#' It is possible for this to get stuck at a local minimum.
+#' To ameliorate this, the iteration is run \code{n_restarts} times and the best result used.
+#' Examine \code{all_R2s} in the output to see if this is happening -- 
+#' if the values are not all nearly identital, the iteration is sometimes getting stuck at local minima..
+#' Increase \code{n_restarts} to increase the odds of finding the global minimum.
+#'
+#' No automatic scaling of the weitrix is performed --
+#' all the measurements in the weitrix are assumed to be on a comparable scale.
+#'
+#' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
+#' @param p Number of components to find.
+#' @param design A formula referring to \code{colData(weitrix)} or a matrix, giving predictors of a linear model for the experimental design. By default only an intercept term is used, ie rows are centered before finding components. A more complex formula might be used to account for batch effects. \code{~0} can be used if rows are already centered.
+#' @param n_restarts Number of restarts of the iteration to use.
+#' @param max_iter Maximum iterations.
+#' @param tol Stop iterating if R-squared increased by less than this amount in an iteration.
+#' @param use_varimax Use varimax rotation to enhance interpretability of components.
+#' @param initial Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.
+#' @param verbose Show messages about the progress of the iterations.
+#' @param BPPARAM BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.
+#' @return
+#' A "Components" object with the following elements accessible using \code{$}.
+#' \describe{
+#'     \item{row}{Row matrix, aka loadings. Rows are rows in the weitrix, and columns contain the experimental design (usually just an intercept term), and components.}
+#'     \item{col}{Column matrix, aka scores. Rows are columns in the weitrix, and columns contain fitted coefficients for the experimental design, and components.}
+#'     \item{R2}{Weighted R squared statistic. The proportion of total variance explained by the components.}
+#'     \item{all_R2s}{R2 statistics from all restarts. This can be used to check how consistently the iteration finds optimal components.}
+#'     \item{ind_design}{Column indices associated with experimental design.}
+#'     \item{ind_components}{Column indices associated with components.}
+#' }
+#'
+#' For a result \code{comp}, the original measurements are approximated by \code{comp$row %*% t(comp$col)}.
+#'
+#' \code{weitrix_components_seq} returns a list of Components objects, with increasing numbers of components from 1 up to p.
+#'
+#' @examples
+#' # Variables in rows, observations in columns, as is the Bioconductor convention
+#' dat <- t(iris[,1:4])
+#'
+#' # Find two components
+#' comp <- weitrix_components(dat, p=2, max_iter=5, n_restart=1)
+#'
+#' # Examine row and col matrices
+#' pairs(comp$row, panel=function(x,y) text(x,y,rownames(comp$row)))
+#' pairs(comp$col)
+#'
+#' @describeIn weitrix_components
+#' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
         weitrix, p=2, design=~1, n_restarts=2, max_iter=100, tol=1e-5, 
@@ -363,8 +414,8 @@ weitrix_components <- function(
 }
 
 
-#' Progressively produce decompositions with varying number of components
-#'
+#' @describeIn weitrix_components
+#' Produce a sequence of weitrix decompositions with 1 to p components.
 #' @export
 weitrix_components_seq <- function(
         weitrix, p=10, design=~1, n_restarts=2, max_iter=100, tol=1e-5, 
