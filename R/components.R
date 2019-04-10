@@ -13,13 +13,13 @@ setMethod("show", "Components", function(object) {
 # Ensure largest components are first, positive skew on columns of $row
 components_order_and_flip <- function(comp) {
     # Ensure largest factor first
-    scaling <- sqrt(colMeans(comp$col[,comp$ind_factors,drop=F]^2))
-    reordering <- comp$ind_factors[order(scaling, decreasing=TRUE)]
-    comp$row[,comp$ind_factors] <- comp$row[,reordering,drop=F]
-    comp$col[,comp$ind_factors] <- comp$col[,reordering,drop=F]
+    scaling <- sqrt(colMeans(comp$col[,comp$ind_components,drop=F]^2))
+    reordering <- comp$ind_components[order(scaling, decreasing=TRUE)]
+    comp$row[,comp$ind_components] <- comp$row[,reordering,drop=F]
+    comp$col[,comp$ind_components] <- comp$col[,reordering,drop=F]
 
     # Ensure positive skew (outliers positive)
-    flips <- comp$ind_factors[colSums(comp$row[,comp$ind_factors,drop=F]^3) < 0]
+    flips <- comp$ind_components[colSums(comp$row[,comp$ind_components,drop=F]^3) < 0]
     comp$row[,flips] <- -comp$row[,flips,drop=F]
     comp$col[,flips] <- -comp$col[,flips,drop=F]
 
@@ -37,14 +37,14 @@ components_order_and_flip <- function(comp) {
 #'
 #' @export
 components_varimax <- function(comp) {
-    if (length(comp$ind_factors) < 2)
+    if (length(comp$ind_components) < 2)
         return(comp)
 
-    rotation <- varimax(comp$row[,comp$ind_factors,drop=FALSE], normalize=FALSE)
-    comp$row[,comp$ind_factors] <- 
-        comp$row[,comp$ind_factors] %*% rotation$rotmat
-    comp$col[,comp$ind_factors] <- 
-        comp$col[,comp$ind_factors] %*% rotation$rotmat
+    rotation <- varimax(comp$row[,comp$ind_components,drop=FALSE], normalize=FALSE)
+    comp$row[,comp$ind_components] <- 
+        comp$row[,comp$ind_components] %*% rotation$rotmat
+    comp$col[,comp$ind_components] <- 
+        comp$col[,comp$ind_components] %*% rotation$rotmat
 
     components_order_and_flip(comp)
 }
@@ -208,7 +208,7 @@ calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
 
 weitrix_components_inner <- function(
         weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
-        ind_factors, ind_design, ss_total, tol, verbose, BPPARAM, outer_iter) {
+        ind_components, ind_design, ss_total, tol, verbose, BPPARAM, outer_iter) {
     R2 <- 0
 
     for(i in seq_len(max_iter)) {
@@ -216,8 +216,8 @@ weitrix_components_inner <- function(
 
         #gc()
 
-        # Esure col_mat[,ind_factors] are orthogonal col_mat[,ind_design]
-        col_mat[,ind_factors] <- qr.Q(qr(col_mat))[,ind_factors,drop=F]
+        # Esure col_mat[,ind_components] are orthogonal col_mat[,ind_design]
+        col_mat[,ind_components] <- qr.Q(qr(col_mat))[,ind_components,drop=F]
 
         # Update row_mat
         row_mat <- fit_all_rows(col_mat, x, weights, BPPARAM=BPPARAM)
@@ -229,9 +229,9 @@ weitrix_components_inner <- function(
         col_mat <- cbind(design, col_mat)
 
         # Make decomposition matrices orthogonal
-        decomp <- orthogonalize_decomp(row_mat[,ind_factors,drop=F], col_mat[,ind_factors,drop=F])
-        row_mat[,ind_factors] <- decomp$rows
-        col_mat[,ind_factors] <- decomp$cols
+        decomp <- orthogonalize_decomp(row_mat[,ind_components,drop=F], col_mat[,ind_components,drop=F])
+        row_mat[,ind_components] <- decomp$rows
+        col_mat[,ind_components] <- decomp$cols
 
         # Check R^2
         #resid <- x - row_mat %*% t(col_mat)
@@ -262,7 +262,7 @@ weitrix_components_inner <- function(
     new("Components", list(
         row=row_mat, col=col_mat, 
         ind_design=ind_design, 
-        ind_components=ind_factors, 
+        ind_components=ind_components, 
         R2=R2, 
         iters=i))
 }
@@ -356,7 +356,7 @@ weitrix_components <- function(
     df_residual <- df_total-df_model
 
     ind_design <- seq_len(p_design)
-    ind_factors <- p_design+seq_len(p)
+    ind_components <- p_design+seq_len(p)
 
     if (is.null(colnames(design)))
         colnames(design) <- map_chr(seq_len(p_design), ~paste0("design",.))
@@ -391,7 +391,7 @@ weitrix_components <- function(
 
         this_result <- weitrix_components_inner(
             weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design, max_iter=max_iter, col_mat=col_mat, 
-            ind_factors=ind_factors, ind_design=ind_design, ss_total=ss_total, tol=tol, 
+            ind_components=ind_components, ind_design=ind_design, ss_total=ss_total, tol=tol, 
             verbose=verbose, BPPARAM=BPPARAM, outer_iter=i)
         R2s[i] <- this_result$R2
         if (this_result$R2 > best_R2) {
@@ -441,7 +441,7 @@ weitrix_components_seq <- function(
         result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
             use_varimax=FALSE, verbose=verbose, BPPARAM=BPPARAM,
-            initial=result[[i+1]]$col[, result[[i+1]]$ind_factors[seq_len(i)]])
+            initial=result[[i+1]]$col[, result[[i+1]]$ind_components[seq_len(i)]])
     }
 
     if (use_varimax)
