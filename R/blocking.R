@@ -14,8 +14,9 @@ partitions <- function(n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL)
     step <- max(1L, as.integer(max_bytes/(8*item_size)))
     step <- as.integer(ceiling(n/ceiling(n/step)))
     
-    if (!is.null(BPPARAM))
-        step <- min(step, as.integer(ceiling(n/bpnworkers(BPPARAM))))
+    # Overhead of multiprocessing is high
+    #if (!is.null(BPPARAM))
+    #    step <- min(step, as.integer(ceiling(n/bpnworkers(BPPARAM))))
     step <- max(1L, step)
     
     starts <- seq(1L, n, by=step)
