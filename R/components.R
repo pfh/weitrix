@@ -361,12 +361,6 @@ weitrix_components <- function(
     if (is.null(colnames(design)))
         colnames(design) <- map_chr(seq_len(p_design), ~paste0("design",.))
 
-    col_mat <- design
-    if (!is.null(initial))
-        col_mat <- cbind(col_mat, initial)
-    col_mat <- cbind(col_mat, 
-        matrix(rnorm(m*(p_total-ncol(col_mat))), nrow=m))
-
     # Centering to compare against
     row_mat_center <- fit_all_rows(design, x, weights, BPPARAM=BPPARAM)
     #centered <- x - row_mat_center %*% t(design)
@@ -383,9 +377,16 @@ weitrix_components <- function(
     R2s <- numeric(n_restarts)
     for(i in seq_len(n_restarts)) {
         col_mat <- design
-        # If initial given, only use for first restart
-        if (i == 1 && !is.null(initial))
-            col_mat <- cbind(col_mat, initial)
+        if (!is.null(initial)) {
+            # Use first columns of initial on initial run
+            # In restarts, use a random projection of all columns from initial
+            proj_out <- min(ncol(initial), p)
+            if (i == 1)
+                proj <- diag(ncol(initial))[,seq_len(proj_out),drop=F]
+            else
+                proj <- matrix(rnorm(proj_out*ncol(initial)), ncol=proj_out)
+            col_mat <- cbind(col_mat, initial %*% proj)
+        }
         col_mat <- cbind(col_mat, 
             matrix(rnorm(m*(p_total-ncol(col_mat))), nrow=m))
 
@@ -441,7 +442,7 @@ weitrix_components_seq <- function(
         result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
             use_varimax=FALSE, verbose=verbose, BPPARAM=BPPARAM,
-            initial=result[[i+1]]$col[, result[[i+1]]$ind_components[seq_len(i)]])
+            initial=result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F])
     }
 
     if (use_varimax)
