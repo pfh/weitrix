@@ -69,7 +69,6 @@ counts_shift_inner <- function(counts, groups, min_reads) {
             x=realize(shifts),
             weights=realize(weights)),
         rowData=data.frame(
-            name=I(rownames(shifts)),
             per_read_weight = per_read_weights))
 }
 

@@ -8,15 +8,15 @@
 #
 
 # item_size is how many doubles per item
-partitions <- function(n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL) {
+partitions <- function(n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL, cpu_heavy=FALSE) {
     if (n == 0L) return(list())
 
     step <- max(1L, as.integer(max_bytes/(8*item_size)))
     step <- as.integer(ceiling(n/ceiling(n/step)))
     
     # Overhead of multiprocessing is high
-    #if (!is.null(BPPARAM))
-    #    step <- min(step, as.integer(ceiling(n/bpnworkers(BPPARAM))))
+    if (!is.null(BPPARAM) && cpu_heavy)
+        step <- min(step, as.integer(ceiling(n/bpnworkers(BPPARAM))))
     step <- max(1L, step)
     
     starts <- seq(1L, n, by=step)

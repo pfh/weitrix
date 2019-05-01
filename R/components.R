@@ -100,7 +100,7 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col, BPPARAM) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=ncol(y), ncol=0))
 
-    parts <- partitions(ncol(y), nrow(y)*2, BPPARAM=BPPARAM)
+    parts <- partitions(ncol(y), nrow(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
     #cat("cols",length(parts),"\n")
     feed <- map(parts, function(part) {
         list(
@@ -134,7 +134,7 @@ fit_all_rows <- function(x,y,w, BPPARAM) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=nrow(y), ncol=0))
 
-    parts <- partitions(nrow(y), ncol(y)*2, BPPARAM=BPPARAM)
+    parts <- partitions(nrow(y), ncol(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
     feed <- map(parts, function(part) {
         list(
             x=x,
@@ -242,7 +242,7 @@ weitrix_components_inner <- function(
         R2 <- 1-ratio
 
         end <- proc.time()["elapsed"]
-        if (verbose) {
+        if (verbose && (i <= 5 || i %% 10 == 0)) {
             message(sprintf("Iter %2d/%3d R^2=%7.5f %.1fsec",outer_iter, i,R2,end-start))
         }
 
@@ -323,7 +323,7 @@ weitrix_components_inner <- function(
 #' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
-        weitrix, p=2, design=~1, n_restarts=2, max_iter=100, tol=1e-5, 
+        weitrix, p=2, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
@@ -419,7 +419,7 @@ weitrix_components <- function(
 #' Produce a sequence of weitrix decompositions with 1 to p components.
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p=10, design=~1, n_restarts=2, max_iter=100, tol=1e-5, 
+        weitrix, p=10, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
@@ -452,35 +452,100 @@ weitrix_components_seq <- function(
 }
 
 
+inner_scree <- function(comp_seq) {
+    if (is(comp_seq, "Components")) {
+        assert_that(comp_seq$p == 1)
+        comp_seq <- list(comp_seq)
+    }
+    R2 <- map_dbl(comp_seq, "R2")
+    R2 - c(0, R2[-length(R2)])
+}
+
 #' Proportion more variance explained by adding components one at a time
 #'
 #' @export
-components_seq_scree <- function(comp_seq) {
-    R2 <- map_dbl(comp_seq, "R2")
-    R2 - c(0, R2[-length(R2)])
+components_seq_scree <- function(comp_seq, rand_seq=NULL) {
+    explained <- inner_scree(comp_seq)
+    n <- length(explained)
+    
+    result <- data.frame(components=seq_len(n), explained=explained)
+    result$kaiser <- rep(1/min(nrow(comp_seq[[1]]$row), nrow(comp_seq[[1]]$col)), n)
+    if (!is.null(rand_seq)) {
+        pa <- inner_scree(rand_seq)
+        length(pa) <- n
+        pa1 <- pa[1]
+        result$pa <- pa
+        result$pa1 <- rep(pa1, n)
+
+        decay <- rep(0, n)
+        pool <- 1.0
+        effective_vars <- 1/pa1
+        for(i in seq_len(n)) {
+            decay[i] <- pool/effective_vars
+            pool <- pool - explained[i]
+            effective_vars <- effective_vars-1
+        }
+        result$optimistic <- decay
+    }
+    
+    result
 }
 
 #' Produce a scree plot
 #' 
 #' @export
 components_seq_screeplot <- function(comp_seq, rand_seq=NULL) {
-    n <- length(comp_seq)
-    var_exp <- components_seq_scree(comp_seq)
-    line <- geom_point(aes(x=seq_len(n), y=var_exp), color="blue", size=2)
-    labels <- labs(x="Number of components", y="Further variance explained")
-    coord <- coord_cartesian(ylim=c(0,max(var_exp)))
-    scale_y <- scale_y_continuous(labels=percent)
-    scale_x <- scale_x_continuous(minor_breaks = c())
-    ruler0 <- geom_hline(yintercept=0)
+    df <- components_seq_scree(comp_seq, rand_seq)
+    n <- nrow(df)
     
-    if (is.null(rand_seq))
-        return( ggplot() + ruler0 + line + coord + labels + scale_y + scale_x)
+    result <- ggplot(df, aes(x=components))
     
-    rand_var_exp <- components_seq_scree(rand_seq)
-    rand_line <-  geom_point(aes(x=seq_along(rand_var_exp), y=rand_var_exp), color="red", size=2)
-    ruler <- geom_hline(yintercept=max(rand_var_exp), color="red")
+    result <- result +
+        geom_line(aes(y=kaiser, color="Kaiser Criterion"))
     
-    ggplot() + ruler0 + rand_line + line + ruler + coord + labels + scale_y + scale_x
+    if (!is.null(df$pa)) {
+        result <- result +
+            geom_line(aes(y=pa1, color="Parallel Analysis")) +
+            geom_line(aes(y=optimistic, color="Optimistic"))
+        
+    }
+    
+    result <- result + 
+        geom_point(aes(x=components, y=explained)) +
+        geom_hline(yintercept=0) +
+        labs(x="Number of components", y="Further variance explained",
+             color="Threshold guidance")
+    result
+    # 
+    # n <- length(comp_seq)
+    # var_exp <- components_seq_scree(comp_seq)
+    # line <- geom_point(aes(x=seq_len(n), y=var_exp), color="blue", size=2)
+    # labels <- labs(x="Number of components", y="Further variance explained")
+    # coord <- coord_cartesian(ylim=c(0,max(var_exp)))
+    # scale_y <- scale_y_continuous(labels=percent)
+    # scale_x <- scale_x_continuous(minor_breaks = c())
+    # ruler0 <- geom_hline(yintercept=0)
+    # 
+    # if (is.null(rand_seq))
+    #     return( ggplot() + ruler0 + line + coord + labels + scale_y + scale_x)
+    # 
+    # rand_var_exp <- components_seq_scree(rand_seq)
+    # max_rand <- max(rand_var_exp)
+    # rand_line <-  geom_point(aes(x=seq_along(rand_var_exp), y=rand_var_exp), color="red", size=2)
+    # 
+    # ruler <- geom_hline(yintercept=max(rand_var_exp), color="red")
+    # 
+    # decay <- rep(0, n)
+    # pool <- 1.0
+    # effective_vars <- 1/max_rand
+    # for(i in seq_len(n)) {
+    #     decay[i] <- pool/effective_vars
+    #     pool <- pool - var_exp[i]
+    #     effective_vars <- effective_vars-1
+    # }
+    # decay_line <- geom_line(aes(x=seq_len(n), y=decay), color="green")
+    # 
+    # ggplot() + ruler0 + rand_line + decay_line + line + ruler + coord + labels + scale_y + scale_x
 }
 
 
