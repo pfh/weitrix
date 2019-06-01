@@ -17,7 +17,7 @@ A weight is one over the variance of a measurement. (There may possibly be a fur
 
 A weight of 0 indicates missing data.
 
-## Blessed be the weitrix
+## What is a weitrix?
 
 A "weitrix" is a SummarizedExperiment object (or subclass thereof) with two assays, one containing the actual measurements and the other the associated weights. A "weitrix" metadata entry stores the names of these assays. There are several ways to construct a weitrix:
 
@@ -39,12 +39,14 @@ Additionally, the blessed assays be accessed using: `weitrix_x` `weitrix_weights
 
 A weitrix can be converted to an EList object for use with limma: `weitrix_elist`
 
-The `$col` matrix of a `Components` may be used as a design matrix. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
+The `$col` matrix of a `Components` may be used as a design matrix for differential analysis with limma. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
 
 ## Big datasets
 
 weitrix uses DelayedArray assays. weitrix will attempt to perform calculations blockwise in parallel. weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
-`DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`. 
+`DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`.
+
+The x and weights assays in a weitrix may be stored in an exotic matrix class, but it should always be possible to convert back to a normal R matrix with `as.matrix`.
 
 Set the DelayedArray realization backend to `RleMatrix` or `HDF5Array` if weitrices will be too big to fit in memory uncompressed. The `RleMatrix` stores data in memory in a compressed form. The `HDF5Array` backend stores data on disk, in temporary files.
 

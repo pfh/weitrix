@@ -1,23 +1,23 @@
 
 #' Convert data to a weitrix
 #'
-#' Ensure data is a weighted matrix or "weitrix". 
-#' A weitrix is a SummarizedExperiment or subclass thereof with some metadata fields set. 
-#' If it is ambiguous how to do this, produce an error.
+#' Ensure data is a weighted matrix or "weitrix". A weitrix is a
+#' SummarizedExperiment or subclass thereof with some metadata fields set. If it
+#' is ambiguous how to do this, produce an error.
+#'
+#' Input can be a matrix or DelayedArray.
+#'
+#' Input can be anything the limma package recognizes, notably the limma EList
+#' class (for example as output by \code{voom} or \code{vooma}).
+#'
+#' If weights are not present in "object" and not given with "weights", they
+#' default for 0 for NA values and 1 for everything else.
 #'
 #' @param object Object to convert.
 #' @param weights Optional, weights matrix if not present in \code{object}.
 #'
-#' Input can be a matrix or DelayedArray.
-#'
-#' Input can be anything the limma package recognizing,
-#' notably the EList class (for example as output by voom or vooma).
-#'
-#' If weights are not present in "object" and not given with "weights",
-#' they default for 0 for NA values and 1 for everything else.
-#'
-#' @return
-#' A SummarizedExperiment object with metadata fields marking it as a weitrix.
+#' @return A SummarizedExperiment object with metadata fields marking it as a
+#' weitrix.
 #'
 #' @examples
 #' library(SummarizedExperiment)
