@@ -12,6 +12,8 @@ weitrix_x(x) <- value
 \arguments{
 \item{weitrix}{A weitrix object.}
 
+\item{x}{The weitrix to modify.}
+
 \item{value}{New value.}
 }
 \description{

@@ -454,7 +454,7 @@ weitrix_components_seq <- function(
 
 inner_scree <- function(comp_seq) {
     if (is(comp_seq, "Components")) {
-        assert_that(comp_seq$p == 1)
+        assert_that(length(comp_seq$ind_components) == 1)
         comp_seq <- list(comp_seq)
     }
     R2 <- map_dbl(comp_seq, "R2")
@@ -462,6 +462,9 @@ inner_scree <- function(comp_seq) {
 }
 
 #' Proportion more variance explained by adding components one at a time
+#'
+#' @param comp_seq A list of Components objects, as produced by \code{components_seq}.
+#' @param rand_seq Optional. A Components object with a single component, or list of Components objects. This should be based on a randomized version of the weitrix, for example as produced by \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.
 #'
 #' @export
 components_seq_scree <- function(comp_seq, rand_seq=NULL) {
@@ -492,60 +495,33 @@ components_seq_scree <- function(comp_seq, rand_seq=NULL) {
 }
 
 #' Produce a scree plot
+#'
+#' @param comp_seq A list of Components objects, as produced by \code{components_seq}.
+#' @param rand_seq Optional. A Components object with a single component, or list of Components objects.
 #' 
 #' @export
 components_seq_screeplot <- function(comp_seq, rand_seq=NULL) {
     df <- components_seq_scree(comp_seq, rand_seq)
     n <- nrow(df)
     
-    result <- ggplot(df, aes(x=components))
+    result <- ggplot(df, aes_string(x="components"))
     
     result <- result +
-        geom_line(aes(y=kaiser, color="Kaiser Criterion"))
+        geom_line(aes_string(y="kaiser", color='"Kaiser Criterion"'))
     
     if (!is.null(df$pa)) {
         result <- result +
-            geom_line(aes(y=pa1, color="Parallel Analysis")) +
-            geom_line(aes(y=optimistic, color="Optimistic"))
+            geom_line(aes_string(y="pa1", color='"Parallel Analysis"')) +
+            geom_line(aes_string(y="optimistic", color='"Optimistic"'))
         
     }
     
     result <- result + 
-        geom_point(aes(x=components, y=explained)) +
+        geom_point(aes_string(x="components", y="explained")) +
         geom_hline(yintercept=0) +
         labs(x="Number of components", y="Further variance explained",
              color="Threshold guidance")
     result
-    # 
-    # n <- length(comp_seq)
-    # var_exp <- components_seq_scree(comp_seq)
-    # line <- geom_point(aes(x=seq_len(n), y=var_exp), color="blue", size=2)
-    # labels <- labs(x="Number of components", y="Further variance explained")
-    # coord <- coord_cartesian(ylim=c(0,max(var_exp)))
-    # scale_y <- scale_y_continuous(labels=percent)
-    # scale_x <- scale_x_continuous(minor_breaks = c())
-    # ruler0 <- geom_hline(yintercept=0)
-    # 
-    # if (is.null(rand_seq))
-    #     return( ggplot() + ruler0 + line + coord + labels + scale_y + scale_x)
-    # 
-    # rand_var_exp <- components_seq_scree(rand_seq)
-    # max_rand <- max(rand_var_exp)
-    # rand_line <-  geom_point(aes(x=seq_along(rand_var_exp), y=rand_var_exp), color="red", size=2)
-    # 
-    # ruler <- geom_hline(yintercept=max(rand_var_exp), color="red")
-    # 
-    # decay <- rep(0, n)
-    # pool <- 1.0
-    # effective_vars <- 1/max_rand
-    # for(i in seq_len(n)) {
-    #     decay[i] <- pool/effective_vars
-    #     pool <- pool - var_exp[i]
-    #     effective_vars <- effective_vars-1
-    # }
-    # decay_line <- geom_line(aes(x=seq_len(n), y=decay), color="green")
-    # 
-    # ggplot() + ruler0 + rand_line + decay_line + line + ruler + coord + labels + scale_y + scale_x
 }
 
 

@@ -65,7 +65,25 @@ counts_proportions_inner <- function(counts, groups) {
         rowData=df)
 }
 
-
+#' Produce a weitrix of proportions within groups
+#'
+#' Produce a weitrix of proportions between 0 and 1. The input is read counts
+#' at a collection of features in a collection of samples. The
+#' features need to be grouped, for example by gene. 
+#' The proportions will add to 1 within each group.
+#' 
+#' @param counts A matrix of read counts. Rows are peaks and columns are samples.
+#' 
+#' @param grouping A data frame defining the grouping of features. Should have a column "group" naming the group and a column "name" naming the feature (corresponding to \code{rownames(counts)}).
+#' 
+#' @param biovar Produce weights that allow for biological variation. This puts of soft maximum on the effective number of reads, and stops weights from becoming arbitrarily large for large counts.
+#' 
+#' @param design For biological variation estimation. A design matrix for a linear model, which could account for batches or experimental design. Leaving this with its default will give a conservative choice of weights, and should be safe.
+#' 
+#' @param p For biological variation estimation. Attempt to find p further components of variation, using \code{weitrix_components}.
+#' 
+#' @param verbose If TRUE, output some debugging and progress information.
+#'
 #' @export
 counts_proportions <- function(counts, grouping, biovar=TRUE, design=~1, p=0, verbose=TRUE) {
     assert_that(

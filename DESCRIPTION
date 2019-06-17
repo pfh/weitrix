@@ -7,7 +7,7 @@ License: LGPL-2.1 | file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R (>= 3.5)
+    R (>= 3.6)
 Imports:
     methods,
     assertthat,

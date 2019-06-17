@@ -10,7 +10,7 @@
 #'     map map_chr map_dbl map_int map2
 #'
 #' @importFrom ggplot2
-#'    ggplot geom_point geom_hline labs coord_cartesian
+#'    ggplot aes_string geom_point geom_line geom_hline labs coord_cartesian
 #'    
 #' @importFrom scales
 #'    percent

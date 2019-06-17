@@ -1,4 +1,13 @@
 
+# For procrustes rotation, see
+# https://en.wikipedia.org/wiki/Orthogonal_Procrustes_problem
+
+# TODO: For designed experiments (as opposed to samples from a population), could use:
+# - bootstrap within groups, and of blocks
+# - parametric bootstrap (need to estimate variance per row)
+
+
+
 #' Bootstrap resample columns of a weitrix
 #' 
 #' Bootstrap resample a weitrix. Where a column is sampled multiple times its weights are increased that many times, rather than producing multiple columns.
@@ -19,8 +28,10 @@ weitrix_bootstrap <- function(weitrix) {
     retain_freqs <- freqs[retain]
     
     weitrix_out <- weitrix[,retain]
+    metadata(weitrix_out)$weitrix$retained <- retain
+    metadata(weitrix_out)$weitrix$retained_freqs <- retain_freqs
     weitrix_weights(weitrix_out) <- sweep(
-        weitrix_weights(weirix_out),
+        weitrix_weights(weitrix_out),
         2, retain_freqs, "*")
     weitrix_out
 }
@@ -31,13 +42,42 @@ weitrix_bootstrap <- function(weitrix) {
 #' @param comp A Components object, as produced by weitrix_components.
 #' 
 #' @param weitrix The weitrix (or an object that can be converted to a weitrix with \code{as_weitrix}) from which comp was produced.
-#' 
-#components_bootstrap <- function(comp, weitrix) {
-#    weitrix <- as_weitrix(weitrix)
-#    
-#    ...
-#    
-#}
+#' @param max_iter Maximum iterations when refitting components.
+#' @param verbose Show messages about the progress of the iterations when refitting.
+#' @param BPPARAM BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.
+#'
+#' @export
+components_bootstrap <- function(comp, weitrix, max_iter=10, verbose=TRUE, BPPARAM=getAutoBPPARAM()) {
+    weitrix <- as_weitrix(weitrix)
+    
+    booted_weitrix <- weitrix_bootstrap(weitrix)
+    
+    retained <- metadata(booted_weitrix)$weitrix$retained
+    retained_freqs <- metadata(booted_weitrix)$weitrix$retained_freqs
+    
+    p <- length(comp$ind_components)
+    design <- comp$col[retained,comp$ind_design,drop=F]
+    new_comp <- weitrix_components(
+        booted_weitrix, p=p, design=design, 
+        max_iter=max_iter, use_varimax=FALSE, 
+        verbose=verbose, BPPARAM=BPPARAM)
+    
+    # Procrustes alignment of col
+    
+    ind <- comp$ind_components
+    M <- crossprod(comp$col[retained,ind,drop=F], new_comp$col[,ind,drop=F] * retained_freqs)
+    # covariance, weighted according to bootstrap
+    decomp <- svd(M)
+    rot <- tcrossprod(decomp$u, decomp$v)
+    
+    new_comp$col[,ind] <- new_comp$col[,ind,drop=F] %*% t(rot)
+    new_comp$row[,ind] <- new_comp$row[,ind,drop=F] %*% t(rot)
+    
+    new_comp
+}
+
+
+
 
 
 

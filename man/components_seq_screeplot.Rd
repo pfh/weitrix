@@ -6,6 +6,11 @@
 \usage{
 components_seq_screeplot(comp_seq, rand_seq = NULL)
 }
+\arguments{
+\item{comp_seq}{A list of Components objects, as produced by \code{components_seq}.}
+
+\item{rand_seq}{Optional. A Components object with a single component, or list of Components objects.}
+}
 \description{
 Produce a scree plot
 }

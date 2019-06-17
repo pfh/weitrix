@@ -6,6 +6,11 @@
 \usage{
 components_seq_scree(comp_seq, rand_seq = NULL)
 }
+\arguments{
+\item{comp_seq}{A list of Components objects, as produced by \code{components_seq}.}
+
+\item{rand_seq}{Optional. A Components object with a single component, or list of Components objects. This should be based on a randomized version of the weitrix, for example as produced by \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.}
+}
 \description{
 Proportion more variance explained by adding components one at a time
 }

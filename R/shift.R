@@ -31,7 +31,9 @@ weighted_shift <- function(mat, min_reads=1) {
     weights <- rep(0, length(good))
     weights[good] <- good_totals/per_read_var
     
-    list(shifts=shifts, weights=weights, totals=totals, per_read_var=per_read_var)
+    grand_total <- sum(good_totals) # Only include peaks used
+    
+    list(shifts=shifts, weights=weights, total=grand_total, per_read_var=per_read_var)
 }
 
 
@@ -46,8 +48,8 @@ counts_shift_inner <- function(counts, groups, min_reads) {
     
     shifts <- do.call(rbind, map(results, "shifts"))
     weights <- do.call(rbind, map(results, "weights"))
-    #totals <- do.call(rbind, map(results, "totals"))
-    per_read_weights <- 1/map_dbl(results, "per_read_var")
+    totals <- do.call(rbind, map(results, "total"))
+    per_read_vars <- map_dbl(results, "per_read_var")
     rm(results)
 
     rownames(shifts) <- names(groups)
@@ -57,19 +59,20 @@ counts_shift_inner <- function(counts, groups, min_reads) {
     #colnames(weights) <- colnames(counts)
     #colnames(totals) <- colnames(counts)
     
-    # Drop genes with zero count counts only in a single peak
-    good <- is.finite(per_read_weights)
+    # Drop genes with zero count, counts only in a single peak
+    good <- is.finite(per_read_vars) & per_read_vars > 0
     shifts <- shifts[good,,drop=F]
     weights <- weights[good,,drop=F]
-    #totals <- totals[good,,drop=F]
-    per_read_weights <- per_read_weights[good]
+    totals <- totals[good,,drop=F]
+    per_read_vars <- per_read_vars[good]
 
     SummarizedExperiment(
         assays=list(
             x=realize(shifts),
             weights=realize(weights)),
         rowData=data.frame(
-            per_read_weight = per_read_weights))
+            per_read_var = per_read_vars,
+            total_reads = totals))
 }
 
 
@@ -85,9 +88,9 @@ counts_shift_inner <- function(counts, groups, min_reads) {
 #' 
 #' @param grouping A data frame defining the grouping of peaks into genes. Should have a column "group" naming the gene and a column "name" naming the peak (corresponding to \code{rownames(counts)}). Within each group, peak names should be ordered from 5' to 3' position.
 #' 
-#' @param min_reads Minimum reads to produce a shift score. Where there are fewer than this many reads for a combination of gene and sample, a weight of zero is given.
+#' @param min_reads Minimum reads to produce a shift score. Where there are fewer than this many reads for a combination of gene and sample, NA and a weight of zero is given.
 #' 
-#' @param bio_var Produce weights that allow for biological variation.
+#' @param biovar Produce weights that allow for biological variation. This puts of soft maximum on the effective number of reads, and stops weights from becoming arbitrarily large for large counts.
 #' 
 #' @param design For biological variation estimation. A design matrix for a linear model, which could account for batches or experimental design. Leaving this with its default will give a conservative choice of weights, and should be safe.
 #' 
@@ -121,7 +124,7 @@ counts_shift <- function(counts, grouping, min_reads=1, biovar=TRUE, design=~0, 
     if (biovar) {
         if (verbose)
             message("Calculating biological noise component")
-        result <- weight_balance(result, rowData(result)$per_read_weight, design=design, p=p, verbose=verbose)
+        result <- weight_balance(result, 1/rowData(result)$per_read_var, design=design, p=p, verbose=verbose)
         metadata(result)$weitrix$effective_max_reads <- 
             metadata(result)$weitrix$tech_scale / metadata(result)$weitrix$bio_scale
     }

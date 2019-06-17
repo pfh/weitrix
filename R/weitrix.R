@@ -137,6 +137,7 @@ weitrix_x <- function(weitrix) {
 
 #' Get a weitrix object's "weights" matrix
 #'
+#' @param weitrix A weitrix object.
 #' @describeIn weitrix_weights
 #' Get the weights of a weitrix.
 #' @export
@@ -145,6 +146,7 @@ weitrix_weights <- function(weitrix) {
 }
 
 
+#' @param x The weitrix to modify.
 #' @param value New value.
 #' @describeIn weitrix_x
 #' Set the observations matrix of a weitrix.
@@ -154,6 +156,7 @@ weitrix_weights <- function(weitrix) {
     x
 }
 
+#' @param x The weitrix to modify.
 #' @param value New value.
 #' @describeIn weitrix_weights
 #' Set the weights of a weitrix.
