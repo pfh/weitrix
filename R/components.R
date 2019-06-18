@@ -323,7 +323,7 @@ weitrix_components_inner <- function(
 #' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
-        weitrix, p=2, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
+        weitrix, p, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)
@@ -419,7 +419,7 @@ weitrix_components <- function(
 #' Produce a sequence of weitrix decompositions with 1 to p components.
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p=10, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
+        weitrix, p, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE,
         BPPARAM=getAutoBPPARAM()) {
     weitrix <- as_weitrix(weitrix)

@@ -22,3 +22,13 @@ Imports:
     ggplot2,
     scales
 RoxygenNote: 6.1.1
+Suggests: 
+    knitr,
+    rmarkdown,
+    tidyverse,
+    reshape2,
+    airway,
+    limma,
+    edgeR,
+    topconfects
+VignetteBuilder: knitr
