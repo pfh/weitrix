@@ -41,18 +41,20 @@ airway
 Initial steps are the same as for a differential expression analysis.
 
 ```{r}
-airway_dge <- 
-    DGEList(assay(airway, "counts")) %>%
-    calcNormFactors() 
+counts <- assay(airway,"counts")
 
-airway_cpm <- cpm(airway_dge, log=TRUE, prior.count=1)
-
-good <- rowMeans(airway_cpm) >= log2(1)
+# Keep genes with an average of at least 1 read per sample
+good <- rowMeans(counts) >= 1 
 table(good)
+
+airway_cpm <- 
+    DGEList(counts[good,]) %>%
+    calcNormFactors() %>%
+    cpm(log=TRUE, prior.count=1)
 
 design <- model.matrix(~ dex + cell, data=colData(airway))
 
-airway_elist <- vooma(airway_cpm[good,], design=design, plot=TRUE)
+airway_elist <- vooma(airway_cpm, design=design, plot=TRUE)
 ```
 
 Some of these steps are optional and have marginal value:
@@ -108,7 +110,7 @@ comp$col[,-1] %>% melt(varnames=c("Run","component")) %>%
 
 comp$row[,-1] %>% melt(varnames=c("name","component")) %>%
     ggplot(aes(x=comp$row[name,"(Intercept)"], y=value)) + 
-    geom_point(cex=0.1) + 
+    geom_point(cex=0.5, alpha=0.5) + 
     facet_wrap(~ component) +
     labs(title="Gene loadings for each component vs average log2 RPM")
 ```
