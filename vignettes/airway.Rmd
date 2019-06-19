@@ -82,10 +82,11 @@ airway_weitrix
 
 ## Find components of variation
 
-This will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability.
+This will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability. The result is a list of Components objects.
 
 ```{r message=F}
 comp_seq <- weitrix_components_seq(airway_weitrix, p=6)
+comp_seq
 ```
 
 ```{r message=F}
@@ -96,6 +97,8 @@ components_seq_screeplot(comp_seq, rand_comp)
 ```
 
 ## Examining components
+
+Up to 4 components may be justified.
 
 ```{r}
 comp <- comp_seq[[4]]
@@ -112,7 +115,7 @@ comp$row[,-1] %>% melt(varnames=c("name","component")) %>%
     ggplot(aes(x=comp$row[name,"(Intercept)"], y=value)) + 
     geom_point(cex=0.5, alpha=0.5) + 
     facet_wrap(~ component) +
-    labs(title="Gene loadings for each component vs average log2 RPM")
+    labs(title="Gene loadings for each component vs average log2 RPM", x="average log2 RPM", y="gene loading")
 ```
 
 ## Without varimax rotation, components may be harder to interpret
