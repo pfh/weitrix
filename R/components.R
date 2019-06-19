@@ -453,36 +453,44 @@ weitrix_components_seq <- function(
 
 
 inner_scree <- function(comp_seq) {
-    if (is(comp_seq, "Components")) {
-        assert_that(length(comp_seq$ind_components) == 1)
-        comp_seq <- list(comp_seq)
-    }
-    R2 <- map_dbl(comp_seq, "R2")
-    R2 - c(0, R2[-length(R2)])
+    
 }
 
 #' Proportion more variance explained by adding components one at a time
 #'
+#' Based on the output of \code{components_seq}, work out how much further variance is explained by adding further components.
+#'
+#' Some possible threshold levels for including further components are also calculated. 
+#"
+#' The "Kaiser" threshold is chosen based on the assumption that variance will be spread evenly among all possible components. This is slightly optimistic, as some components will explain more variance simply by chance.
+#'
+#' The "Parallel analysis" threshold is chosen based on varianced explained by a single component in a randomized weitrix. This will generally be somewhat higher than the "Kaiser" threshold.
+#'
+#' The "Optimistic" thresholds are chosen starting from the "Parallel Analysis" threshold. We view the Parallel Analysis threshold as indicating random variance is split amongst an effective number of samples, which will be somewhat smaller than the real number of samples. As each component is accepted, the pool of remaining variance is reduced by its contribution, and also the number of effective samples is reduced by one. The threshold is then the size of the remaining variance pool divided by the effective remaining number of samples. This is a somewhat ad-hoc method, but may indicate more components are justified than by criteria based on a flat threshold.
+#'
 #' @param comp_seq A list of Components objects, as produced by \code{components_seq}.
-#' @param rand_seq Optional. A Components object with a single component, or list of Components objects. This should be based on a randomized version of the weitrix, for example as produced by \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.
+#' @param rand_comp Optional. A Components object with a single component. This should be based on a randomized version of the weitrix, for example as produced by \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.
+#'
+#' @return
+#'
+#' \code{components_seq_scree} returns a data frame listing the variance explained by each further component.
 #'
 #' @export
-components_seq_scree <- function(comp_seq, rand_seq=NULL) {
-    explained <- inner_scree(comp_seq)
-    n <- length(explained)
+components_seq_scree <- function(comp_seq, rand_comp=NULL) {
+    R2 <- map_dbl(comp_seq, "R2")
+    n <- length(R2)
+    explained <- R2 - c(0, R2[-n])
     
     result <- data.frame(components=seq_len(n), explained=explained)
     result$kaiser <- rep(1/min(nrow(comp_seq[[1]]$row), nrow(comp_seq[[1]]$col)), n)
-    if (!is.null(rand_seq)) {
-        pa <- inner_scree(rand_seq)
-        length(pa) <- n
-        pa1 <- pa[1]
+    if (!is.null(rand_comp)) {
+        assert_that(length(rand_comp$ind_components) == 1)
+        pa <- rand_comp$R2
         result$pa <- pa
-        result$pa1 <- rep(pa1, n)
 
         decay <- rep(0, n)
         pool <- 1.0
-        effective_vars <- 1/pa1
+        effective_vars <- 1/pa
         for(i in seq_len(n)) {
             decay[i] <- pool/effective_vars
             pool <- pool - explained[i]
@@ -494,14 +502,15 @@ components_seq_scree <- function(comp_seq, rand_seq=NULL) {
     result
 }
 
-#' Produce a scree plot
+#' @rdname components_seq_scree
 #'
-#' @param comp_seq A list of Components objects, as produced by \code{components_seq}.
-#' @param rand_seq Optional. A Components object with a single component, or list of Components objects.
+#' @return
+#' 
+#' \code{components_seq_screeplot} returns a ggplot2 plot object.
 #' 
 #' @export
-components_seq_screeplot <- function(comp_seq, rand_seq=NULL) {
-    df <- components_seq_scree(comp_seq, rand_seq)
+components_seq_screeplot <- function(comp_seq, rand_comp=NULL) {
+    df <- components_seq_scree(comp_seq, rand_comp)
     n <- nrow(df)
     
     result <- ggplot(df, aes_string(x="components"))
@@ -511,7 +520,7 @@ components_seq_screeplot <- function(comp_seq, rand_seq=NULL) {
     
     if (!is.null(df$pa)) {
         result <- result +
-            geom_line(aes_string(y="pa1", color='"Parallel Analysis"')) +
+            geom_line(aes_string(y="pa", color='"Parallel Analysis"')) +
             geom_line(aes_string(y="optimistic", color='"Optimistic"'))
         
     }

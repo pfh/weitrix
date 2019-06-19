@@ -16,7 +16,7 @@ vignette :
 	Rscript -e "devtools::build_vignettes()"
 
 site : document
-	echo "pkgdown::build_site()" |R --vanilla
+	Rscript -e "pkgdown::build_site(new_process=FALSE)"
 
 publish : 
 	scp -r docs/* logarithmic.net:www/weitrix/

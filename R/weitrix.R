@@ -125,41 +125,41 @@ bless_weitrix <- function(object, x_name, weights_name) {
     object
 }
 
-#' Get a weitrix object's "x" matrix 
+#' Get or set a weitrix object's "x" matrix 
+#'
+#' Gets or sets the appropriate assay in the SummarizedExperiment object.
 #'
 #' @param weitrix A weitrix object.
-#' @describeIn weitrix_x
-#' Get the observations matrix of a weitrix.
+#'
 #' @export
 weitrix_x <- function(weitrix) {
     assay(weitrix, metadata(weitrix)$weitrix$x_name)
 }
 
-#' Get a weitrix object's "weights" matrix
+#' Get or set a weitrix object's "weights" matrix
+#'
+#' Gets or sets the appropriate assay in the SummarizedExperiment object.
 #'
 #' @param weitrix A weitrix object.
-#' @describeIn weitrix_weights
-#' Get the weights of a weitrix.
+#'
 #' @export
 weitrix_weights <- function(weitrix) {
     assay(weitrix, metadata(weitrix)$weitrix$weights_name)
 }
 
 
+#' @rdname weitrix_x
 #' @param x The weitrix to modify.
-#' @param value New value.
-#' @describeIn weitrix_x
-#' Set the observations matrix of a weitrix.
+#' @param value The new matrix.
 #' @export
 `weitrix_x<-` <- function(x, value) {
     assay(x, metadata(x)$weitrix$x_name) <- value
     x
 }
 
+#' @rdname weitrix_weights
 #' @param x The weitrix to modify.
-#' @param value New value.
-#' @describeIn weitrix_weights
-#' Set the weights of a weitrix.
+#' @param value The new matrix.
 #' @export
 `weitrix_weights<-` <- function(x, value) {
     assay(x, metadata(x)$weitrix$weights_name) <- value

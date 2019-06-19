@@ -1,5 +1,5 @@
 ---
-title: "RNA-Seq componenents (airway dataset)"
+title: "RNA-Seq components (airway dataset)"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{iris}
@@ -14,6 +14,8 @@ vignette: >
 knitr::opts_chunk$set(fig.width=6, fig.height=4)
 ```
 
+Let's look at the [airway](http://bioconductor.org/packages/release/data/experiment/html/airway.html) dataset as an example of a typical small-scale RNA-Seq experiment. In this experiment, four Airway Smooth Muscle (ASM) cell lines are treated with the asthma medication dexamethasone.
+
 ```{r setup, warning=F, message=F}
 library(weitrix)
 library(SummarizedExperiment)
@@ -24,10 +26,9 @@ library(reshape2)
 library(tidyverse)
 library(airway)
 
+BiocParallel::bpstart( DelayedArray::getAutoBPPARAM() )
 set.seed(1234)
 ```
-
-Let's look at the `airway` dataset as an example of a typical small-scale RNA-Seq experiment. In this experiment, four Airway Smooth Muscle (ASM) cell lines are treated with the asthma medication dexamethasone.
 
 ```{r}
 data("airway")
@@ -116,7 +117,7 @@ comp$row[,-1] %>% melt(varnames=c("name","component")) %>%
 
 If varimax rotation isn't used, `weitrix_components` and `weitrix_components_seq` will produce a Principal Components Analysis, with components ordered from most to least variance explained.
 
-Without varimax rotation the treatment effect is still mostly in the first component, but has also leaked into the other components.
+Without varimax rotation the treatment effect is still mostly in the first component, but has also leaked a small amount into the other components.
 
 ```{r message=F}
 comp_nonvarimax <- weitrix_components(airway_weitrix, p=4, use_varimax=FALSE)

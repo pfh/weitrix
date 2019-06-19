@@ -3,7 +3,7 @@
 \name{weitrix_weights}
 \alias{weitrix_weights}
 \alias{weitrix_weights<-}
-\title{Get a weitrix object's "weights" matrix}
+\title{Get or set a weitrix object's "weights" matrix}
 \usage{
 weitrix_weights(weitrix)
 
@@ -14,15 +14,8 @@ weitrix_weights(x) <- value
 
 \item{x}{The weitrix to modify.}
 
-\item{value}{New value.}
+\item{value}{The new matrix.}
 }
 \description{
-Get a weitrix object's "weights" matrix
+Gets or sets the appropriate assay in the SummarizedExperiment object.
 }
-\section{Functions}{
-\itemize{
-\item \code{weitrix_weights}: Get the weights of a weitrix.
-
-\item \code{weitrix_weights<-}: Set the weights of a weitrix.
-}}
-
