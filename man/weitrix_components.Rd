@@ -5,11 +5,11 @@
 \alias{weitrix_components_seq}
 \title{Principal components of a weitrix}
 \usage{
-weitrix_components(weitrix, p = 2, design = ~1, n_restarts = 1,
+weitrix_components(weitrix, p, design = ~1, n_restarts = 1,
   max_iter = 100, tol = 1e-05, use_varimax = TRUE, initial = NULL,
   verbose = TRUE, BPPARAM = getAutoBPPARAM())
 
-weitrix_components_seq(weitrix, p = 10, design = ~1, n_restarts = 1,
+weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 1,
   max_iter = 100, tol = 1e-05, use_varimax = TRUE, verbose = TRUE,
   BPPARAM = getAutoBPPARAM())
 }

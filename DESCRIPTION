@@ -30,5 +30,6 @@ Suggests:
     airway,
     limma,
     edgeR,
-    topconfects
+    topconfects,
+    EnsDb.Hsapiens.v86
 VignetteBuilder: knitr

@@ -8,12 +8,16 @@ vignette: >
 ---
 
 ```{r echo=F}
+# To test
+# devtools::load_all(".",export_all=F) ; rmarkdown::render("vignettes/airway.Rmd")
+
 knitr::opts_chunk$set(fig.width=6, fig.height=4)
 ```
 
 ```{r setup, warning=F, message=F}
 library(weitrix)
 library(SummarizedExperiment)
+library(EnsDb.Hsapiens.v86)
 library(edgeR)
 library(limma)
 library(reshape2)
@@ -36,24 +40,23 @@ airway
 Initial steps are the same as for a differential expression analysis.
 
 ```{r}
-airway_dge <- DGEList(
-        assay(airway, "counts"),
-        samples = colData(airway)) %>%
+airway_dge <- 
+    DGEList(assay(airway, "counts")) %>%
     calcNormFactors() 
-    
+
 airway_cpm <- cpm(airway_dge, log=TRUE, prior.count=1)
 
 good <- rowMeans(airway_cpm) >= log2(1)
 table(good)
 
-design <- model.matrix(~ dex + cell, data=colData(airway_good))
+design <- model.matrix(~ dex + cell, data=colData(airway))
 
 airway_elist <- vooma(airway_cpm[good,], design=design, plot=TRUE)
 ```
 
 Some of these steps are optional and have marginal value:
 
-* `vooma` provides precision weights. One could instead choose a `prior.count` for `cpm` to produce a flat mean-variance trend-line.
+* `vooma` provides precision weights. One could instead choose a `prior.count` for `cpm` to produce a flat (or at least non-decreasing) mean-variance trend-line.
 
 * Using a design matrix with `vooma` may not provide much benefit, and if you want an analysis completely blinded to the experimental design it might be better to omit this.
 
@@ -64,7 +67,11 @@ There are many options here, so adjust to your taste!
 
 ```{r}
 airway_weitrix <- as_weitrix(airway_elist)
+
+# Include row and column information
 colData(airway_weitrix) <- colData(airway)
+rowData(airway_weitrix) <- 
+    mcols(genes(EnsDb.Hsapiens.v86))[rownames(airway_weitrix),c("gene_name","gene_biotype")]
 
 airway_weitrix
 ```
@@ -135,7 +142,11 @@ Note that this ignores uncertainty about the `col` matrix itself.
 This may be useful for hypothesis generation -- finding some potentially interesting genes, while discounting noisy or lowly expressed genes -- but don't use it as proof of significance.
 
 ```{r}
-fit <- lmFit(airway_elist, comp$col) %>% eBayes()
+airway_elist <- weitrix_elist(airway_weitrix)
+
+fit <- 
+    lmFit(airway_elist, comp$col) %>% 
+    eBayes()
 
 topTable(fit, "C1")
 
