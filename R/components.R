@@ -209,7 +209,7 @@ calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
 weitrix_components_inner <- function(
         weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
         ind_components, ind_design, ss_total, tol, verbose, BPPARAM, outer_iter) {
-    R2 <- 0
+    R2 <- -Inf
 
     for(i in seq_len(max_iter)) {
         start <- proc.time()["elapsed"]
@@ -373,7 +373,7 @@ weitrix_components <- function(
     }
 
     result <- NULL
-    best_R2 <- -1
+    best_R2 <- -Inf
     R2s <- numeric(n_restarts)
     for(i in seq_len(n_restarts)) {
         col_mat <- design

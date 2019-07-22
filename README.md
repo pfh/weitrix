@@ -73,7 +73,15 @@ setRealizationBackend("HDF5Array")
 setHDF5DumpDir("__dump__")
 ```
 
+## BiocParallel problems
 
+Parallelism in R and Bioconductor remains finicky but is also necessary for large datasets. weitrix uses parallel processing by default.
+
+If weitrix hangs, try running it with serial processing:
+
+```
+DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
+```
 
 
 
