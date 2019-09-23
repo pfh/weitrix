@@ -4,9 +4,8 @@
 #
 # Similar to shifts, but we end up with the same number of rows as we started
 #
-
-# This is a conservative weighting scheme
-# It would be possible to do better using a prediction other than the row mean
+# Weights are simply total reads
+#
 weighted_proportions <- function(mat, name) {
     n <- nrow(mat)
     m <- ncol(mat)
@@ -29,14 +28,14 @@ weighted_proportions <- function(mat, name) {
     # Bernoulli variance
     per_read_vars <- mean_props*(1-mean_props)
     
-    weights[,good] <- outer(1/per_read_vars, totals[good])
+    weights[,good] <- outer(rep(1,n), totals[good])
     
     rownames(props) <- rownames(mat)
     rownames(weights) <- rownames(mat)
     
     df <- data.frame(
         group=name,
-        per_read_weight=1/per_read_vars,
+        per_read_var=per_read_vars,
         stringsAsFactors=FALSE)
     rownames(df) <- rownames(mat)
 
@@ -60,8 +59,8 @@ counts_proportions_inner <- function(counts, groups) {
     
     SummarizedExperiment(
         assays=list(
-            x=realize(props),
-            weights=realize(weights)),
+            x=realize_if_delayed(props),
+            weights=realize_if_delayed(weights)),
         rowData=df)
 }
 
@@ -76,16 +75,10 @@ counts_proportions_inner <- function(counts, groups) {
 #' 
 #' @param grouping A data frame defining the grouping of features. Should have a column "group" naming the group and a column "name" naming the feature (corresponding to \code{rownames(counts)}).
 #' 
-#' @param biovar Produce weights that allow for biological variation. This puts of soft maximum on the effective number of reads, and stops weights from becoming arbitrarily large for large counts.
-#' 
-#' @param design For biological variation estimation. A design matrix for a linear model, which could account for batches or experimental design. Leaving this with its default will give a conservative choice of weights, and should be safe.
-#' 
-#' @param p For biological variation estimation. Attempt to find p further components of variation, using \code{weitrix_components}.
-#' 
 #' @param verbose If TRUE, output some debugging and progress information.
 #'
 #' @export
-counts_proportions <- function(counts, grouping, biovar=TRUE, design=~1, p=0, verbose=TRUE) {
+counts_proportions <- function(counts, grouping, verbose=TRUE) {
     assert_that(
         is.data.frame(grouping), 
         "group" %in% colnames(grouping), 
@@ -102,14 +95,6 @@ counts_proportions <- function(counts, grouping, biovar=TRUE, design=~1, p=0, ve
     result <- do.call(rbind, result)
     colnames(result) <- colnames(counts)
     result <- bless_weitrix(result, "x", "weights")
-    
-    if (biovar) {
-        if (verbose)
-            message("Calculating biological noise component")
-        result <- weight_balance(result, rowData(result)$per_read_weight, design=design, p=p)
-        metadata(result)$weitrix$effective_max_reads <- 
-            metadata(result)$weitrix$tech_scale / metadata(result)$weitrix$bio_scale
-    }
-    
+    metadata(result)$weitrix$trend_formula <- "~log(per_read_var)"
     result
 }

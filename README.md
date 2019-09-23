@@ -13,9 +13,13 @@ BiocManager::install("pfh/weitrix")
 
 ## Weights
 
-A weight is one over the variance of a measurement. (There may possibly be a further scaling factor. Weights produced by the weitrix package will aim for this to not be needed, so the weight is directly interpretable as a precision.)
+A weight determines the importance of an observation. One way of thinking about a weight is that it is as if this one observation is actually an average over some number of real observations. For example if an observation is an average over some number of reads, the number of reads might be used as the weight. 
 
-A weight of 0 indicates missing data.
+The choice of weight is somewhat arbitrary. You can use it simply to tell model fitting (such as that in `weitrix_components`) what to pay most attention to. It's better to pay more attention to more accurately measured observations.
+
+A weight of 0 indicates completely missing data.
+
+Weights can be calibrated so they are one over the variance of a measurement. This may be a necessary step, which in this package we will have happen after model fitting but before statistical testing.
 
 ## What is a weitrix?
 
@@ -43,10 +47,12 @@ The `$col` matrix of a `Components` may be used as a design matrix for different
 
 ## Big datasets
 
-weitrix uses DelayedArray assays. weitrix will attempt to perform calculations blockwise in parallel. weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
+weitrix can use DelayedArray assays. Functions that produce weitrices will used `DelayedArray` output assays if given `DelayedArray` input assays.
+
+weitrix will attempt to perform calculations blockwise in parallel. weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
 `DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`.
 
-The x and weights assays in a weitrix may be stored in an exotic matrix class, but it should always be possible to convert back to a normal R matrix with `as.matrix`.
+It is always possible to convert an assay back to a normal R matrix with `as.matrix`.
 
 Set the DelayedArray realization backend to `RleMatrix` or `HDF5Array` if weitrices will be too big to fit in memory uncompressed. The `RleMatrix` stores data in memory in a compressed form. The `HDF5Array` backend stores data on disk, in temporary files.
 

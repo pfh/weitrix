@@ -4,19 +4,12 @@
 \alias{counts_proportions}
 \title{Produce a weitrix of proportions within groups}
 \usage{
-counts_proportions(counts, grouping, biovar = TRUE, design = ~1,
-  p = 0, verbose = TRUE)
+counts_proportions(counts, grouping, verbose = TRUE)
 }
 \arguments{
 \item{counts}{A matrix of read counts. Rows are peaks and columns are samples.}
 
 \item{grouping}{A data frame defining the grouping of features. Should have a column "group" naming the group and a column "name" naming the feature (corresponding to \code{rownames(counts)}).}
-
-\item{biovar}{Produce weights that allow for biological variation. This puts of soft maximum on the effective number of reads, and stops weights from becoming arbitrarily large for large counts.}
-
-\item{design}{For biological variation estimation. A design matrix for a linear model, which could account for batches or experimental design. Leaving this with its default will give a conservative choice of weights, and should be safe.}
-
-\item{p}{For biological variation estimation. Attempt to find p further components of variation, using \code{weitrix_components}.}
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
 }

@@ -44,10 +44,9 @@ weitrix_bootstrap <- function(weitrix) {
 #' @param weitrix The weitrix (or an object that can be converted to a weitrix with \code{as_weitrix}) from which comp was produced.
 #' @param max_iter Maximum iterations when refitting components.
 #' @param verbose Show messages about the progress of the iterations when refitting.
-#' @param BPPARAM BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.
 #'
 #' @export
-components_bootstrap <- function(comp, weitrix, max_iter=10, verbose=TRUE, BPPARAM=getAutoBPPARAM()) {
+components_bootstrap <- function(comp, weitrix, max_iter=10, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     
     booted_weitrix <- weitrix_bootstrap(weitrix)
@@ -60,7 +59,7 @@ components_bootstrap <- function(comp, weitrix, max_iter=10, verbose=TRUE, BPPAR
     new_comp <- weitrix_components(
         booted_weitrix, p=p, design=design, 
         max_iter=max_iter, use_varimax=FALSE, 
-        verbose=verbose, BPPARAM=BPPARAM)
+        verbose=verbose)
     
     # Procrustes alignment of col
     

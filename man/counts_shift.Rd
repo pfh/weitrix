@@ -4,8 +4,7 @@
 \alias{counts_shift}
 \title{Produce a weitrix of shift scores}
 \usage{
-counts_shift(counts, grouping, min_reads = 1, biovar = TRUE,
-  design = ~0, p = 0, verbose = TRUE)
+counts_shift(counts, grouping, min_reads = 1, verbose = TRUE)
 }
 \arguments{
 \item{counts}{A matrix of read counts. Rows are peaks and columns are samples.}
@@ -13,12 +12,6 @@ counts_shift(counts, grouping, min_reads = 1, biovar = TRUE,
 \item{grouping}{A data frame defining the grouping of peaks into genes. Should have a column "group" naming the gene and a column "name" naming the peak (corresponding to \code{rownames(counts)}). Within each group, peak names should be ordered from 5' to 3' position.}
 
 \item{min_reads}{Minimum reads to produce a shift score. Where there are fewer than this many reads for a combination of gene and sample, NA and a weight of zero is given.}
-
-\item{biovar}{Produce weights that allow for biological variation. This puts of soft maximum on the effective number of reads, and stops weights from becoming arbitrarily large for large counts.}
-
-\item{design}{For biological variation estimation. A design matrix for a linear model, which could account for batches or experimental design. Leaving this with its default will give a conservative choice of weights, and should be safe.}
-
-\item{p}{For biological variation estimation. Attempt to find p further components of variation, using \code{weitrix_components}.}
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
 }

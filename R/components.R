@@ -96,9 +96,11 @@ fit_all_cols_inner <- function(args) with(args, {
     do.call(rbind, result)
 })
 
-fit_all_cols <- function(x,y,w, fixed_row,fixed_col, BPPARAM) {
+fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=ncol(y), ncol=0))
+        
+    BPPARAM <- getAutoBPPARAM()
 
     parts <- partitions(ncol(y), nrow(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
     #cat("cols",length(parts),"\n")
@@ -130,9 +132,11 @@ fit_all_rows_inner <- function(args) with(args, {
     do.call(rbind, result)
 })
 
-fit_all_rows <- function(x,y,w, BPPARAM) {
+fit_all_rows <- function(x,y,w) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=nrow(y), ncol=0))
+
+    BPPARAM <- getAutoBPPARAM()
 
     parts <- partitions(nrow(y), ncol(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
     feed <- map(parts, function(part) {
@@ -181,7 +185,8 @@ calc_weighted_ss_inner <- function(args) with(args, {
     total
 })
 
-calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
+calc_weighted_ss <- function(x, w, row, col) {
+    BPPARAM <- getAutoBPPARAM()
     parts <- partitions(ncol(x), nrow(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
@@ -208,7 +213,7 @@ calc_weighted_ss <- function(x, w, row, col, BPPARAM) {
 
 weitrix_components_inner <- function(
         weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
-        ind_components, ind_design, ss_total, tol, verbose, BPPARAM, outer_iter) {
+        ind_components, ind_design, ss_total, tol, verbose, outer_iter) {
     R2 <- -Inf
 
     for(i in seq_len(max_iter)) {
@@ -220,12 +225,12 @@ weitrix_components_inner <- function(
         col_mat[,ind_components] <- qr.Q(qr(col_mat))[,ind_components,drop=F]
 
         # Update row_mat
-        row_mat <- fit_all_rows(col_mat, x, weights, BPPARAM=BPPARAM)
+        row_mat <- fit_all_rows(col_mat, x, weights)
 
         # Update col_mat
         #centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
         col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], 
-            x, weights, row_mat[,ind_design,drop=F], design, BPPARAM=BPPARAM)
+            x, weights, row_mat[,ind_design,drop=F], design)
         col_mat <- cbind(design, col_mat)
 
         # Make decomposition matrices orthogonal
@@ -236,7 +241,7 @@ weitrix_components_inner <- function(
         # Check R^2
         #resid <- x - row_mat %*% t(col_mat)
         #ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
-        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat, BPPARAM=BPPARAM)
+        ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat)
         ratio <- ss_resid/ss_total
         last_R2 <- R2
         R2 <- 1-ratio
@@ -246,7 +251,7 @@ weitrix_components_inner <- function(
             message(sprintf("Iter %2d/%3d R^2=%7.5f %.1fsec",outer_iter, i,R2,end-start))
         }
 
-        if (R2 - last_R2 <= tol) 
+        if (i >= 5 && R2 - last_R2 <= tol) 
             break
     }
 
@@ -292,7 +297,6 @@ weitrix_components_inner <- function(
 #' @param use_varimax Use varimax rotation to enhance interpretability of components.
 #' @param initial Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.
 #' @param verbose Show messages about the progress of the iterations.
-#' @param BPPARAM BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.
 #' @return
 #' A "Components" object with the following elements accessible using \code{$}.
 #' \describe{
@@ -324,8 +328,7 @@ weitrix_components_inner <- function(
 #' @export
 weitrix_components <- function(
         weitrix, p, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
-        use_varimax=TRUE, initial=NULL, verbose=TRUE,
-        BPPARAM=getAutoBPPARAM()) {
+        use_varimax=TRUE, initial=NULL, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p), p >= 0)
 
@@ -362,16 +365,16 @@ weitrix_components <- function(
         colnames(design) <- map_chr(seq_len(p_design), ~paste0("design",.))
 
     # Centering to compare against
-    row_mat_center <- fit_all_rows(design, x, weights, BPPARAM=BPPARAM)
+    row_mat_center <- fit_all_rows(design, x, weights)
     #centered <- x - row_mat_center %*% t(design)
     #ss_total <- sum(centered^2*weights, na.rm=TRUE)
-    ss_total <- calc_weighted_ss(x, weights, row_mat_center, design, BPPARAM=BPPARAM)
+    ss_total <- calc_weighted_ss(x, weights, row_mat_center, design)
 
     if (p == 0) {
         max_iter <- 1
         n_restarts <- 1
     }
-
+    
     result <- NULL
     best_R2 <- -Inf
     R2s <- numeric(n_restarts)
@@ -380,11 +383,14 @@ weitrix_components <- function(
         if (!is.null(initial)) {
             # Use first columns of initial on initial run
             # In restarts, use a random projection of all columns from initial
+            
             proj_out <- min(ncol(initial), p)
+            
             if (i == 1)
                 proj <- diag(ncol(initial))[,seq_len(proj_out),drop=F]
             else
                 proj <- matrix(rnorm(proj_out*ncol(initial)), ncol=proj_out)
+            
             col_mat <- cbind(col_mat, initial %*% proj)
         }
         col_mat <- cbind(col_mat, 
@@ -393,7 +399,7 @@ weitrix_components <- function(
         this_result <- weitrix_components_inner(
             weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design, max_iter=max_iter, col_mat=col_mat, 
             ind_components=ind_components, ind_design=ind_design, ss_total=ss_total, tol=tol, 
-            verbose=verbose, BPPARAM=BPPARAM, outer_iter=i)
+            verbose=verbose, outer_iter=i)
         R2s[i] <- this_result$R2
         if (this_result$R2 > best_R2) {
             result <- this_result
@@ -420,8 +426,7 @@ weitrix_components <- function(
 #' @export
 weitrix_components_seq <- function(
         weitrix, p, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
-        use_varimax=TRUE, verbose=TRUE,
-        BPPARAM=getAutoBPPARAM()) {
+        use_varimax=TRUE, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
     assert_that(p >= 1)
@@ -433,28 +438,34 @@ weitrix_components_seq <- function(
 
     result[[p]] <- weitrix_components(weitrix, p=p, 
         design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
-        verbose=verbose, BPPARAM=BPPARAM)
+        verbose=verbose)
     
     for(i in rev(seq_len(p-1))) {
         if (verbose)
             message("Finding ",i," components")
+            
+        # Drop the component with the most severe outliers in row
+        #row <- result[[i+1]]$row[,result[[i+1]]$ind_components,drop=F]        
+        #col <- result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F]
+        #priority <- colMeans(row^4) #/ colMeans(col^2)^2
+        #print(colMeans(col^2))
+        #print(priority)
+        #initial <- col[,order(priority),drop=FALSE]
+
+        initial <- result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F]
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
-            use_varimax=FALSE, verbose=verbose, BPPARAM=BPPARAM,
-            initial=result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F])
+            use_varimax=use_varimax, verbose=verbose,
+            initial=initial)
     }
 
-    if (use_varimax)
-        result <- map(result, components_varimax)
+    #if (use_varimax)
+    #    result <- map(result, components_varimax)
 
     result
 }
 
-
-inner_scree <- function(comp_seq) {
-    
-}
 
 #' Proportion more variance explained by adding components one at a time
 #'

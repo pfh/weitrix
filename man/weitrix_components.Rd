@@ -7,11 +7,10 @@
 \usage{
 weitrix_components(weitrix, p, design = ~1, n_restarts = 1,
   max_iter = 100, tol = 1e-05, use_varimax = TRUE, initial = NULL,
-  verbose = TRUE, BPPARAM = getAutoBPPARAM())
+  verbose = TRUE)
 
 weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 1,
-  max_iter = 100, tol = 1e-05, use_varimax = TRUE, verbose = TRUE,
-  BPPARAM = getAutoBPPARAM())
+  max_iter = 100, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
@@ -31,8 +30,6 @@ weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 1,
 \item{initial}{Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.}
 
 \item{verbose}{Show messages about the progress of the iterations.}
-
-\item{BPPARAM}{BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.}
 }
 \description{
 Finds principal components of a weitrix.

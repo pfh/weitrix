@@ -4,7 +4,9 @@ weitrix_randomize_inner <- function(w) {
     result <- matrix(0, nrow=nrow(w),ncol=ncol(w))
     present <- which(as.vector(w > 0))
     result[present] <- rnorm(length(present)) / sqrt(w[present])
-    realize(result)
+    
+    # Infect with delayedness of w
+    realize_if_delayed(result, w)
 }
 
 #' Generate a random normally distributed version of a weitrix

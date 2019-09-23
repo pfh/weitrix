@@ -4,8 +4,7 @@
 \alias{components_bootstrap}
 \title{Bootstrap resample columns of a weitrix then refit components of variation}
 \usage{
-components_bootstrap(comp, weitrix, max_iter = 10, verbose = TRUE,
-  BPPARAM = getAutoBPPARAM())
+components_bootstrap(comp, weitrix, max_iter = 10, verbose = TRUE)
 }
 \arguments{
 \item{comp}{A Components object, as produced by weitrix_components.}
@@ -15,8 +14,6 @@ components_bootstrap(comp, weitrix, max_iter = 10, verbose = TRUE,
 \item{max_iter}{Maximum iterations when refitting components.}
 
 \item{verbose}{Show messages about the progress of the iterations when refitting.}
-
-\item{BPPARAM}{BiocParallel parameters to use. Defaults to the DelayedArray package's automatic setting.}
 }
 \description{
 Bootstrap resample columns of a weitrix then refit components of variation

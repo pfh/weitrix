@@ -1,4 +1,17 @@
 
+# Utility/helper functions
+
+
+# Realize a DelayedArray, but don't infect non-delayed arrays
+# Checks Delayedness of first argument by default, but can check a second argument instead
+realize_if_delayed <- function(x, check=x) {
+    if (is(check, "DelayedArray"))
+        x <- realize(x)
+    x
+}
+
+
+
 #
 # Blocking helper functions
 #
