@@ -110,8 +110,12 @@ weitrix_calibrate_trend <- function(weitrix, comp, formula=NULL) {
     
     formula <- update(formula, dispersion^0.25~.)
     
-    fit <- glm(formula, data=rowData(weitrix), family=gaussian(link="log"))
-    pred <- predict(fit, type="response")^4
+    fit <- eval(substitute(
+        glm(formula, data=rowData(weitrix), family=gaussian(link="log")),
+        list(formula=formula)
+    ))
+    
+    pred <- predict(fit, newdata=rowData(weitrix), type="response")^4
     
     rowData(weitrix)$dispersion_trend <- pred
     metadata(weitrix)$weitrix$trend_fit <- fit

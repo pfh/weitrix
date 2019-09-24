@@ -17,12 +17,20 @@
 #' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
 #'
 #' @export
-weitrix_bootstrap <- function(weitrix) {
+weitrix_bootstrap <- function(weitrix, groups=NULL) {
     weitrix <- as_weitrix(weitrix)
     
     n <- ncol(weitrix)
     
-    freqs <- tabulate(sample.int(n,replace=TRUE), n)
+    if (is.null(groups))
+        groups <- seq_len(n)
+    assert_that(length(groups) == n)
+
+    groups <- as.integer(factor(groups))
+    n_levels <- max(groups)
+    
+    level_freqs <- tabulate(sample.int(n_levels,replace=TRUE), n_levels)
+    freqs <- level_freqs[groups] 
     
     retain <- freqs != 0
     retain_freqs <- freqs[retain]

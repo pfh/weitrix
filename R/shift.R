@@ -119,7 +119,8 @@ counts_shift <- function(counts, grouping, min_reads=1, verbose=TRUE) {
     result <- do.call(rbind, result)
     colnames(result) <- colnames(counts)
     result <- bless_weitrix(result, "x", "weights")
-    metadata(result)$weitrix$trend_formula <- "~log(per_read_var)"
+    metadata(result)$weitrix$trend_formula <- 
+        "~log(per_read_var)+splines::ns(log(total_reads),3)"
     result
 }
 

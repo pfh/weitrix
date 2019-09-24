@@ -62,10 +62,20 @@ least_squares <- function(A,w,b) {
         return(rep(0, ncol(A)))
 
     sw <- sqrt(w)
-    # qr.solve(A*sw,b*sw)
-
     decomp <- svd(A*sw)
-    as.vector( decomp$v %*% ((t(decomp$u) %*% (b*sw))/decomp$d) )
+    
+    # Soldier on:
+    # - Missing values become NA
+    # - (near)zero singular values nuked
+    b[is.na(b)] <- 0.0
+    x <- (t(decomp$u) %*% (b*sw))/decomp$d
+    ad <- abs(decomp$d)
+    x[ad < max(ad)*1e-9] <- 0.0
+    
+    as.vector(decomp$v %*% x)
+    
+    #as.vector( decomp$v %*% ((t(decomp$u) %*% (b*sw))/decomp$d) )
+
 
     ## May be slightly faster, 
     ## but fails rather than choosing an arbitrary minimum
