@@ -4,7 +4,7 @@
 \alias{weitrix_bootstrap}
 \title{Bootstrap resample columns of a weitrix}
 \usage{
-weitrix_bootstrap(weitrix)
+weitrix_bootstrap(weitrix, groups = NULL)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}

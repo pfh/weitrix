@@ -88,9 +88,7 @@ weitrix_calibrate <- function(weitrix, dispersions) {
 
 #' Adjust weights by fitting a trend to estimated dispersions
 #'
-#' Dispersions are estimated using \code{weitrix_dispersions}. A trend line is then fitted to quarter-root dispersions using a generalized linear model with log link function and Gaussian noise model. Weitrix weights are calibrated based on this trend line.
-#'
-#' Quarter-root dispersions are used similarly to voom, and for the same reason: because they are roughly symmertrically distributed. (It would also be possible to used a gamma noise model, but we expect the dispersion to sometimes be zero and do not want this to break the curve fitting.)
+#' Dispersions are estimated using \code{weitrix_dispersions}. A trend line is then fitted to log dispersions using a linear model. Weitrix weights are calibrated based on this trend line. Any zero or very-near-zero dispersions are ignored when fitting this model.
 #'
 #' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
 #' @param comp A Components, an approximate matrix decomposition of the weitrix x values, for example created with \code{weitrix_components}.
@@ -108,14 +106,19 @@ weitrix_calibrate_trend <- function(weitrix, comp, formula=NULL) {
     
     rowData(weitrix)$dispersion <- weitrix_dispersions(weitrix, comp)
     
-    formula <- update(formula, dispersion^0.25~.)
+    formula <- update(formula, log(dispersion)~.)
+    
+    data <- rowData(weitrix)
+    tiny <- mean(data$dispersion,na.rm=TRUE)*1e-9
+    good <- !is.na(data$dispersion) & data$dispersion > tiny
+    data <- data[good,]
     
     fit <- eval(substitute(
-        glm(formula, data=rowData(weitrix), family=gaussian(link="log")),
+        lm(formula, data=data),
         list(formula=formula)
     ))
     
-    pred <- predict(fit, newdata=rowData(weitrix), type="response")^4
+    pred <- exp(predict(fit, newdata=rowData(weitrix)))
     
     rowData(weitrix)$dispersion_trend <- pred
     metadata(weitrix)$weitrix$trend_fit <- fit

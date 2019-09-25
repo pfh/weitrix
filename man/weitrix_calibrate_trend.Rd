@@ -2,10 +2,17 @@
 % Please edit documentation in R/calibrate.R
 \name{weitrix_calibrate_trend}
 \alias{weitrix_calibrate_trend}
-\title{Adjust weights by fitting a trend to estimated observed dispersions}
+\title{Adjust weights by fitting a trend to estimated dispersions}
 \usage{
 weitrix_calibrate_trend(weitrix, comp, formula = NULL)
 }
+\arguments{
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+
+\item{comp}{A Components, an approximate matrix decomposition of the weitrix x values, for example created with \code{weitrix_components}.}
+
+\item{formula}{A formula specification for predicting log dispersion from columns of rowData(weitrix). If absent, metadata(weitrix)$weitrix$trend_formula is used.}
+}
 \description{
-Adjust weights by fitting a trend to estimated observed dispersions
+Dispersions are estimated using \code{weitrix_dispersions}. A trend line is then fitted to log dispersions using a linear model. Weitrix weights are calibrated based on this trend line. Any zero or very-near-zero dispersions are ignored when fitting this model.
 }

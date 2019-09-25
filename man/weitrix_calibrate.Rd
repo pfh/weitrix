@@ -6,6 +6,14 @@
 \usage{
 weitrix_calibrate(weitrix, dispersions)
 }
+\arguments{
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+
+\item{dispersions}{A dispersion for each row.}
+}
 \description{
-For large numbers of samples this can be based directly on weitrix_dispersions. For small numbers of samples, when using limma, it should be based on a trend-line fitted to known co-variates of the dispersions estimated by weitrix_dispersions.
+Based on estimated row dispersions, adjust weights in each row.
+}
+\details{
+For large numbers of samples this can be based directly on weitrix_dispersions. For small numbers of samples, when using limma, it should be based on a trend-line fitted to known co-variates of the dispersions. This can be done using \code{weitrix_calibrate_trend}.
 }
