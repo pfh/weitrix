@@ -118,7 +118,10 @@ weitrix_calibrate_trend <- function(weitrix, comp, formula=NULL) {
         list(formula=formula)
     ))
     
-    pred <- exp(predict(fit, newdata=rowData(weitrix)))
+    pred <- exp(
+       predict(fit, newdata=rowData(weitrix)) +
+       sigma(fit)^2/2
+    )
     
     rowData(weitrix)$dispersion_trend <- pred
     metadata(weitrix)$weitrix$trend_fit <- fit

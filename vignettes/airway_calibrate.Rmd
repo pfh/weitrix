@@ -144,7 +144,6 @@ rowData(airway_cal) %>% as.data.frame() %>%
     ggplot(aes(x=mean_lcpm)) +
     geom_point(aes(y=dispersion^0.25), size=0.1) +
     geom_point(aes(y=dispersion_trend^0.25), size=0.1, color="red") +
-    scale_y_log10() +
     labs(x="Mean log2 RPM", y="sqrt( Standard deviation )")
 
 airway_elist <- weitrix_elist(airway_cal)
