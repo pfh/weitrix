@@ -24,7 +24,7 @@
 #'     SummarizedExperiment assay assay<- rowData colData
 #'
 #' @importFrom DelayedArray
-#'     realize getAutoBPPARAM getAutoBlockSize sweep
+#'     realize getAutoBPPARAM getAutoBlockSize sweep apply
 #'
 #' @importFrom DelayedMatrixStats
 #'     rowSums2 colSums2

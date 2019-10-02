@@ -6,11 +6,11 @@
 \title{Principal components of a weitrix}
 \usage{
 weitrix_components(weitrix, p, design = ~1, n_restarts = 1,
-  max_iter = 100, tol = 1e-05, use_varimax = TRUE, initial = NULL,
+  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, initial = NULL,
   verbose = TRUE)
 
 weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 1,
-  max_iter = 100, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
+  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}

@@ -337,7 +337,7 @@ weitrix_components_inner <- function(
 #' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
-        weitrix, p, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
+        weitrix, p, design=~1, n_restarts=1, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p), p >= 0)
@@ -435,7 +435,7 @@ weitrix_components <- function(
 #' Produce a sequence of weitrix decompositions with 1 to p components.
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p, design=~1, n_restarts=1, max_iter=100, tol=1e-5, 
+        weitrix, p, design=~1, n_restarts=1, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
@@ -454,14 +454,10 @@ weitrix_components_seq <- function(
         if (verbose)
             message("Finding ",i," components")
             
-        # Drop the component with the most severe outliers in row
-        #row <- result[[i+1]]$row[,result[[i+1]]$ind_components,drop=F]        
-        #col <- result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F]
-        #priority <- colMeans(row^4) #/ colMeans(col^2)^2
-        #print(colMeans(col^2))
-        #print(priority)
-        #initial <- col[,order(priority),drop=FALSE]
+        # Drop the smallest direction
+        #initial <- svd(col)$u
 
+        # Drop the last component
         initial <- result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F]
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
