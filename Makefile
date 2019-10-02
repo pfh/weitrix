@@ -19,4 +19,4 @@ site : document
 	Rscript -e "pkgdown::build_site(new_process=FALSE)"
 
 publish : 
-	scp -r docs/* logarithmic.net:www/weitrix/
+	rsync -rv docs/* logarithmic.net:www/weitrix/
