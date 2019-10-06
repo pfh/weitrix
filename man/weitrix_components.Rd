@@ -5,11 +5,11 @@
 \alias{weitrix_components_seq}
 \title{Principal components of a weitrix}
 \usage{
-weitrix_components(weitrix, p, design = ~1, n_restarts = 1,
+weitrix_components(weitrix, p, design = ~1, n_restarts = 3,
   max_iter = 1000, tol = 1e-05, use_varimax = TRUE, initial = NULL,
   verbose = TRUE)
 
-weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 1,
+weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 3,
   max_iter = 1000, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
 }
 \arguments{
@@ -36,15 +36,15 @@ Finds principal components of a weitrix.
 If varimax rotation is enabled, these are then rotated to enhance interpretability.
 }
 \details{
+Note that this is a slow numerical method to solve a gnarly problem, for the case where weights are not uniform.
+If your weights are uniform, or can be written as an outer product of row and colum weights, there are much faster algorithms available elsewhere.
+
 An iterative method is used, starting from a random initial set of components.
 It is possible for this to get stuck at a local minimum.
-To ameliorate this, the iteration is run \code{n_restarts} times and the best result used.
+To ameliorate this, the iteration is initially run \code{n_restarts} times and the best result used. This is then iterated further.
 Examine \code{all_R2s} in the output to see if this is happening -- 
 if the values are not all nearly identital, the iteration is sometimes getting stuck at local minima..
 Increase \code{n_restarts} to increase the odds of finding the global minimum.
-
-No automatic scaling of the weitrix is performed --
-all the measurements in the weitrix are assumed to be on a comparable scale.
 }
 \section{Functions}{
 \itemize{

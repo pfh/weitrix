@@ -223,7 +223,7 @@ calc_weighted_ss <- function(x, w, row, col) {
 
 weitrix_components_inner <- function(
         weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
-        ind_components, ind_design, ss_total, tol, verbose, outer_iter) {
+        ind_components, ind_design, ss_total, tol, verbose) {
     R2 <- -Inf
 
     for(i in seq_len(max_iter)) {
@@ -258,7 +258,7 @@ weitrix_components_inner <- function(
 
         end <- proc.time()["elapsed"]
         if (verbose && (i <= 5 || i %% 10 == 0)) {
-            message(sprintf("Iter %2d/%3d R^2=%7.5f %.1fsec",outer_iter, i,R2,end-start))
+            message(sprintf("Iter %4d R^2=%7.5f %.1fsec",i,R2,end-start))
         }
 
         if (i >= 5 && R2 - last_R2 <= tol) 
@@ -288,15 +288,15 @@ weitrix_components_inner <- function(
 #' Finds principal components of a weitrix.
 #' If varimax rotation is enabled, these are then rotated to enhance interpretability.
 #'
+#' Note that this is a slow numerical method to solve a gnarly problem, for the case where weights are not uniform.
+#' If your weights are uniform, or can be written as an outer product of row and colum weights, there are much faster algorithms available elsewhere.
+#'
 #' An iterative method is used, starting from a random initial set of components.
 #' It is possible for this to get stuck at a local minimum.
-#' To ameliorate this, the iteration is run \code{n_restarts} times and the best result used.
+#' To ameliorate this, the iteration is initially run \code{n_restarts} times and the best result used. This is then iterated further.
 #' Examine \code{all_R2s} in the output to see if this is happening -- 
 #' if the values are not all nearly identital, the iteration is sometimes getting stuck at local minima..
 #' Increase \code{n_restarts} to increase the odds of finding the global minimum.
-#'
-#' No automatic scaling of the weitrix is performed --
-#' all the measurements in the weitrix are assumed to be on a comparable scale.
 #'
 #' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
 #' @param p Number of components to find.
@@ -337,7 +337,7 @@ weitrix_components_inner <- function(
 #' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
-        weitrix, p, design=~1, n_restarts=1, max_iter=1000, tol=1e-5, 
+        weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p), p >= 0)
@@ -385,37 +385,43 @@ weitrix_components <- function(
         n_restarts <- 1
     }
     
+    # Warm up (unless n_restarts==1, then do full)
+    max_warmup_iter <- if (n_restarts > 1) 5 else max_iter
     result <- NULL
     best_R2 <- -Inf
     R2s <- numeric(n_restarts)
     for(i in seq_len(n_restarts)) {
         col_mat <- design
         if (!is.null(initial)) {
-            # Use first columns of initial on initial run
-            # In restarts, use a random projection of all columns from initial
-            
+            # Use a random projection of all columns from initial
             proj_out <- min(ncol(initial), p)
-            
-            if (i == 1)
-                proj <- diag(ncol(initial))[,seq_len(proj_out),drop=F]
-            else
-                proj <- matrix(rnorm(proj_out*ncol(initial)), ncol=proj_out)
-            
+            proj <- matrix(rnorm(proj_out*ncol(initial)), ncol=proj_out)
             col_mat <- cbind(col_mat, initial %*% proj)
         }
         col_mat <- cbind(col_mat, 
             matrix(rnorm(m*(p_total-ncol(col_mat))), nrow=m))
 
         this_result <- weitrix_components_inner(
-            weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design, max_iter=max_iter, col_mat=col_mat, 
-            ind_components=ind_components, ind_design=ind_design, ss_total=ss_total, tol=tol, 
-            verbose=verbose, outer_iter=i)
+            weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design,
+            max_iter=max_warmup_iter, col_mat=col_mat, 
+            ind_components=ind_components, ind_design=ind_design, ss_total=ss_total,
+            tol=tol, verbose=verbose)
         R2s[i] <- this_result$R2
         if (this_result$R2 > best_R2) {
             result <- this_result
             best_R2 <- this_result$R2
         }
     }
+    
+    # Do full iteration (if n_restarts>1)
+    if (n_restarts > 1) {
+        result <- weitrix_components_inner(
+            weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design,
+            max_iter=max_iter, col_mat=result$col, 
+            ind_components=ind_components, ind_design=ind_design, ss_total=ss_total,
+            tol=tol, verbose=verbose)    
+    }
+    
 
     result$df_total <- df_total
     result$df_model <- df_model
@@ -435,7 +441,7 @@ weitrix_components <- function(
 #' Produce a sequence of weitrix decompositions with 1 to p components.
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p, design=~1, n_restarts=1, max_iter=1000, tol=1e-5, 
+        weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
@@ -454,20 +460,13 @@ weitrix_components_seq <- function(
         if (verbose)
             message("Finding ",i," components")
             
-        # Drop the smallest direction
-        #initial <- svd(col)$u
-
-        # Drop the last component
+        # Random projections of this will be used
         initial <- result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F]
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
-            use_varimax=use_varimax, verbose=verbose,
-            initial=initial)
+            use_varimax=use_varimax, verbose=verbose, initial=initial)
     }
-
-    #if (use_varimax)
-    #    result <- map(result, components_varimax)
 
     result
 }

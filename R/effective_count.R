@@ -32,27 +32,3 @@ weitrix_hill <- function(weitrix, what=c("row","col"), order=2) {
     result
 }
 
-
-#' Downweight rows and cols with low effective numbers of observations
-#'
-#' This is an alternative to filtering out sparse rows and columns, generally to be used before weitrix_components. For each row, weights are scaled by the row's Hill number of order \code{order} as a fraction of the total possible, raised to the power \code{power}. The same is done for each column.
-#'
-#' @export
-weitrix_downweight_sparse <- function(weitrix, power=2, order=2, rows=TRUE, cols=TRUE) {
-    weitrix <- as_weitrix(weitrix)
-    weitrix_out <- weitrix
-    
-    if (rows) {
-        mult <- (weitrix_hill(weitrix, "row", order)/nrow(weitrix)) ^ power
-        weitrix_weights(weitrix_out) <- 
-            sweep(weitrix_weights(weitrix_out), 1, mult, "*")
-    }
-
-    if (cols) {
-        mult <- (weitrix_hill(weitrix, "col", order)/ncol(weitrix)) ^ power
-        weitrix_weights(weitrix_out) <- 
-            sweep(weitrix_weights(weitrix_out), 2, mult, "*")
-    }
-    
-    weitrix_out
-}
