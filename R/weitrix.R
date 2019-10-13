@@ -43,7 +43,8 @@ as_weitrix <- function(object, weights=NULL) {
     if (is(object, "DelayedArray")) {
         if (is.null(weights)) {
             weights <- !is.na(object)
-            mode(weights) <- "numeric"
+            #Fails: mode(weights) <- "numeric"
+            weights <- weights+0
         }
 
         result <- SummarizedExperiment(

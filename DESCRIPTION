@@ -7,12 +7,12 @@ License: LGPL-2.1 | file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R (>= 3.6)
+    R (>= 3.6),
+    SummarizedExperiment
 Imports:
     methods,
     assertthat,
     S4Vectors,
-    SummarizedExperiment,
     DelayedArray,
     DelayedMatrixStats,
     BiocParallel,

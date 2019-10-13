@@ -2,7 +2,7 @@
 % Please edit documentation in R/bootstrap.R
 \name{weitrix_bootstrap}
 \alias{weitrix_bootstrap}
-\title{Bootstrap resample columns of a weitrix}
+\title{Experimental! Bootstrap resample columns of a weitrix}
 \usage{
 weitrix_bootstrap(weitrix, groups = NULL)
 }
@@ -13,5 +13,7 @@ weitrix_bootstrap(weitrix, groups = NULL)
 Bootstrap resample a weitrix. Where a column is sampled multiple times its weights are increased that many times, rather than producing multiple columns.
 }
 \details{
+This is experimental, and may be changed or removed in future.
+
 Note that this will not work with methods that count the residual degrees of freedom, such as estimating the residual standard deviation. The main applicaition is with linear model fitting by weighted least squares, and weitrix_components which is based on this. These will work correctly.
 }

@@ -13,17 +13,12 @@ weighted_proportions <- function(mat, name) {
     total <- sum(totals)
     good <- totals > 0
     
-    props <- matrix(0.5, nrow=n,ncol=m)
+    props <- matrix(NA, nrow=n,ncol=m)
     weights <- matrix(0, nrow=n,ncol=m)
     
     props[,good] <- t(t(mat[,good]) / totals[good])
 
     mean_props <- rowSums(mat) / max(1,total)
-
-    # Avoid infinities: as though at least 1 or n-1 reads in each peak
-    clip_prop <- min(0.5,1/max(1,total))
-    mean_props <- pmax(clip_prop, mean_props)
-    mean_props <- pmin(1-clip_prop, mean_props)
 
     # Bernoulli variance
     per_read_vars <- mean_props*(1-mean_props)

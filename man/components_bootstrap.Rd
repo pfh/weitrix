@@ -2,9 +2,9 @@
 % Please edit documentation in R/bootstrap.R
 \name{components_bootstrap}
 \alias{components_bootstrap}
-\title{Bootstrap resample columns of a weitrix then refit components of variation}
+\title{Experimental! Bootstrap resample columns of a weitrix then refit components of variation}
 \usage{
-components_bootstrap(comp, weitrix, max_iter = 10, verbose = TRUE)
+components_bootstrap(comp, weitrix, max_iter = 5, verbose = TRUE)
 }
 \arguments{
 \item{comp}{A Components object, as produced by weitrix_components.}
@@ -16,5 +16,8 @@ components_bootstrap(comp, weitrix, max_iter = 10, verbose = TRUE)
 \item{verbose}{Show messages about the progress of the iterations when refitting.}
 }
 \description{
-Bootstrap resample columns of a weitrix then refit components of variation
+A bootstrap version of the weitrix is created, and then components refitted by re-optimizing rows, cols, rows, cols, rows, cols, etc (up to \code{max_iter}).
+}
+\details{
+This is experimental, and may be changed or removed in future.
 }

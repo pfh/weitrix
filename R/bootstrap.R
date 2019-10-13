@@ -8,9 +8,11 @@
 
 
 
-#' Bootstrap resample columns of a weitrix
+#' Experimental! Bootstrap resample columns of a weitrix
 #' 
 #' Bootstrap resample a weitrix. Where a column is sampled multiple times its weights are increased that many times, rather than producing multiple columns.
+#'
+#' This is experimental, and may be changed or removed in future.
 #' 
 #' Note that this will not work with methods that count the residual degrees of freedom, such as estimating the residual standard deviation. The main applicaition is with linear model fitting by weighted least squares, and weitrix_components which is based on this. These will work correctly.
 #' 
@@ -45,42 +47,80 @@ weitrix_bootstrap <- function(weitrix, groups=NULL) {
 }
 
 
-#' Bootstrap resample columns of a weitrix then refit components of variation
+#' Experimental! Bootstrap resample columns of a weitrix then refit components of variation
 #' 
+#' A bootstrap version of the weitrix is created, and then components refitted by re-optimizing rows, cols, rows, cols, rows, cols, etc (up to \code{max_iter}).
+#'
+#' This is experimental, and may be changed or removed in future.
+#'
 #' @param comp A Components object, as produced by weitrix_components.
 #' 
 #' @param weitrix The weitrix (or an object that can be converted to a weitrix with \code{as_weitrix}) from which comp was produced.
+#'
 #' @param max_iter Maximum iterations when refitting components.
+#'
 #' @param verbose Show messages about the progress of the iterations when refitting.
 #'
 #' @export
-components_bootstrap <- function(comp, weitrix, max_iter=10, verbose=TRUE) {
+components_bootstrap <- function(comp, weitrix, max_iter=5, verbose=TRUE) {
     weitrix <- as_weitrix(weitrix)
     
+    if (length(comp$ind_components) == 0) 
+        max_iter = 0
+    
     booted_weitrix <- weitrix_bootstrap(weitrix)
+    x <- weitrix_x(booted_weitrix)
+    weights <- weitrix_weights(booted_weitrix)
     
     retained <- metadata(booted_weitrix)$weitrix$retained
     retained_freqs <- metadata(booted_weitrix)$weitrix$retained_freqs
     
-    p <- length(comp$ind_components)
-    design <- comp$col[retained,comp$ind_design,drop=F]
-    new_comp <- weitrix_components(
-        booted_weitrix, p=p, design=design, 
-        max_iter=max_iter, use_varimax=FALSE, 
-        verbose=verbose)
+    col <- comp$col[retained,,drop=F]
+    design <- col[,comp$ind_design,drop=F]
+    row <- fit_all_rows(col, x, weights)
     
-    # Procrustes alignment of col
+    for(i in seq_len(max_iter)) {
+        if (verbose)
+            cat(i,"\n")
+        
+        col[,comp$ind_components] <- 
+            fit_all_cols(row[,comp$ind_components,drop=F], 
+                x, weights, row[,comp$ind_design,drop=F], design)
+
+        row <- fit_all_rows(col, x, weights)
+    }
     
-    ind <- comp$ind_components
-    M <- crossprod(comp$col[retained,ind,drop=F], new_comp$col[,ind,drop=F] * retained_freqs)
-    # covariance, weighted according to bootstrap
-    decomp <- svd(M)
-    rot <- tcrossprod(decomp$u, decomp$v)
+    rownames(row) <- rownames(x)
+    colnames(row) <- colnames(comp$row)
+    rownames(col) <- colnames(x)
+    colnames(col) <- colnames(comp$col)
     
-    new_comp$col[,ind] <- new_comp$col[,ind,drop=F] %*% t(rot)
-    new_comp$row[,ind] <- new_comp$row[,ind,drop=F] %*% t(rot)
+    comp$col <- col
+    comp$row <- row
+    comp$R2 <- NULL
+    comp$all_R2s <- NULL
+    comp
     
-    new_comp
+    #p <- length(comp$ind_components)
+    #design <- comp$col[retained,comp$ind_design,drop=F]
+    #initial <- comp$col[retained,comp$ind_components,drop=F]
+    #new_comp <- weitrix_components(
+    #    booted_weitrix, p=p, design=design, 
+    #    n_restarts=1, max_iter=max_iter, use_varimax=FALSE,
+    #    initial=initial, verbose=verbose)
+    #
+    ## Procrustes alignment of col
+    #
+    #ind <- comp$ind_components
+    #M <- crossprod(comp$col[retained,ind,drop=F], new_comp$col[,ind,drop=F] * retained_freqs)
+    ## covariance, weighted according to bootstrap
+    #decomp <- svd(M)
+    #rot <- tcrossprod(decomp$u, decomp$v)
+    #
+    #new_comp$col[,ind] <- new_comp$col[,ind,drop=F] %*% t(rot)
+    #new_comp$row[,ind] <- new_comp$row[,ind,drop=F] %*% t(rot)
+    #
+    #new_comp
 }
 
 
