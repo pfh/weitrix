@@ -1,9 +1,40 @@
 
-
-
 navbar:
     right:
     - icon: fa-github
       href: https://github.com/pfh/weitrix
 
+template:
+    params:
+        bootswatch: cerulean
+
+
+reference:
+- title: Create weitrix
+  contents:
+  - as_weitrix
+  - bless_weitrix
+  - counts_shift
+  - counts_proportions
+- title: Access or cast weitrix
+  contents:
+  - weitrix_x
+  - weitrix_weights
+  - weitrix_elist
+- title: Components
+  contents:
+  - weitrix_components
+  - components_seq_scree
+- title: Summary statistics and calibration
+  contents:
+  - weitrix_dispersions
+  - weitrix_hill
+  - weitrix_calibrate
+  - weitrix_calibrate_trend
+- title: Other/experimental
+  content:
+  - weitrix_bootstrap
+  - components_bootstrap
+  - weitrix_filter
+  - weitrix_randomize
 

@@ -18,5 +18,12 @@ vignette :
 site : document
 	Rscript -e "pkgdown::build_site(new_process=FALSE)"
 
+site-devel : 
+	Rscript -e "pkgdown::build_site(new_process=FALSE,devel=TRUE,lazy=TRUE)"
+
+articles-devel : 
+	Rscript -e "pkgdown::build_articles(new_process=FALSE,devel=TRUE,lazy=TRUE,quiet=FALSE)"
+
+
 publish : 
 	rsync -rv docs/* logarithmic.net:www/weitrix/

@@ -8,10 +8,7 @@ vignette: >
 ---
 
 ```{r echo=F}
-# To test
-# devtools::load_all(".",export_all=F) ; rmarkdown::render("vignettes/airway.Rmd")
-
-knitr::opts_chunk$set(fig.width=6, fig.height=4)
+knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 ```
 
 Let's look at the [airway](http://bioconductor.org/packages/release/data/experiment/html/airway.html) dataset as an example of a typical small-scale RNA-Seq experiment. In this experiment, four Airway Smooth Muscle (ASM) cell lines are treated with the asthma medication dexamethasone.
@@ -30,7 +27,7 @@ BiocParallel::bpstart( DelayedArray::getAutoBPPARAM() )
 set.seed(1234)
 ```
 
-```{r}
+```{r getdata}
 data("airway")
 airway
 ```
@@ -40,7 +37,7 @@ airway
 
 Initial steps are the same as for a differential expression analysis.
 
-```{r}
+```{r initial}
 counts <- assay(airway,"counts")
 
 # Keep genes with an average of at least 1 read per sample
@@ -56,7 +53,7 @@ airway_lcpm <-
 
 ## Conversion to weitrix
 
-```{r}
+```{r asweitrix}
 airway_weitrix <- as_weitrix(airway_lcpm)
 
 # Include row and column information
@@ -74,12 +71,12 @@ airway_weitrix
 
 This will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability. The result is a list of Components objects.
 
-```{r message=F}
+```{r comps, message=F}
 comp_seq <- weitrix_components_seq(airway_weitrix, p=6)
 comp_seq
 ```
 
-```{r message=F}
+```{r comps2, message=F}
 rand_weitrix <- weitrix_randomize(airway_weitrix)
 rand_comp <- weitrix_components(rand_weitrix, p=1)
 
@@ -90,7 +87,7 @@ components_seq_screeplot(comp_seq, rand_comp)
 
 Up to 4 components may be justified.
 
-```{r}
+```{r exam}
 comp <- comp_seq[[4]]
 
 comp$col[,-1] %>% melt(varnames=c("Run","component")) %>%
@@ -114,7 +111,7 @@ If varimax rotation isn't used, `weitrix_components` and `weitrix_components_seq
 
 Without varimax rotation the treatment effect is still mostly in the first component, but has also leaked a small amount into the other components.
 
-```{r message=F}
+```{r without, message=F}
 comp_nonvarimax <- weitrix_components(airway_weitrix, p=4, use_varimax=FALSE)
 
 comp_nonvarimax$col[,-1] %>% melt(varnames=c("Run","component")) %>%
@@ -137,7 +134,7 @@ Note that this ignores uncertainty about the `col` matrix itself.
 
 This may be useful for hypothesis generation -- finding some potentially interesting genes, while discounting noisy or lowly expressed genes -- but don't use it as proof of significance.
 
-```{r}
+```{r magic}
 airway_cal <- weitrix_calibrate_trend(airway_weitrix, comp, ~splines::ns(mean_lcpm,3))
 
 rowData(airway_cal) %>% as.data.frame() %>% 
@@ -163,7 +160,7 @@ plotMD(fit, "C1", status=all_top$adj.P.Val <= 0.01)
 
 You might also consider using my `topconfects` package. This will find the largest confident effect sizes, while still correcting for multiple testing.
 
-```{r}
+```{r topconfects}
 library(topconfects)
 limma_confects(fit, "C1")
 
