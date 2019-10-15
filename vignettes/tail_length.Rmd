@@ -102,7 +102,7 @@ We now fit this design. We use `weitrix_components`, but don't ask it to discove
 comp_design <- weitrix_components(wei, p=0, design=design)
 ```
 
-Our weights were overoptimistic for large numbers of reads. There is a biological components of noise that does not go away with more reads. We use `comp_design` as a model while calibrating out the overdispersion due to biological noise.
+Our weights were overoptimistic for large numbers of reads. There is a biological components of noise that does not go away with more reads. We use `comp_design` as a model while calibrating out the overdispersion due to biological noise. Note: the dispersion shown is *after taking into account weights*.
 
 ```{r}
 cal_design <- weitrix_calibrate_trend(wei, comp_design, ~splines::ns(log2(total_reads),3))
@@ -110,8 +110,7 @@ cal_design <- weitrix_calibrate_trend(wei, comp_design, ~splines::ns(log2(total_
 rowData(cal_design) %>% as.data.frame() %>% 
     ggplot(aes(x=log2(total_reads),y=dispersion^0.25)) + 
     geom_point() + 
-    geom_line(aes(y=dispersion_trend^0.25), color="red",
-       title="Trend line (red) identified and divided out of weights")
+    geom_line(aes(y=dispersion_trend^0.25), color="red")
 ```
 
 We are now ready to test things. We feed our calibrated weitrix to [limma](https://bioconductor.org/packages/release/bioc/html/limma.html) and then to [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html).
