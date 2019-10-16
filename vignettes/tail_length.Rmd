@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-poly(A) tail length of transcripts can be measured using the PAT-Seq protocol. This protocol produces 3'-end focussed reads that include the poly(A) tail. We examinge [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles.
+poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads that include the poly(A) tail. We examinge [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
 
 # Download files
 
@@ -70,7 +70,7 @@ The two strains are a wildtype and a straing with a mutated set1 gene.
 
 From experience, noise scales with the length of the tail. Therefore to stabilize the variance we will be examing log2 of the tail length.
 
-These tail lengths are each the average over many reads. We therefore weight each tail length by the number of reads. (This is somewhat overoptimistic, as there is a biological noise component that doesn't go away with more reads. We will approximately correct for this in a later calibration step.)
+These tail lengths are each the average over many reads. We therefore weight each tail length by the number of reads. (This is somewhat overoptimistic, as there is biological noise that doesn't go away with more reads. We will approximately correct for this in a later calibration step.)
 
 
 ```{r weitrix, message=F}
@@ -96,13 +96,15 @@ The lack of replicates makes life difficult. For simplicity here we will assume 
 design <- model.matrix(~ strain + time, data=colData(wei))
 ```
 
-We now fit this design. We use `weitrix_components`, but don't ask it to discover any new components, making this step similar to limma's lmFit step.
+Our first step is to calibrate our weights. Our weights are overoptimistic for large numbers of reads, as there is a biological components of noise that does not go away with more reads.
+
+The first step of calibration is to have a fitted model, so that we can calculate the residual noise. We will use `weitrix_components`, but won't will supply the design matrix rather than asking it to discover components, making this step similar to limma's lmFit step. This produces a `Components` object containing an approximate matrix decomposition of our tail lengths and will serve as our fitted model.
 
 ```{r}
 comp_design <- weitrix_components(wei, p=0, design=design)
 ```
 
-Our weights were overoptimistic for large numbers of reads. There is a biological components of noise that does not go away with more reads. We use `comp_design` as a model while calibrating out the overdispersion due to biological noise. Note: the dispersion shown is *after taking into account weights*.
+We use `comp_design` as a model while calibrating out the overdispersion due to biological noise. Note: the dispersion shown is *after taking into account weights*.
 
 ```{r}
 cal_design <- weitrix_calibrate_trend(wei, comp_design, ~splines::ns(log2(total_reads),3))
@@ -189,6 +191,8 @@ fit_comp <- cal_comp %>%
 limma_confects(fit_comp, "C1", full=TRUE, fdr=0.05)
 ```
 
+FUS3 is involved in yeast mating. We see here a poly(A) tail signature of yeast realizing there are not actually any $\alpha$ cells around to mate with.
+
 ## Gene loadings for C2: longer tails in set1 mutant
 
 ```{r C2}
@@ -201,7 +205,7 @@ limma_confects(fit_comp, "C2", full=TRUE, fdr=0.05)
 limma_confects(fit_comp, "C3", full=TRUE, fdr=0.05)
 ```
 
-Given the mixture of signs for effects in C3, different genes are longer in different stages of the cell cycle.
+Given the mixture of signs for effects in C3, different genes are longer in different stages of the cell cycle. We see many genes to do with replication, and also Mating Factor A.
 
 
 
