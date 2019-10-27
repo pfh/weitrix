@@ -498,7 +498,10 @@ components_seq_scree <- function(comp_seq, rand_comp=NULL) {
     explained <- R2 - c(0, R2[-n])
     
     result <- data.frame(components=seq_len(n), explained=explained)
-    result$kaiser <- rep(1/min(nrow(comp_seq[[1]]$row), nrow(comp_seq[[1]]$col)), n)
+    
+    # Seems conservative, would rather not have it as the only advice
+    #result$kaiser <- rep(1/min(nrow(comp_seq[[1]]$row), nrow(comp_seq[[1]]$col)), n)
+    
     if (!is.null(rand_comp)) {
         assert_that(length(rand_comp$ind_components) == 1)
         pa <- rand_comp$R2
@@ -531,8 +534,8 @@ components_seq_screeplot <- function(comp_seq, rand_comp=NULL) {
     
     result <- ggplot(df, aes_string(x="components"))
     
-    result <- result +
-        geom_line(aes_string(y="kaiser", color='"Kaiser Criterion"'))
+    #result <- result +
+    #    geom_line(aes_string(y="kaiser", color='"Kaiser Criterion"'))
     
     if (!is.null(df$pa)) {
         result <- result +
