@@ -208,7 +208,28 @@ limma_confects(fit_comp, "C3", full=TRUE, fdr=0.05)
 Given the mixture of signs for effects in C3, different genes are longer in different stages of the cell cycle. We see many genes to do with replication, and also Mating Factor A.
 
 
+## Check individual genes
 
+Having discovered patterns of tail length change and their associated genes, let's look at some genes in detail.
+
+```{r check}
+view_gene <- function(id, title) {
+    ggplot(samples, aes(x=time,color=strain,group=strain, 
+        y=tail[id,])) +
+       geom_line() + geom_point(aes(size=tail_count[id,])) +
+       labs(x="Time", y="Tail length", size="Read count", title=title)
+}
+
+view_gene("YBL016W", "FUS3 (C1)")
+view_gene("YOR096W", "RPS7A (C1)")
+view_gene("YDR092W", "UBC1 (C1)")
+view_gene("YDR476C","YDR476C (C2)")
+view_gene("YPL131W","RPL5 (C2)")
+view_gene("YCR014C","POL4 (C2)")
+view_gene("YFL014W", "HSP12 (C3)")
+view_gene("YBL003C","HTA2 (C3)")
+view_gene("YDR461W", "MFA1 (C3)")
+```
 
 
 

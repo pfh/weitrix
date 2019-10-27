@@ -19,7 +19,7 @@ site : document
 	Rscript -e "pkgdown::build_site(new_process=FALSE)"
 
 site-devel : 
-	Rscript -e "pkgdown::build_site(new_process=FALSE,devel=TRUE,lazy=TRUE)"
+	Rscript -e "pkgdown::build_site(new_process=FALSE,devel=TRUE,install=TRUE,lazy=TRUE)"
 
 articles-devel : 
 	Rscript -e "pkgdown::build_articles(new_process=FALSE,devel=TRUE,lazy=TRUE,quiet=FALSE)"
