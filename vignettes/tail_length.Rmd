@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads that include the poly(A) tail. We examinge [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
+poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads that include the poly(A) tail. We examine [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
 
 # Download files
 
@@ -85,7 +85,7 @@ wei <- as_weitrix(
 
 rowData(wei)$gene <- select(org.Sc.sgd.db, keys=rownames(wei), columns=c("GENENAME"))$GENENAME
 rowData(wei)$total_reads <- rowSums(weitrix_weights(wei))
-colData(wei) <- as(samples, "DataFrame")
+colData(wei) <- cbind(colData(wei), samples)
 ```
 
 # Testing using experimental design

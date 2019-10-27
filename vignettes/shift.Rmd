@@ -1,0 +1,135 @@
+---
+title: "Alternative polyadenylation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{shift}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+APA sites can be detected using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads. We examine [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
+
+# Load files
+
+```{r echo=F}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
+
+options(width=1000)
+
+# Disable parallel processing
+DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
+
+# Produce consistent results
+set.seed(12345)
+```
+
+```{r load, message=F, warning=F}
+library(tidyverse)
+library(reshape2)
+library(limma)
+library(topconfects)
+library(weitrix)
+
+peaks <- system.file("shift_example", "peaks.csv.gz", package="weitrix") %>%
+    read_csv()
+
+counts <- system.file("shift_example", "peak-counts.csv.gz", package="weitrix") %>%
+    read_csv() %>%
+    column_to_rownames("name") %>%
+    as.matrix()
+
+
+genes <- system.file("shift_example", "genes.csv.gz", package="weitrix") %>%
+    read_csv() %>%
+    column_to_rownames("name")
+    
+samples <- data.frame(sample=I(colnames(counts))) %>%
+    extract(sample, c("strain","time"), c("(.+)-(.+)"), remove=FALSE) %>%
+    mutate(
+        strain=factor(strain,unique(strain)), 
+        time=factor(time,unique(time)))
+rownames(samples) <- samples$sample
+
+samples
+```
+
+```{r shift}
+groups <- select(peaks, group=gene_name, name=name)
+# Note the order of this data frame is important
+
+wei <- counts_shift(counts, groups)
+
+colData(wei) <- cbind(colData(wei), samples)
+rowData(wei) <- cbind(rowData(wei), genes[match(rownames(wei), rownames(genes)),])
+```
+
+# Exploratory analysis
+
+We can look for components of variation.
+
+```{r comp, message=F}
+comp_seq <- weitrix_components_seq(wei, p=10, design=~0)
+```
+
+```{r scree}
+components_seq_screeplot(comp_seq)
+```
+
+Pushing a point somewhat, we example four components.
+
+```{r exam}
+comp <- comp_seq[[4]]
+
+comp$col %>% melt(varnames=c("sample","component")) %>%
+    left_join(samples,by="sample") %>%
+    ggplot(aes(x=time, y=value, color=strain, group=strain)) + 
+    geom_hline(yintercept=0) + 
+    geom_line() + 
+    geom_point(alpha=0.75, size=3) + 
+    facet_grid(component ~ .) +
+    labs(title="Sample scores for each component", y="Sample score", x="Time", color="Strain")
+```
+
+A weitrix created with `counts_shift` has a built-in default trend formula, so we don't need to give a formula explicitly to `weitrix_calibrate_trend`.
+
+```{r limmacomp}
+cal_comp <- weitrix_calibrate_trend(wei, comp)
+metadata(cal_comp)$weitrix$trend_fit
+
+fit_comp <- cal_comp %>%
+    weitrix_elist() %>%
+    lmFit(comp$col)
+```
+
+**Treat these results with caution.** Confindence bounds take into account uncertainty in the loadings but not in the scores! What follows is best regarded as exploratory rather than a final result.
+
+## Gene loadings for C1
+
+```{r C1}
+limma_confects(fit_comp, "C1", full=TRUE, fdr=0.05)
+```
+
+## Gene loadings for C2
+
+```{r C2}
+limma_confects(fit_comp, "C2", full=TRUE, fdr=0.05)
+```
+
+## Gene loadings for C3
+
+```{r C3}
+limma_confects(fit_comp, "C3", full=TRUE, fdr=0.05)
+```
+
+## Gene loadings for C4
+
+```{r C4}
+limma_confects(fit_comp, "C4", full=TRUE, fdr=0.05)
+```
+
+
+
+
+
+
+
