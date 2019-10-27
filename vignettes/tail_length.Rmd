@@ -14,6 +14,9 @@ poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](
 ```{r echo=F}
 knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
+# To examine objects:
+# devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/tail_length_cache/html")
+
 # Disable parallel processing
 DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
 
@@ -96,6 +99,8 @@ The lack of replicates makes life difficult. For simplicity here we will assume 
 design <- model.matrix(~ strain + time, data=colData(wei))
 ```
 
+## Calibration
+
 Our first step is to calibrate our weights. Our weights are overoptimistic for large numbers of reads, as there is a biological components of noise that does not go away with more reads.
 
 The first step of calibration is to have a fitted model, so that we can calculate the residual noise. We will use `weitrix_components`, but won't will supply the design matrix rather than asking it to discover components, making this step similar to limma's lmFit step. This produces a `Components` object containing an approximate matrix decomposition of our tail lengths and will serve as our fitted model.
@@ -108,12 +113,50 @@ We use `comp_design` as a model while calibrating out the overdispersion due to 
 
 ```{r}
 cal_design <- weitrix_calibrate_trend(wei, comp_design, ~splines::ns(log2(total_reads),3))
-
-rowData(cal_design) %>% as.data.frame() %>% 
-    ggplot(aes(x=log2(total_reads),y=dispersion^0.25)) + 
-    geom_point() + 
-    geom_line(aes(y=dispersion_trend^0.25), color="red")
 ```
+
+## Examining the effect of calibration
+
+Let's unpack what happens in that `weitrix_calibrate_trend` step.
+
+```{r disp-calc}
+rowData(cal_design)$dispersion_unweighted <- weitrix_dispersions(weitrix_x(wei), comp_design)
+rowData(cal_design)$dispersion_weighted <- weitrix_dispersions(wei, comp_design)
+rowData(cal_design)$dispersion_calibrated <- weitrix_dispersions(cal_design, comp_design)
+```
+
+Consider first the dispersion if weights were uniform. Missing data is weighted 0, all other weights are 1.
+
+```{r disp-plot-unif}
+rowData(cal_design) %>% as.data.frame() %>%
+    ggplot(aes(x=log2(total_reads), y=dispersion_unweighted^0.25)) + geom_point(size=0.1) +
+    labs(title="Dispersion^0.25 if uniform weights used")
+```
+
+There is information from the number of reads that we can remove.
+
+Here are the dispersions using read-counts as weights.
+
+```{r disp-plot-weighted}
+rowData(cal_design) %>% as.data.frame() %>%
+    ggplot(aes(x=log2(total_reads), y=dispersion_weighted^0.25)) + geom_point(size=0.1) +
+    geom_line(aes(y=dispersion_trend^0.25), color="red") +
+    labs(title="Dispersion^0.25 with read-counts as weights")
+```
+
+In general it is improved, but now we have the opposite problem. There is a component of noise that does not go away with more and more reads. The red line is a trend fitted to this, which `weitrix_calibrate_trend` divides out of the weights.
+
+Finally, here are the dispersion from the calibrated weitrix.
+
+```{r disp-plot-cal}
+rowData(cal_design) %>% as.data.frame() %>%
+    ggplot(aes(x=log2(total_reads), y=dispersion_calibrated^0.25)) + geom_point(size=0.1) +
+    labs(title="Dispersion^0.25 with read-count weights / trend-based calibration")
+```
+
+This is reasonably close to uniform, with no trend from the number of reads. `limma` can now estimate the variability of dispersions between genes, and apply its Emprical-Bayes squeezed dispersion based testing.
+
+## Testing
 
 We are now ready to test things. We feed our calibrated weitrix to [limma](https://bioconductor.org/packages/release/bioc/html/limma.html) and then to [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html).
 
