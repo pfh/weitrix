@@ -75,7 +75,7 @@ comp_seq <- weitrix_components_seq(wei, p=10, design=~0)
 components_seq_screeplot(comp_seq)
 ```
 
-Pushing a point somewhat, we example four components.
+Pushing a point somewhat, we examine four components.
 
 ```{r exam}
 comp <- comp_seq[[4]]
@@ -127,7 +127,27 @@ limma_confects(fit_comp, "C3", full=TRUE, fdr=0.05)
 limma_confects(fit_comp, "C4", full=TRUE, fdr=0.05)
 ```
 
+## Examine individual genes
 
+Let's examine peak-level read counts for some genes we've identified.
+
+```{r examiner, message=F, warning=F, fig.height=3}
+examine <- function(gene_wanted, title) {
+    peak_names <- filter(peaks, gene_name==gene_wanted)$name
+
+    counts[peak_names,] %>% melt(value.name="reads", varnames=c("peak","sample")) %>%
+        left_join(samples, by="sample") %>%
+        ggplot(aes(x=factor(as.integer(peak)), y=reads)) + 
+        facet_grid(strain ~ time) + geom_col() +
+        labs(x="Peak",y="Reads",title=title)
+}
+
+examine("YLR058C", "SHM2, from C1")
+examine("YLR333C", "RPS25B, from C2")
+examine("YDR077W", "SED1, from C3")
+examine("YIL015W", "BAR1, from C4")
+examine("tK(CUU)M", "tK(CUU)M, from C4")
+```
 
 
 

@@ -129,8 +129,9 @@ Consider first the dispersion if weights were uniform. Missing data is weighted 
 
 ```{r disp-plot-unif}
 rowData(cal_design) %>% as.data.frame() %>%
-    ggplot(aes(x=log2(total_reads), y=dispersion_unweighted^0.25)) + geom_point(size=0.1) +
-    labs(title="Dispersion^0.25 if uniform weights used")
+    ggplot(aes(x=total_reads, y=dispersion_unweighted)) + geom_point(size=0.1) +
+    scale_x_log10() + scale_y_log10() +
+    labs(title="Dispersion if uniform weights used (log scales)")
 ```
 
 There is information from the number of reads that we can remove.
@@ -139,9 +140,10 @@ Here are the dispersions using read-counts as weights.
 
 ```{r disp-plot-weighted}
 rowData(cal_design) %>% as.data.frame() %>%
-    ggplot(aes(x=log2(total_reads), y=dispersion_weighted^0.25)) + geom_point(size=0.1) +
-    geom_line(aes(y=dispersion_trend^0.25), color="red") +
-    labs(title="Dispersion^0.25 with read-counts as weights")
+    ggplot(aes(x=total_reads, y=dispersion_weighted)) + geom_point(size=0.1) +
+    geom_line(aes(y=dispersion_trend), color="red") +
+    scale_x_log10() + scale_y_log10() +
+    labs(title="Dispersion with read-counts as weights (log scales)")
 ```
 
 In general it is improved, but now we have the opposite problem. There is a component of noise that does not go away with more and more reads. The red line is a trend fitted to this, which `weitrix_calibrate_trend` divides out of the weights.
@@ -150,8 +152,9 @@ Finally, here are the dispersion from the calibrated weitrix.
 
 ```{r disp-plot-cal}
 rowData(cal_design) %>% as.data.frame() %>%
-    ggplot(aes(x=log2(total_reads), y=dispersion_calibrated^0.25)) + geom_point(size=0.1) +
-    labs(title="Dispersion^0.25 with read-count weights / trend-based calibration")
+    ggplot(aes(x=total_reads, y=dispersion_calibrated)) + geom_point(size=0.1) +
+    scale_x_log10() + scale_y_log10() +
+    labs(title="Dispersion with read-count weights / trend-based calibration\n(log scales)")
 ```
 
 This is reasonably close to uniform, with no trend from the number of reads. `limma` can now estimate the variability of dispersions between genes, and apply its Emprical-Bayes squeezed dispersion based testing.
