@@ -23,7 +23,6 @@ library(reshape2)
 library(tidyverse)
 library(airway)
 
-BiocParallel::bpstart( DelayedArray::getAutoBPPARAM() )
 set.seed(1234)
 ```
 
@@ -163,8 +162,5 @@ You might also consider using my `topconfects` package. This will find the large
 ```{r topconfects}
 library(topconfects)
 limma_confects(fit, "C1")
-
-
-BiocParallel::bpstop( DelayedArray::getAutoBPPARAM() )
 ```
 

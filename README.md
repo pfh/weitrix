@@ -81,7 +81,13 @@ setHDF5DumpDir("__dump__")
 
 ## BiocParallel problems
 
-Parallelism in R and Bioconductor remains finicky but is also necessary for large datasets. weitrix uses parallel processing by default.
+Parallel processing in R and Bioconductor remains finicky but is also necessary for large datasets. weitrix uses DelayedArray's default parallel processing as its own default, see `DelayedArray::getAutoBPPARAM()` and `DelayedArray::setAutoBPPARAM()`.
+
+Parallel processing is faster with a running worker pool. Otherwise, R will start up a new pool for each operation. To start up a worker pool:
+
+```
+BiocParallel::bpstart( DelayedArray::getAutoBPPARAM() )
+```
 
 If weitrix hangs, try running it with serial processing:
 

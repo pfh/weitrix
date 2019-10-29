@@ -16,9 +16,6 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
 options(width=1000)
 
-# Disable parallel processing
-DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
-
 # Produce consistent results
 set.seed(12345)
 ```

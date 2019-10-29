@@ -26,7 +26,6 @@ library(reshape2)
 library(tidyverse)
 library(airway)
 
-BiocParallel::bpstart( DelayedArray::getAutoBPPARAM() )
 set.seed(1234)
 ```
 

@@ -11,6 +11,9 @@ check : document
 test :
 	Rscript -e "devtools::test()"
 
+install :
+	R CMD INSTALL .
+
 vignette :
 	@echo file:///`pwd`/doc
 	Rscript -e "devtools::build_vignettes()"
@@ -18,9 +21,11 @@ vignette :
 site : document
 	Rscript -e "pkgdown::build_site(new_process=FALSE)"
 
+# Note: must install package for system.file to work
 site-devel : 
 	Rscript -e "devtools::load_all('.',export_all=F);pkgdown::build_site(new_process=FALSE,devel=TRUE,lazy=TRUE)"
 
+# Note: must install package for system.file to work
 articles-devel : 
 	Rscript -e "devtools::load_all('.',export_all=F);pkgdown::build_articles(lazy=TRUE,quiet=FALSE)"
 
