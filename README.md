@@ -67,11 +67,6 @@ Example setup:
 ```
 library(DelayedArray)
 library(HDF5Array)
-library(BiocParallel)
-
-# Start a 4 worker cluster (Linux or Mac OS)
-param <- bpstart(MulticoreParam(4))
-setAutoBPPARAM(param)
 
 # Store intermediate results in a directory called __dump__
 # You may need to clean up this directory manually
@@ -79,21 +74,27 @@ setRealizationBackend("HDF5Array")
 setHDF5DumpDir("__dump__")
 ```
 
-## BiocParallel problems
+## Parallelism fine tuning
+
+### BiocParallel problems
 
 Parallel processing in R and Bioconductor remains finicky but is also necessary for large datasets. weitrix uses DelayedArray's default parallel processing as its own default, see `DelayedArray::getAutoBPPARAM()` and `DelayedArray::setAutoBPPARAM()`.
-
-Parallel processing is faster with a running worker pool. Otherwise, R will start up a new pool for each operation. To start up a worker pool:
-
-```
-BiocParallel::bpstart( DelayedArray::getAutoBPPARAM() )
-```
 
 If weitrix hangs, try running it with serial processing:
 
 ```
 DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
 ```
+
+### OpenBLAS
+
+If using parallel processing, multi-threaded linear algebra libraries will just slow things down. If you have installed OpenBLAS you may need to disable multi-threading. You can see the BLAS R is using in `sessionInfo()`. Disable multi-threading using the `RhpcBLASctl` package:
+
+```
+RhpcBLASctl::blas_set_num_threads(1)
+```
+
+This needs to be done before using `BiocParallel::bpup`. In the default case of using `MulticoreParam` and not having used `bpup`, weitrix temporarily start a worker pool for large computations, and ensure this is set for workers. If you stray from this default case, we assume you vaguely know what you are doing.
 
 
 

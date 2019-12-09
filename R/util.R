@@ -38,3 +38,24 @@ partitions <- function(n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL,
 
     map2(starts, ends, seq)
 }
+
+# Evaluate an expression with a running worker pool
+#
+# Otherwise pool will be started for each individual operation!
+#
+# Only in the default case of a MulticoreParam,
+# also sets blas threads in worker pool!
+# This may need further tweaking.
+#
+with_bp_up <- function(expr) {
+    BPPARAM <- getAutoBPPARAM()
+    if (!bpisup(BPPARAM)) {
+        on.exit(bpstop(BPPARAM))
+        bpstart(BPPARAM)
+        
+        if (is(BPPARAM, "MulticoreParam") && bpnworkers(BPPARAM) > 1)
+            bplapply(rep(1,bpnworkers(BPPARAM)), blas_set_num_threads, BPPARAM=BPPARAM)
+    }
+
+    expr
+}

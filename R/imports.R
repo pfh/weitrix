@@ -33,7 +33,10 @@
 #'     metadata metadata<-
 #'
 #' @importFrom BiocParallel
-#'     bplapply bpnworkers bpisup
+#'     bplapply bpnworkers bpisup bpnworkers bpstart bpstop
+#'
+#' @importFrom RhpcBLASctl
+#'     blas_set_num_threads
 #'
 #' @importFrom BiocGenerics
 #'     rowSums colSums rbind cbind

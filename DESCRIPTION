@@ -20,7 +20,8 @@ Imports:
     limma,
     purrr,
     ggplot2,
-    scales
+    scales,
+    RhpcBLASctl
 RoxygenNote: 6.1.1
 Suggests: 
     knitr,

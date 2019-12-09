@@ -223,7 +223,8 @@ calc_weighted_ss <- function(x, w, row, col) {
 
 weitrix_components_inner <- function(
         weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
-        ind_components, ind_design, ss_total, tol, verbose) {
+        ind_components, ind_design, ss_total, tol, verbose
+        ) {
     R2 <- -Inf
 
     for(i in seq_len(max_iter)) {
@@ -338,7 +339,8 @@ weitrix_components_inner <- function(
 #' @export
 weitrix_components <- function(
         weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
-        use_varimax=TRUE, initial=NULL, verbose=TRUE) {
+        use_varimax=TRUE, initial=NULL, verbose=TRUE
+        ) with_bp_up({
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p), p >= 0)
 
@@ -434,7 +436,7 @@ weitrix_components <- function(
         result <- components_order_and_flip(result)
 
     result
-}
+})
 
 
 #' @describeIn weitrix_components
@@ -442,7 +444,8 @@ weitrix_components <- function(
 #' @export
 weitrix_components_seq <- function(
         weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
-        use_varimax=TRUE, verbose=TRUE) {
+        use_varimax=TRUE, verbose=TRUE
+        ) with_bp_up({
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
     assert_that(p >= 1)
@@ -469,7 +472,7 @@ weitrix_components_seq <- function(
     }
 
     result
-}
+})
 
 
 #' Proportion more variance explained by adding components one at a time

@@ -83,7 +83,8 @@ wei <- as_weitrix(
     log2_tail[good,,drop=F], 
     weights=tail_count[good,,drop=F])
 
-rowData(wei)$gene <- select(org.Sc.sgd.db, keys=rownames(wei), columns=c("GENENAME"))$GENENAME
+rowData(wei)$gene <- AnnotationDbi::select(
+    org.Sc.sgd.db, keys=rownames(wei), columns=c("GENENAME"))$GENENAME
 rowData(wei)$total_reads <- rowSums(weitrix_weights(wei))
 colData(wei) <- cbind(colData(wei), samples)
 ```
