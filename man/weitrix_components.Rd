@@ -5,12 +5,28 @@
 \alias{weitrix_components_seq}
 \title{Principal components of a weitrix}
 \usage{
-weitrix_components(weitrix, p, design = ~1, n_restarts = 3,
-  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, initial = NULL,
-  verbose = TRUE)
+weitrix_components(
+  weitrix,
+  p,
+  design = ~1,
+  n_restarts = 3,
+  max_iter = 1000,
+  tol = 1e-05,
+  use_varimax = TRUE,
+  initial = NULL,
+  verbose = TRUE
+)
 
-weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 3,
-  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
+weitrix_components_seq(
+  weitrix,
+  p,
+  design = ~1,
+  n_restarts = 3,
+  max_iter = 1000,
+  tol = 1e-05,
+  use_varimax = TRUE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
@@ -31,13 +47,16 @@ weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 3,
 
 \item{verbose}{Show messages about the progress of the iterations.}
 }
+\value{
+
+}
 \description{
 Finds principal components of a weitrix.
 If varimax rotation is enabled, these are then rotated to enhance interpretability.
 }
 \details{
 Note that this is a slow numerical method to solve a gnarly problem, for the case where weights are not uniform.
-If your weights are uniform, or can be written as an outer product of row and colum weights, there are much faster algorithms available elsewhere.
+The case of uniform weights or weights that can be written as an outer product of row and column weights is somewhat faster, however there are much faster algorithms for this available elsewhere.
 
 An iterative method is used, starting from a random initial set of components.
 It is possible for this to get stuck at a local minimum.
