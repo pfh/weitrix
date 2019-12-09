@@ -55,27 +55,45 @@ scale_cols <- function(A,s) {
     t(t(A)*s)
 }
 
-# Least squares
+
+# Least squares, always producing an answer
+# Returns a function, which will caches last weighting used for future calls
 # Where multiple solutions exist, one should be chosen arbitrarily
-least_squares <- function(A,w,b) {
-    if (length(b) == 0) 
-        return(rep(0, ncol(A)))
+# NA is treated as 0 (should be given weight 0 or not present in any case!)
+least_squares_func <- function(A) {
+    last_present <- NULL
+    last_w <- NULL
+    solver <- NULL
 
-    sw <- sqrt(w)
-    decomp <- svd(A*sw)
-    
-    # Soldier on:
-    # - Missing values become NA
-    # - (near)zero singular values nuked
-    b[is.na(b)] <- 0.0
-    x <- (t(decomp$u) %*% (b*sw))/decomp$d
-    ad <- abs(decomp$d)
-    x[ad < max(ad)*1e-9] <- 0.0
-    
-    as.vector(decomp$v %*% x)
-    
+    function(present,w,b) {
+        if (length(b) == 0) 
+            return(rep(0, ncol(A)))
+
+        # Scaling of weights doesn't matter, normalize out
+        w <- w/max(w)
+
+        # Treat as equal if within 1e-9
+        if (!identical(last_present, present) ||
+            max(abs(last_w-w)) >= 1e-9) {
+            last_present <<- present
+            last_w <<- w
+
+            # Soldier on:
+            # - Missing values become NA
+            # - (near)zero singular values nuked            
+            sw <- sqrt(w)
+            decomp <- svd(A[present,,drop=F]*sw)
+            good <- max(abs(decomp$d)) >= 1e-9
+            solver <<- 
+                decomp$v[,good,drop=F] %*% 
+                (t(decomp$u[,good,drop=F]*sw)/decomp$d[good])
+        }
+
+        b[is.na(b)] <- 0.0
+        as.vector(solver %*% b)
+    }
+
     #as.vector( decomp$v %*% ((t(decomp$u) %*% (b*sw))/decomp$d) )
-
 
     ## May be slightly faster, 
     ## but fails rather than choosing an arbitrary minimum
@@ -95,12 +113,13 @@ least_squares <- function(A,w,b) {
 fit_all_cols_inner <- function(args) with(args, {
     y <- as.matrix(y)
     w <- as.matrix(w)
+    solver <- least_squares_func(x)
 
     result <- lapply(seq_len(ncol(y)), function(i) {
         wi <- w[,i]
         present <- wi > 0
         fixed <- as.vector(fixed_row[present,,drop=F] %*% fixed_col[i,])
-        least_squares(x[present,,drop=F],wi[present],y[present,i] - fixed)
+        solver(present,wi[present],y[present,i] - fixed)
     })
     
     do.call(rbind, result)
@@ -121,7 +140,7 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
             w=w[,part,drop=F],
             fixed_row=fixed_row,
             fixed_col=fixed_col[part,,drop=F],
-            least_squares=least_squares)
+            least_squares_func=least_squares_func)
     })
 
     result <- bplapply(feed, fit_all_cols_inner, BPPARAM=BPPARAM)
@@ -132,11 +151,12 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
 fit_all_rows_inner <- function(args) with(args, {
     y <- as.matrix(y)
     w <- as.matrix(w)
+    solver <- least_squares_func(x)
 
     result <- lapply(seq_len(nrow(y)), function(i) {
         wi <- w[i,]
         present <- wi > 0
-        least_squares(x[present,,drop=F],wi[present],y[i,present])
+        solver(present,wi[present],y[i,present])
     })
     
     do.call(rbind, result)
@@ -154,7 +174,7 @@ fit_all_rows <- function(x,y,w) {
             x=x,
             y=y[part,,drop=F],
             w=w[part,,drop=F],
-            least_squares=least_squares)
+            least_squares_func=least_squares_func)
     })
     #cat("rows",length(parts),"\n")
     result <- bplapply(feed, fit_all_rows_inner, BPPARAM=BPPARAM)
@@ -290,7 +310,7 @@ weitrix_components_inner <- function(
 #' If varimax rotation is enabled, these are then rotated to enhance interpretability.
 #'
 #' Note that this is a slow numerical method to solve a gnarly problem, for the case where weights are not uniform.
-#' If your weights are uniform, or can be written as an outer product of row and colum weights, there are much faster algorithms available elsewhere.
+#' The case of uniform weights or weights that can be written as an outer product of row and column weights is somewhat faster, however there are much faster algorithms for this available elsewhere.
 #'
 #' An iterative method is used, starting from a random initial set of components.
 #' It is possible for this to get stuck at a local minimum.

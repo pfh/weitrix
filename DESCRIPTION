@@ -22,7 +22,6 @@ Imports:
     ggplot2,
     scales,
     RhpcBLASctl
-RoxygenNote: 6.1.1
 Suggests: 
     knitr,
     rmarkdown,
@@ -32,5 +31,7 @@ Suggests:
     limma,
     edgeR,
     topconfects,
-    EnsDb.Hsapiens.v86
+    EnsDb.Hsapiens.v86,
+    testthat (>= 2.1.0)
+RoxygenNote: 7.0.2
 VignetteBuilder: knitr
