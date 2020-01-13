@@ -59,3 +59,39 @@ with_bp_up <- function(expr) {
 
     expr
 }
+
+
+#' Convert a matrix to long form for ggplotting
+#'
+#' @export
+matrix_long <- function(matrix, row_info=NULL, col_info=NULL, varnames=c("name","col")) {
+    matrix <- as.matrix(matrix)
+    long <- melt(matrix, varnames=varnames)
+
+    if (!is.null(row_info)) {
+        name_col <- varnames[1]
+        row_info <- as.data.frame(row_info)
+        row_info[[name_col]] <- factor(row_info[[name_col]], rownames(matrix))
+        long <- left_join(long, row_info, by=name_col)
+    }
+
+    if (!is.null(col_info)) {
+        name_col <- varnames[2]
+        col_info <- as.data.frame(col_info)
+        col_info[[name_col]] <- factor(col_info[[name_col]], colnames(matrix))
+        long <- left_join(long, col_info, by=name_col)
+    }
+
+    long
+}
+
+
+
+
+
+
+
+
+
+
+

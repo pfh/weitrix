@@ -91,19 +91,24 @@ weitrix_calibrate <- function(weitrix, dispersions) {
 #' Dispersions are estimated using \code{weitrix_dispersions}. A trend line is then fitted to log dispersions using a linear model. Weitrix weights are calibrated based on this trend line. Any zero or very-near-zero dispersions are ignored when fitting this model.
 #'
 #' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
-#' @param comp A Components, an approximate matrix decomposition of the weitrix x values, for example created with \code{weitrix_components}.
+#' @param design A formula in terms of \code{colData(weitrix} or a design matrix, which will be fitted to the weitrix on each row. Can also be a pre-existing Components object, in which case the existing fits (\code{design$row}) are used.
 #' @param formula A formula specification for predicting log dispersion from columns of rowData(weitrix). If absent, metadata(weitrix)$weitrix$trend_formula is used.
 #'
 #' @export
-weitrix_calibrate_trend <- function(weitrix, comp, formula=NULL) {
+weitrix_calibrate_trend <- function(weitrix, design=~1, formula=NULL) {
     weitrix <- as_weitrix(weitrix)
-    
+
     if (is.null(formula))
         formula <- metadata(weitrix)$weitrix$trend_formula
     assert_that(!is.null(formula))
     
     formula <- as.formula(formula)
-    
+
+    if (is(design, "Components"))
+        comp <- design
+    else
+        comp <- weitrix_components(weitrix, design=comp, p=0, verbose=FALSE)
+        
     rowData(weitrix)$dispersion <- weitrix_dispersions(weitrix, comp)
     
     formula <- update(formula, log(dispersion)~.)

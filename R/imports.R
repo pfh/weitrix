@@ -3,6 +3,9 @@
 #' @import utils
 #' @import stats
 #'
+#' @importFrom reshape2
+#'     melt
+#'
 #' @importFrom assertthat
 #'     assert_that is.string is.number
 #'
@@ -21,7 +24,7 @@
 #' @importClassesFrom SummarizedExperiment 
 #'     SummarizedExperiment
 #' @importFrom SummarizedExperiment
-#'     SummarizedExperiment assay assay<- rowData colData
+#'     SummarizedExperiment assay assay<- rowData rowData<- colData
 #'
 #' @importFrom DelayedArray
 #'     realize getAutoBPPARAM getAutoBlockSize sweep apply

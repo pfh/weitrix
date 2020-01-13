@@ -11,6 +11,12 @@ hill_1 <- function(x) {
 #'
 #' Effective numbers of observations. order=0 produces count of non-zero weights. order=1 produces exp(entropy). order=2 produces the inverse Simpson index.
 #'
+#' @param weitrix A weitrix object.
+#'
+#' @param what Calculate for rows ("row") (default) or columns ("col")?
+#'
+#' @param order Order of the Hill numbers.
+#'
 #' @export
 weitrix_hill <- function(weitrix, what=c("row","col"), order=2) {
     weitrix <- as_weitrix(weitrix)

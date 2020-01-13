@@ -8,6 +8,8 @@ weitrix_bootstrap(weitrix, groups = NULL)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+
+\item{groups}{(Optional.) A vector of length ncol(weitrix). Distinct values are treated as groups which are sampled as a single unit. For example the groups could be distinct individuals in a study with "before" and "after" samples.}
 }
 \description{
 Bootstrap resample a weitrix. Where a column is sampled multiple times its weights are increased that many times, rather than producing multiple columns.
