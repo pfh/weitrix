@@ -107,7 +107,7 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, formula=NULL) {
     if (is(design, "Components"))
         comp <- design
     else
-        comp <- weitrix_components(weitrix, design=comp, p=0, verbose=FALSE)
+        comp <- weitrix_components(weitrix, design=design, p=0, verbose=FALSE)
         
     rowData(weitrix)$dispersion <- weitrix_dispersions(weitrix, comp)
     
