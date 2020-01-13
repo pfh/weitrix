@@ -30,6 +30,7 @@ weighted_proportions <- function(mat, name) {
     
     df <- data.frame(
         group=name,
+        total_reads=total,
         per_read_var=per_read_vars,
         stringsAsFactors=FALSE)
     rownames(df) <- rownames(mat)
@@ -90,6 +91,7 @@ counts_proportions <- function(counts, grouping, verbose=TRUE) {
     result <- do.call(rbind, result)
     colnames(result) <- colnames(counts)
     result <- bless_weitrix(result, "x", "weights")
-    metadata(result)$weitrix$trend_formula <- "~log(per_read_var)"
+    metadata(result)$weitrix$trend_formula <- 
+        "~log(per_read_var)+splines::ns(log(total_reads),3)"
     result
 }

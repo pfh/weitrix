@@ -28,10 +28,11 @@ Suggests:
     tidyverse,
     reshape2,
     airway,
-    limma,
     edgeR,
     topconfects,
     EnsDb.Hsapiens.v86,
+    org.Sc.sgd.db,
+    AnnotationDbi,
     testthat (>= 2.1.0)
 RoxygenNote: 7.0.2
 VignetteBuilder: knitr

@@ -6,6 +6,13 @@
 \usage{
 weitrix_hill(weitrix, what = c("row", "col"), order = 2)
 }
+\arguments{
+\item{weitrix}{A weitrix object.}
+
+\item{what}{Calculate for rows ("row") (default) or columns ("col")?}
+
+\item{order}{Order of the Hill numbers.}
+}
 \description{
 Effective numbers of observations. order=0 produces count of non-zero weights. order=1 produces exp(entropy). order=2 produces the inverse Simpson index.
 }

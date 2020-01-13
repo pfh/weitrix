@@ -18,6 +18,8 @@
 #' 
 #' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
 #'
+#' @param groups (Optional.) A vector of length ncol(weitrix). Distinct values are treated as groups which are sampled as a single unit. For example the groups could be distinct individuals in a study with "before" and "after" samples.
+#'
 #' @export
 weitrix_bootstrap <- function(weitrix, groups=NULL) {
     weitrix <- as_weitrix(weitrix)

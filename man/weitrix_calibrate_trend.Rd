@@ -4,12 +4,12 @@
 \alias{weitrix_calibrate_trend}
 \title{Adjust weights by fitting a trend to estimated dispersions}
 \usage{
-weitrix_calibrate_trend(weitrix, comp, formula = NULL)
+weitrix_calibrate_trend(weitrix, design = ~1, formula = NULL)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
 
-\item{comp}{A Components, an approximate matrix decomposition of the weitrix x values, for example created with \code{weitrix_components}.}
+\item{design}{A formula in terms of \code{colData(weitrix} or a design matrix, which will be fitted to the weitrix on each row. Can also be a pre-existing Components object, in which case the existing fits (\code{design$row}) are used.}
 
 \item{formula}{A formula specification for predicting log dispersion from columns of rowData(weitrix). If absent, metadata(weitrix)$weitrix$trend_formula is used.}
 }
