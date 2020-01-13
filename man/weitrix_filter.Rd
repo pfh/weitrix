@@ -4,7 +4,8 @@
 \alias{weitrix_filter}
 \title{Filter a weitrix to ensure each row and column contains sufficient observations}
 \usage{
-weitrix_filter(weitrix, n_per_row, n_per_col = n_per_row, weight_thresh = 0)
+weitrix_filter(weitrix, n_per_row, n_per_col = n_per_row,
+  weight_thresh = 0)
 }
 \arguments{
 \item{weitrix}{A weitrix, or something that can be cast to a weitrix with \code{as_weitrix( )}.}

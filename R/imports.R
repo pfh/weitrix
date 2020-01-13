@@ -36,7 +36,7 @@
 #'     bplapply bpnworkers bpisup bpnworkers bpstart bpstop
 #'
 #' @importFrom RhpcBLASctl
-#'     blas_set_num_threads
+#'     blas_get_num_procs blas_set_num_threads
 #'
 #' @importFrom BiocGenerics
 #'     rowSums colSums rbind cbind

@@ -5,28 +5,12 @@
 \alias{weitrix_components_seq}
 \title{Principal components of a weitrix}
 \usage{
-weitrix_components(
-  weitrix,
-  p,
-  design = ~1,
-  n_restarts = 3,
-  max_iter = 1000,
-  tol = 1e-05,
-  use_varimax = TRUE,
-  initial = NULL,
-  verbose = TRUE
-)
+weitrix_components(weitrix, p, design = ~1, n_restarts = 3,
+  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, initial = NULL,
+  verbose = TRUE)
 
-weitrix_components_seq(
-  weitrix,
-  p,
-  design = ~1,
-  n_restarts = 3,
-  max_iter = 1000,
-  tol = 1e-05,
-  use_varimax = TRUE,
-  verbose = TRUE
-)
+weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 3,
+  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
@@ -46,9 +30,6 @@ weitrix_components_seq(
 \item{initial}{Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.}
 
 \item{verbose}{Show messages about the progress of the iterations.}
-}
-\value{
-
 }
 \description{
 Finds principal components of a weitrix.
