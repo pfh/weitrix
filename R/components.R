@@ -66,7 +66,8 @@ least_squares_func <- function(A) {
     solver <- NULL
 
     function(present,w,b) {
-        if (length(b) == 0) 
+        # No data or no non-zero weights?
+        if (max(0,w) == 0) 
             return(rep(0, ncol(A)))
 
         # Scaling of weights doesn't matter, normalize out
@@ -83,7 +84,7 @@ least_squares_func <- function(A) {
             # - (near)zero singular values nuked            
             sw <- sqrt(w)
             decomp <- svd(A[present,,drop=F]*sw)
-            good <- max(abs(decomp$d)) >= 1e-9
+            good <- decomp$d >= 1e-9
             solver <<- 
                 decomp$v[,good,drop=F] %*% 
                 (t(decomp$u[,good,drop=F]*sw)/decomp$d[good])
@@ -428,6 +429,7 @@ weitrix_components <- function(
             max_iter=max_warmup_iter, col_mat=col_mat, 
             ind_components=ind_components, ind_design=ind_design, ss_total=ss_total,
             tol=tol, verbose=verbose)
+        
         R2s[i] <- this_result$R2
         if (this_result$R2 > best_R2) {
             result <- this_result
