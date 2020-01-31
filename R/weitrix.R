@@ -20,8 +20,6 @@
 #' weitrix.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#'
 #' mat <- matrix(c(1,2,NA,3,NA,4), ncol=2)
 #' weitrix <- as_weitrix(mat)
 #'
@@ -99,8 +97,6 @@ as_weitrix <- function(object, weights=NULL) {
 #' A SummarizedExperiment object with metadata fields marking it as a weitrix.
 #'
 #' @examples
-#' library(SummarizedExperiment)
-#'
 #' mat <- matrix(c(1,2,NA,3,NA,4), ncol=2)
 #' weights <- matrix(c(1,0.5,0,2,0,1), ncol=2)
 #' se <- SummarizedExperiment(assays=list(foo=mat, bar=weights))
@@ -132,6 +128,12 @@ bless_weitrix <- function(object, x_name, weights_name) {
 #'
 #' @param weitrix A weitrix object.
 #'
+#' @examples
+#' weitrix_x(simwei)
+#'
+#' simwei2 <- simwei
+#' weitrix_x(simwei2) <- weitrix_x(simwei2) * 2
+#'
 #' @export
 weitrix_x <- function(weitrix) {
     assay(weitrix, metadata(weitrix)$weitrix$x_name)
@@ -142,6 +144,9 @@ weitrix_x <- function(weitrix) {
 #' Gets or sets the appropriate assay in the SummarizedExperiment object.
 #'
 #' @param weitrix A weitrix object.
+#'
+#' @examples
+#' weitrix_weights(simwei)
 #'
 #' @export
 weitrix_weights <- function(weitrix) {
@@ -173,6 +178,15 @@ weitrix_weights <- function(weitrix) {
 #' for a limma analysis.
 #'
 #' @param weitrix A weitrix object.
+#'
+#' @example
+#' library(limma)
+#'
+#' elist <- weitrix_elist(simwei)
+#' design <- model.matrix(~true_score, data=colData(simwei))
+#' fit <- lmFit(elist, design)
+#' # ...perform further limma analysis steps as desired...
+#'
 #' @export
 weitrix_elist <- function(weitrix) {
     weitrix <- as_weitrix(weitrix)

@@ -14,5 +14,8 @@ weitrix_hill(weitrix, what = c("row", "col"), order = 2)
 \item{order}{Order of the Hill numbers.}
 }
 \description{
-Effective numbers of observations. order=0 produces count of non-zero weights. order=1 produces exp(entropy). order=2 produces the inverse Simpson index.
+Effective numbers of observations. 
+\code{order=0} produces count of non-zero weights. 
+\code{order=1} produces exp(entropy). 
+\code{order=2} produces the inverse Simpson index.
 }

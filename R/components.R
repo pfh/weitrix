@@ -13,18 +13,20 @@ setMethod("show", "Components", function(object) {
 # Ensure largest components are first, positive skew on columns of $row
 components_order_and_flip <- function(comp) {
     # Ensure largest factor first
-    scaling <- sqrt(colMeans(comp$col[,comp$ind_components,drop=F]^2))
+    scaling <- sqrt(colMeans(comp$col[,comp$ind_components,drop=FALSE]^2))
     reordering <- comp$ind_components[order(scaling, decreasing=TRUE)]
-    comp$row[,comp$ind_components] <- comp$row[,reordering,drop=F]
-    comp$col[,comp$ind_components] <- comp$col[,reordering,drop=F]
+    comp$row[,comp$ind_components] <- comp$row[,reordering,drop=FALSE]
+    comp$col[,comp$ind_components] <- comp$col[,reordering,drop=FALSE]
 
     # Ensure positive skew (outliers positive)
-    flips <- comp$ind_components[colSums(comp$row[,comp$ind_components,drop=F]^3) < 0]
-    comp$row[,flips] <- -comp$row[,flips,drop=F]
-    comp$col[,flips] <- -comp$col[,flips,drop=F]
+    flips <- comp$ind_components[
+        colSums(comp$row[,comp$ind_components,drop=FALSE]^3) < 0]
+    comp$row[,flips] <- -comp$row[,flips,drop=FALSE]
+    comp$col[,flips] <- -comp$col[,flips,drop=FALSE]
 
     comp
 }
+
 
 #' Seek meaningful components by varimax rotation
 #'
@@ -40,7 +42,8 @@ components_varimax <- function(comp) {
     if (length(comp$ind_components) < 2)
         return(comp)
 
-    rotation <- varimax(comp$row[,comp$ind_components,drop=FALSE], normalize=FALSE)
+    rotation <- varimax(
+        comp$row[,comp$ind_components,drop=FALSE], normalize=FALSE)
     comp$row[,comp$ind_components] <- 
         comp$row[,comp$ind_components] %*% rotation$rotmat
     comp$col[,comp$ind_components] <- 
@@ -57,13 +60,14 @@ scale_cols <- function(A,s) {
 
 
 # Least squares, always producing an answer
-# Returns a function, which will caches last weighting used for future calls
+# Returns a function, which will cache last weighting used for future calls
 # Where multiple solutions exist, one should be chosen arbitrarily
 # NA is treated as 0 (should be given weight 0 or not present in any case!)
 least_squares_func <- function(A) {
-    last_present <- NULL
-    last_w <- NULL
-    solver <- NULL
+    state <- new.env()
+    state$last_present <- NULL
+    state$last_w <- NULL
+    state$solver <- NULL
 
     function(present,w,b) {
         if (length(b) == 0) 
@@ -73,57 +77,43 @@ least_squares_func <- function(A) {
         w <- w/max(w)
 
         # Treat as equal if within 1e-9
-        if (!identical(last_present, present) ||
-            max(abs(last_w-w)) >= 1e-9) {
-            last_present <<- present
-            last_w <<- w
+        if (!identical(state$last_present, present) ||
+            max(abs(state$last_w-w)) >= 1e-9) {
+            state$last_present <- present
+            state$last_w <- w
 
             # Soldier on:
             # - Missing values become NA
             # - (near)zero singular values nuked            
             sw <- sqrt(w)
-            decomp <- svd(A[present,,drop=F]*sw)
+            decomp <- svd(A[present,,drop=FALSE]*sw)
             good <- max(abs(decomp$d)) >= 1e-9
-            solver <<- 
-                decomp$v[,good,drop=F] %*% 
-                (t(decomp$u[,good,drop=F]*sw)/decomp$d[good])
+            state$solver <- 
+                decomp$v[,good,drop=FALSE] %*% 
+                (t(decomp$u[,good,drop=FALSE]*sw)/decomp$d[good])
         }
 
         b[is.na(b)] <- 0.0
-        as.vector(solver %*% b)
+        as.vector(state$solver %*% b)
     }
-
-    #as.vector( decomp$v %*% ((t(decomp$u) %*% (b*sw))/decomp$d) )
-
-    ## May be slightly faster, 
-    ## but fails rather than choosing an arbitrary minimum
-    # WA <- A*w
-    # good <- apply(WA != 0, 2, any)
-    # WA <- WA[,good,drop=F]
-    # A <- A[,good,drop=F]
-    # tAWA <- crossprod(WA, A)
-    # tAWb <- as.vector(crossprod(WA,b))
-    # L <- chol(tAWA)
-
-    # result <- rep(0, length(good))
-    # result[good] <- backsolve(L, forwardsolve(L, tAWb, upper.tri=TRUE, transpose=TRUE))
-    # result
 }
 
-fit_all_cols_inner <- function(args) with(args, {
-    y <- as.matrix(y)
-    w <- as.matrix(w)
-    solver <- least_squares_func(x)
+
+fit_all_cols_inner <- function(args) {
+    y <- as.matrix(args$y)
+    w <- as.matrix(args$w)
+    solver <- args$least_squares_func(args$x)
 
     result <- lapply(seq_len(ncol(y)), function(i) {
         wi <- w[,i]
         present <- wi > 0
-        fixed <- as.vector(fixed_row[present,,drop=F] %*% fixed_col[i,])
+        fixed <- as.vector(
+            args$fixed_row[present,,drop=FALSE] %*% args$fixed_col[i,])
         solver(present,wi[present],y[present,i] - fixed)
     })
     
     do.call(rbind, result)
-})
+}
 
 fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
     if (ncol(x) == 0)
@@ -136,10 +126,10 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
     feed <- map(parts, function(part) {
         list(
             x=x,
-            y=y[,part,drop=F],
-            w=w[,part,drop=F],
+            y=y[,part,drop=FALSE],
+            w=w[,part,drop=FALSE],
             fixed_row=fixed_row,
-            fixed_col=fixed_col[part,,drop=F],
+            fixed_col=fixed_col[part,,drop=FALSE],
             least_squares_func=least_squares_func)
     })
 
@@ -148,10 +138,10 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
     do.call(rbind, result)
 }
 
-fit_all_rows_inner <- function(args) with(args, {
-    y <- as.matrix(y)
-    w <- as.matrix(w)
-    solver <- least_squares_func(x)
+fit_all_rows_inner <- function(args) {
+    y <- as.matrix(args$y)
+    w <- as.matrix(args$w)
+    solver <- args$least_squares_func(args$x)
 
     result <- lapply(seq_len(nrow(y)), function(i) {
         wi <- w[i,]
@@ -160,7 +150,7 @@ fit_all_rows_inner <- function(args) with(args, {
     })
     
     do.call(rbind, result)
-})
+}
 
 fit_all_rows <- function(x,y,w) {
     if (ncol(x) == 0)
@@ -172,8 +162,8 @@ fit_all_rows <- function(x,y,w) {
     feed <- map(parts, function(part) {
         list(
             x=x,
-            y=y[part,,drop=F],
-            w=w[part,,drop=F],
+            y=y[part,,drop=FALSE],
+            w=w[part,,drop=FALSE],
             least_squares_func=least_squares_func)
     })
     #cat("rows",length(parts),"\n")
@@ -209,7 +199,9 @@ calc_weighted_ss_inner <- function(args) with(args, {
     for(i in seq_len(ncol(x))) {
         wi <- w[,i]
         present <- wi > 0
-        errors <- as.vector(x[present,i]) - as.vector(row[present,,drop=F] %*% col[i,]) 
+        errors <- 
+            as.vector(x[present,i]) - 
+            as.vector(row[present,,drop=FALSE] %*% col[i,]) 
         total <- total + sum(errors*errors*wi[present])
     }
     total
@@ -220,10 +212,10 @@ calc_weighted_ss <- function(x, w, row, col) {
     parts <- partitions(ncol(x), nrow(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
-            x=x[,part,drop=F],
-            w=w[,part,drop=F],
+            x=x[,part,drop=FALSE],
+            w=w[,part,drop=FALSE],
             row=row,
-            col=col[part,,drop=F])
+            col=col[part,,drop=FALSE])
     })
     #cat("ss",length(parts),"\n")
     result <- bplapply(feed, calc_weighted_ss_inner, BPPARAM=BPPARAM)
@@ -253,25 +245,24 @@ weitrix_components_inner <- function(
         #gc()
 
         # Esure col_mat[,ind_components] are orthogonal col_mat[,ind_design]
-        col_mat[,ind_components] <- qr.Q(qr(col_mat))[,ind_components,drop=F]
+        col_mat[,ind_components] <- 
+            qr.Q(qr(col_mat))[,ind_components,drop=FALSE]
 
         # Update row_mat
         row_mat <- fit_all_rows(col_mat, x, weights)
 
         # Update col_mat
-        #centered <- x - row_mat[,seq_len(p_design),drop=F] %*% t(design)
-        col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=F], 
-            x, weights, row_mat[,ind_design,drop=F], design)
+        col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=FALSE], 
+            x, weights, row_mat[,ind_design,drop=FALSE], design)
         col_mat <- cbind(design, col_mat)
 
         # Make decomposition matrices orthogonal
-        decomp <- orthogonalize_decomp(row_mat[,ind_components,drop=F], col_mat[,ind_components,drop=F])
+        decomp <- orthogonalize_decomp(row_mat[,ind_components,drop=FALSE], 
+            col_mat[,ind_components,drop=FALSE])
         row_mat[,ind_components] <- decomp$rows
         col_mat[,ind_components] <- decomp$cols
 
         # Check R^2
-        #resid <- x - row_mat %*% t(col_mat)
-        #ss_resid <- sum(resid^2*weights, na.rm=TRUE) 
         ss_resid <- calc_weighted_ss(x, weights, row_mat, col_mat)
         ratio <- ss_resid/ss_total
         last_R2 <- R2
@@ -307,44 +298,90 @@ weitrix_components_inner <- function(
 #' Principal components of a weitrix
 #'
 #' Finds principal components of a weitrix.
-#' If varimax rotation is enabled, these are then rotated to enhance interpretability.
+#' If varimax rotation is enabled, 
+#'     these are then rotated to enhance interpretability.
 #'
-#' Note that this is a slow numerical method to solve a gnarly problem, for the case where weights are not uniform.
-#' The case of uniform weights or weights that can be written as an outer product of row and column weights is somewhat faster, however there are much faster algorithms for this available elsewhere.
+#' Note that this is a slow numerical method to solve a gnarly problem, 
+#'     for the case where weights are not uniform.
+#' The case of uniform weights or weights that can be written as 
+#'     an outer product of row and column weights is somewhat faster, 
+#' however there are much faster algorithms for this available elsewhere.
 #'
-#' An iterative method is used, starting from a random initial set of components.
+#' An iterative method is used, 
+#'     starting from a random initial set of components.
 #' It is possible for this to get stuck at a local minimum.
-#' To ameliorate this, the iteration is initially run \code{n_restarts} times and the best result used. This is then iterated further.
+#' To ameliorate this, the iteration is initially run \code{n_restarts} times 
+#'     and the best result used. 
+#' This is then iterated further.
 #' Examine \code{all_R2s} in the output to see if this is happening -- 
-#' if the values are not all nearly identital, the iteration is sometimes getting stuck at local minima..
-#' Increase \code{n_restarts} to increase the odds of finding the global minimum.
+#'     if the values are not all nearly identital, 
+#'     the iteration is sometimes getting stuck at local minima.
+#' Increase \code{n_restarts} to 
+#'     increase the odds of finding the global minimum.
 #'
-#' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
-#' @param p Number of components to find.
-#' @param design A formula referring to \code{colData(weitrix)} or a matrix, giving predictors of a linear model for the experimental design. By default only an intercept term is used, ie rows are centered before finding components. A more complex formula might be used to account for batch effects. \code{~0} can be used if rows are already centered.
-#' @param n_restarts Number of restarts of the iteration to use.
-#' @param max_iter Maximum iterations.
-#' @param tol Stop iterating if R-squared increased by less than this amount in an iteration.
-#' @param use_varimax Use varimax rotation to enhance interpretability of components.
-#' @param initial Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.
-#' @param verbose Show messages about the progress of the iterations.
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#'     with \code{as_weitrix}.
+#' @param p 
+#' Number of components to find.
+#' @param design 
+#' A formula referring to \code{colData(weitrix)} or a matrix, 
+#'     giving predictors of a linear model for the experimental design. 
+#' By default only an intercept term is used, 
+#'     i.e. rows are centered before finding components. 
+#' A more complex formula might be used to account for batch effects. 
+#' \code{~0} can be used if rows are already centered.
+#' @param n_restarts 
+#' Number of restarts of the iteration to use.
+#' @param max_iter 
+#' Maximum iterations.
+#' @param tol 
+#' Stop iterating if R-squared increased by 
+#'     less than this amount in an iteration.
+#' @param use_varimax 
+#' Use varimax rotation to enhance interpretability of components.
+#' @param initial 
+#' Optional, an initial guess for column components (scores). 
+#' Can have fewer columns than \code{p}, 
+#'     in which remaining components are initialized randomly. 
+#' Can have more columns than \code{p},
+#'     in which case a randomly chosen subspace is used in each restart.
+#' @param verbose 
+#' Show messages about the progress of the iterations.
+#'
 #' @return
 #' A "Components" object with the following elements accessible using \code{$}.
 #' \describe{
-#'     \item{row}{Row matrix, aka loadings. Rows are rows in the weitrix, and columns contain the experimental design (usually just an intercept term), and components.}
-#'     \item{col}{Column matrix, aka scores. Rows are columns in the weitrix, and columns contain fitted coefficients for the experimental design, and components.}
-#'     \item{R2}{Weighted R squared statistic. The proportion of total variance explained by the components.}
-#'     \item{all_R2s}{R2 statistics from all restarts. This can be used to check how consistently the iteration finds optimal components.}
+#'     \item{row}{
+#'         Row matrix, aka loadings. 
+#'         Rows are rows in the weitrix, 
+#'             and columns contain the experimental design 
+#'             (usually just an intercept term), and components.}
+#'     \item{col}{
+#'         Column matrix, aka scores. 
+#'         Rows are columns in the weitrix, 
+#'             and columns contain fitted coefficients 
+#'             for the experimental design, and components.}
+#'     \item{R2}{
+#'         Weighted R squared statistic. 
+#'         The proportion of total variance explained by the components.}
+#'     \item{all_R2s}{
+#'         R2 statistics from all restarts. 
+#'         This can be used to check how consistently 
+#'             the iteration finds optimal components.}
 #'     \item{ind_design}{Column indices associated with experimental design.}
 #'     \item{ind_components}{Column indices associated with components.}
 #' }
 #'
-#' For a result \code{comp}, the original measurements are approximated by \code{comp$row %*% t(comp$col)}.
+#' For a result \code{comp}, 
+#' the original measurements are approximated 
+#' by \code{comp$row \%*\% t(comp$col)}.
 #'
-#' \code{weitrix_components_seq} returns a list of Components objects, with increasing numbers of components from 1 up to p.
+#' \code{weitrix_components_seq} returns a list of Components objects, 
+#' with increasing numbers of components from 1 up to p.
 #'
 #' @examples
-#' # Variables in rows, observations in columns, as is the Bioconductor convention
+#' # Variables in rows, observations in columns, as per Bioconductor convention
 #' dat <- t(iris[,1:4])
 #'
 #' # Find two components
@@ -424,10 +461,11 @@ weitrix_components <- function(
             matrix(rnorm(m*(p_total-ncol(col_mat))), nrow=m))
 
         this_result <- weitrix_components_inner(
-            weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design,
+            weitrix=weitrix, x=x, weights=weights, 
+            p=p, p_design=p_design, design=design,
             max_iter=max_warmup_iter, col_mat=col_mat, 
-            ind_components=ind_components, ind_design=ind_design, ss_total=ss_total,
-            tol=tol, verbose=verbose)
+            ind_components=ind_components, ind_design=ind_design, 
+            ss_total=ss_total, tol=tol, verbose=verbose)
         R2s[i] <- this_result$R2
         if (this_result$R2 > best_R2) {
             result <- this_result
@@ -438,10 +476,11 @@ weitrix_components <- function(
     # Do full iteration (if n_restarts>1)
     if (n_restarts > 1) {
         result <- weitrix_components_inner(
-            weitrix=weitrix, x=x, weights=weights, p=p, p_design=p_design, design=design,
+            weitrix=weitrix, x=x, weights=weights, 
+            p=p, p_design=p_design, design=design,
             max_iter=max_iter, col_mat=result$col, 
-            ind_components=ind_components, ind_design=ind_design, ss_total=ss_total,
-            tol=tol, verbose=verbose)    
+            ind_components=ind_components, ind_design=ind_design,
+            ss_total=ss_total, tol=tol, verbose=verbose)    
     }
     
 
@@ -484,7 +523,8 @@ weitrix_components_seq <- function(
             message("Finding ",i," components")
             
         # Random projections of this will be used
-        initial <- result[[i+1]]$col[,result[[i+1]]$ind_components,drop=F]
+        initial <- 
+            result[[i+1]]$col[,result[[i+1]]$ind_components,drop=FALSE]
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
             design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
@@ -497,22 +537,41 @@ weitrix_components_seq <- function(
 
 #' Proportion more variance explained by adding components one at a time
 #'
-#' Based on the output of \code{components_seq}, work out how much further variance is explained by adding further components.
+#' Based on the output of \code{components_seq}, 
+#'    work out how much further variance is explained 
+#'    by adding further components.
 #'
-#' Some possible threshold levels for including further components are also calculated. 
-#"
-#' The "Kaiser" threshold is chosen based on the assumption that variance will be spread evenly among all possible components. This is slightly optimistic, as some components will explain more variance simply by chance.
+#' Some possible threshold levels for including further components 
+#' are also calculated. 
 #'
-#' The "Parallel analysis" threshold is chosen based on varianced explained by a single component in a randomized weitrix. This will generally be somewhat higher than the "Kaiser" threshold.
+#' The "Parallel analysis" threshold is chosen based on 
+#'     varianced explained by a single component in a randomized weitrix. 
 #'
-#' The "Optimistic" thresholds are chosen starting from the "Parallel Analysis" threshold. We view the Parallel Analysis threshold as indicating random variance is split amongst an effective number of samples, which will be somewhat smaller than the real number of samples. As each component is accepted, the pool of remaining variance is reduced by its contribution, and also the number of effective samples is reduced by one. The threshold is then the size of the remaining variance pool divided by the effective remaining number of samples. This is a somewhat ad-hoc method, but may indicate more components are justified than by criteria based on a flat threshold.
+#' The "Optimistic" thresholds are chosen starting from 
+#' the "Parallel Analysis" threshold. 
+#' We view the Parallel Analysis threshold as indicating random variance 
+#'     is split amongst an effective number of samples, 
+#'     which will be somewhat smaller than the real number of samples. 
+#' As each component is accepted, 
+#'     the pool of remaining variance is reduced by its contribution, 
+#'     and also the number of effective samples is reduced by one. 
+#' The threshold is then the size of the remaining variance pool 
+#'     divided by the effective remaining number of samples. 
+#' This is a somewhat ad-hoc method, 
+#'     but may indicate more components are justified 
+#'     than by criteria based on a flat threshold.
 #'
-#' @param comp_seq A list of Components objects, as produced by \code{components_seq}.
-#' @param rand_comp Optional. A Components object with a single component. This should be based on a randomized version of the weitrix, for example as produced by \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.
+#' @param comp_seq 
+#' A list of Components objects, as produced by \code{components_seq}.
+#' @param rand_comp 
+#' Optional. A Components object with a single component. 
+#' This should be based on a randomized version of the weitrix, 
+#'     for example as produced by 
+#'     \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.
 #'
 #' @return
-#'
-#' \code{components_seq_scree} returns a data frame listing the variance explained by each further component.
+#' \code{components_seq_scree} returns a data frame listing 
+#'     the variance explained by each further component.
 #'
 #' @export
 components_seq_scree <- function(comp_seq, rand_comp=NULL) {
@@ -523,7 +582,8 @@ components_seq_scree <- function(comp_seq, rand_comp=NULL) {
     result <- data.frame(components=seq_len(n), explained=explained)
     
     # Seems conservative, would rather not have it as the only advice
-    #result$kaiser <- rep(1/min(nrow(comp_seq[[1]]$row), nrow(comp_seq[[1]]$col)), n)
+    #result$kaiser <- 
+    #    rep(1/min(nrow(comp_seq[[1]]$row), nrow(comp_seq[[1]]$col)), n)
     
     if (!is.null(rand_comp)) {
         assert_that(length(rand_comp$ind_components) == 1)
@@ -571,7 +631,7 @@ components_seq_screeplot <- function(comp_seq, rand_comp=NULL) {
         geom_point(aes_string(x="components", y="explained")) +
         geom_hline(yintercept=0) +
         labs(x="Number of components", y="Further variance explained",
-             color="Threshold guidance")
+            color="Threshold guidance")
     result
 }
 

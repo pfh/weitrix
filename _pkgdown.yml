@@ -16,6 +16,7 @@ reference:
   - bless_weitrix
   - counts_shift
   - counts_proportions
+  - counts_in_totals_proportions
 - title: Access or cast weitrix
   contents:
   - weitrix_x
@@ -25,16 +26,15 @@ reference:
   contents:
   - weitrix_components
   - components_seq_scree
+  - components_varimax
 - title: Summary statistics and calibration
   contents:
   - weitrix_dispersions
   - weitrix_hill
   - weitrix_calibrate
   - weitrix_calibrate_trend
-- title: Other/experimental
-  content:
-  - weitrix_bootstrap
-  - components_bootstrap
-  - weitrix_filter
+- title: Other
+  contents:
   - weitrix_randomize
-
+  - matrix_long
+  - simwei

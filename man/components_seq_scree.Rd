@@ -12,21 +12,40 @@ components_seq_screeplot(comp_seq, rand_comp = NULL)
 \arguments{
 \item{comp_seq}{A list of Components objects, as produced by \code{components_seq}.}
 
-\item{rand_comp}{Optional. A Components object with a single component. This should be based on a randomized version of the weitrix, for example as produced by \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.}
+\item{rand_comp}{Optional. A Components object with a single component. 
+This should be based on a randomized version of the weitrix, 
+    for example as produced by 
+    \code{weitrix_components(weitrix_randomize(my_weitrix), p=1)}.}
 }
 \value{
-\code{components_seq_scree} returns a data frame listing the variance explained by each further component.
+\code{components_seq_scree} returns a data frame listing 
+    the variance explained by each further component.
 
 \code{components_seq_screeplot} returns a ggplot2 plot object.
 }
 \description{
-Based on the output of \code{components_seq}, work out how much further variance is explained by adding further components.
+Based on the output of \code{components_seq}, 
+   work out how much further variance is explained 
+   by adding further components.
 }
 \details{
-Some possible threshold levels for including further components are also calculated. 
-The "Kaiser" threshold is chosen based on the assumption that variance will be spread evenly among all possible components. This is slightly optimistic, as some components will explain more variance simply by chance.
+Some possible threshold levels for including further components 
+are also calculated. 
 
-The "Parallel analysis" threshold is chosen based on varianced explained by a single component in a randomized weitrix. This will generally be somewhat higher than the "Kaiser" threshold.
+The "Parallel analysis" threshold is chosen based on 
+    varianced explained by a single component in a randomized weitrix. 
 
-The "Optimistic" thresholds are chosen starting from the "Parallel Analysis" threshold. We view the Parallel Analysis threshold as indicating random variance is split amongst an effective number of samples, which will be somewhat smaller than the real number of samples. As each component is accepted, the pool of remaining variance is reduced by its contribution, and also the number of effective samples is reduced by one. The threshold is then the size of the remaining variance pool divided by the effective remaining number of samples. This is a somewhat ad-hoc method, but may indicate more components are justified than by criteria based on a flat threshold.
+The "Optimistic" thresholds are chosen starting from 
+the "Parallel Analysis" threshold. 
+We view the Parallel Analysis threshold as indicating random variance 
+    is split amongst an effective number of samples, 
+    which will be somewhat smaller than the real number of samples. 
+As each component is accepted, 
+    the pool of remaining variance is reduced by its contribution, 
+    and also the number of effective samples is reduced by one. 
+The threshold is then the size of the remaining variance pool 
+    divided by the effective remaining number of samples. 
+This is a somewhat ad-hoc method, 
+    but may indicate more components are justified 
+    than by criteria based on a flat threshold.
 }

@@ -11,6 +11,8 @@ Depends:
     SummarizedExperiment
 Imports:
     methods,
+    utils,
+    stats,
     assertthat,
     S4Vectors,
     DelayedArray,
@@ -18,15 +20,16 @@ Imports:
     BiocParallel,
     BiocGenerics,
     limma,
+    dplyr,
     purrr,
     ggplot2,
     scales,
+    reshape2,
     RhpcBLASctl
 Suggests: 
     knitr,
     rmarkdown,
     tidyverse,
-    reshape2,
     airway,
     edgeR,
     topconfects,
@@ -36,3 +39,4 @@ Suggests:
     testthat (>= 2.1.0)
 RoxygenNote: 7.0.2
 VignetteBuilder: knitr
+biocViews: Software, DataRepresentation, FeatureExtraction, GeneExpression, Transcriptomics, RNASeq, SingleCell, Regression

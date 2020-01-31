@@ -12,7 +12,7 @@ weighted_shift <- function(mat, min_reads=1) {
     n <- nrow(mat)
     totals <- colSums(mat)
     good <- totals >= min_reads
-    good_mat <- mat[,good,drop=F]
+    good_mat <- mat[,good,drop=FALSE]
     good_totals <- totals[good]
     
     props <- t(t(good_mat)/good_totals)
@@ -44,7 +44,7 @@ weighted_shift <- function(mat, min_reads=1) {
 
 counts_shift_inner <- function(counts, groups, min_reads) {
     relevant <- unique(unlist(groups))
-    counts <- as.matrix(counts[relevant,,drop=F])
+    counts <- as.matrix(counts[relevant,,drop=FALSE])
     
     results <- map(groups, function(members) {
         weighted_shift(counts[members,,drop=FALSE], min_reads=min_reads)
@@ -66,9 +66,9 @@ counts_shift_inner <- function(counts, groups, min_reads) {
     
     # Drop genes with zero count, counts only in a single peak
     good <- is.finite(per_read_vars) & per_read_vars > 0
-    shifts <- shifts[good,,drop=F]
-    weights <- weights[good,,drop=F]
-    totals <- totals[good,,drop=F]
+    shifts <- shifts[good,,drop=FALSE]
+    weights <- weights[good,,drop=FALSE]
+    totals <- totals[good,,drop=FALSE]
     per_read_vars <- per_read_vars[good]
 
     SummarizedExperiment(

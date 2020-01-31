@@ -7,10 +7,13 @@
 weitrix_dispersions(weitrix, comp)
 }
 \arguments{
-\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
+with \code{as_weitrix}.}
 
-\item{comp}{A Components, an approximate matrix decomposition of the weitrix x values, for example created with \code{weitrix_components}.}
+\item{comp}{A Components, an approximate matrix decomposition of 
+the weitrix x values, for example created with \code{weitrix_components}.}
 }
 \description{
-Calculate the dispersion of each row. For each observation, this value divided by the weight gives the observation's variance.
+Calculate the dispersion of each row. For each observation, 
+this value divided by the weight gives the observation's variance.
 }

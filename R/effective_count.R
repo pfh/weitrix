@@ -9,7 +9,10 @@ hill_1 <- function(x) {
 
 #' Calculate Hill numbers (effective number of observations) for rows or columns
 #'
-#' Effective numbers of observations. order=0 produces count of non-zero weights. order=1 produces exp(entropy). order=2 produces the inverse Simpson index.
+#' Effective numbers of observations. 
+#' \code{order=0} produces count of non-zero weights. 
+#' \code{order=1} produces exp(entropy). 
+#' \code{order=2} produces the inverse Simpson index.
 #'
 #' @param weitrix A weitrix object.
 #'

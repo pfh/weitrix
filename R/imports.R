@@ -9,6 +9,9 @@
 #' @importFrom assertthat
 #'     assert_that is.string is.number
 #'
+#' @importFrom dplyr
+#'     left_join
+#'
 #' @importFrom purrr
 #'     map map_chr map_dbl map_int map2
 #'

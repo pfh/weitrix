@@ -11,7 +11,7 @@ weitrix_randomize(weitrix)
 }
 \description{
 Values are generated with variance equal to 1/weight.
-This can be use see what R-squared would be achieved with purely random data,
+This can be used to see what R-squared would be achieved with purely random data,
 and therefore an appropriate number of components to use.
 This is known as Parallel Analysis.
 }

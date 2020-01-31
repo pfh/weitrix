@@ -7,15 +7,20 @@
 counts_proportions(counts, grouping, verbose = TRUE)
 }
 \arguments{
-\item{counts}{A matrix of read counts. Rows are peaks and columns are samples.}
+\item{counts}{A matrix of read counts. 
+Rows are peaks and columns are samples.}
 
-\item{grouping}{A data frame defining the grouping of features. Should have a column "group" naming the group and a column "name" naming the feature (corresponding to \code{rownames(counts)}).}
+\item{grouping}{A data frame defining the grouping of features. 
+Should have a column "group" naming the group and 
+    a column "name" naming the feature 
+    (corresponding to \code{rownames(counts)}).}
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
 }
 \description{
-Produce a weitrix of proportions between 0 and 1. The input is read counts
-at a collection of features in a collection of samples. The
-features need to be grouped, for example by gene. 
+Produce a weitrix of proportions between 0 and 1. 
+The input is read counts at a collection of features 
+    in a collection of samples. 
+The features need to be grouped, for example by gene. 
 The proportions will add to 1 within each group.
 }

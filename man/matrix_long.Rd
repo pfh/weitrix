@@ -11,6 +11,18 @@ matrix_long(
   varnames = c("name", "col")
 )
 }
+\arguments{
+\item{matrix}{A matrix, or object that can be converted to a matrix.}
+
+\item{row_info}{Information about rows of the matrix. A data frame, or object that can be converted to a data frame.}
+
+\item{col_info}{Information about columns of the matrix. A data frame, or object that can be converted to a data frame.}
+
+\item{varnames}{Vector of two column names in the output, the first for the row and the second for the column.}
+}
+\value{
+A data frame containing the matrix and associated information in long format.
+}
 \description{
-Convert a matrix to long form for ggplotting
+A convenience function which melts the matrix and then joins row and column information.
 }

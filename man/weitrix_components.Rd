@@ -5,46 +5,113 @@
 \alias{weitrix_components_seq}
 \title{Principal components of a weitrix}
 \usage{
-weitrix_components(weitrix, p, design = ~1, n_restarts = 3,
-  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, initial = NULL,
-  verbose = TRUE)
+weitrix_components(
+  weitrix,
+  p,
+  design = ~1,
+  n_restarts = 3,
+  max_iter = 1000,
+  tol = 1e-05,
+  use_varimax = TRUE,
+  initial = NULL,
+  verbose = TRUE
+)
 
-weitrix_components_seq(weitrix, p, design = ~1, n_restarts = 3,
-  max_iter = 1000, tol = 1e-05, use_varimax = TRUE, verbose = TRUE)
+weitrix_components_seq(
+  weitrix,
+  p,
+  design = ~1,
+  n_restarts = 3,
+  max_iter = 1000,
+  tol = 1e-05,
+  use_varimax = TRUE,
+  verbose = TRUE
+)
 }
 \arguments{
-\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
+with \code{as_weitrix}.}
 
 \item{p}{Number of components to find.}
 
-\item{design}{A formula referring to \code{colData(weitrix)} or a matrix, giving predictors of a linear model for the experimental design. By default only an intercept term is used, ie rows are centered before finding components. A more complex formula might be used to account for batch effects. \code{~0} can be used if rows are already centered.}
+\item{design}{A formula referring to \code{colData(weitrix)} or a matrix, 
+    giving predictors of a linear model for the experimental design. 
+By default only an intercept term is used, 
+    i.e. rows are centered before finding components. 
+A more complex formula might be used to account for batch effects. 
+\code{~0} can be used if rows are already centered.}
 
 \item{n_restarts}{Number of restarts of the iteration to use.}
 
 \item{max_iter}{Maximum iterations.}
 
-\item{tol}{Stop iterating if R-squared increased by less than this amount in an iteration.}
+\item{tol}{Stop iterating if R-squared increased by 
+less than this amount in an iteration.}
 
 \item{use_varimax}{Use varimax rotation to enhance interpretability of components.}
 
-\item{initial}{Optional, an initial guess for column components (scores). Can have fewer columns than \code{p}, in which remaining components are initialized randomly. Only used in the first restart.}
+\item{initial}{Optional, an initial guess for column components (scores). 
+Can have fewer columns than \code{p}, 
+    in which remaining components are initialized randomly. 
+Can have more columns than \code{p},
+    in which case a randomly chosen subspace is used in each restart.}
 
 \item{verbose}{Show messages about the progress of the iterations.}
 }
+\value{
+A "Components" object with the following elements accessible using \code{$}.
+\describe{
+    \item{row}{
+        Row matrix, aka loadings. 
+        Rows are rows in the weitrix, 
+            and columns contain the experimental design 
+            (usually just an intercept term), and components.}
+    \item{col}{
+        Column matrix, aka scores. 
+        Rows are columns in the weitrix, 
+            and columns contain fitted coefficients 
+            for the experimental design, and components.}
+    \item{R2}{
+        Weighted R squared statistic. 
+        The proportion of total variance explained by the components.}
+    \item{all_R2s}{
+        R2 statistics from all restarts. 
+        This can be used to check how consistently 
+            the iteration finds optimal components.}
+    \item{ind_design}{Column indices associated with experimental design.}
+    \item{ind_components}{Column indices associated with components.}
+}
+
+For a result \code{comp}, 
+the original measurements are approximated 
+by \code{comp$row \%*\% t(comp$col)}.
+
+\code{weitrix_components_seq} returns a list of Components objects, 
+with increasing numbers of components from 1 up to p.
+}
 \description{
 Finds principal components of a weitrix.
-If varimax rotation is enabled, these are then rotated to enhance interpretability.
+If varimax rotation is enabled, 
+    these are then rotated to enhance interpretability.
 }
 \details{
-Note that this is a slow numerical method to solve a gnarly problem, for the case where weights are not uniform.
-The case of uniform weights or weights that can be written as an outer product of row and column weights is somewhat faster, however there are much faster algorithms for this available elsewhere.
+Note that this is a slow numerical method to solve a gnarly problem, 
+    for the case where weights are not uniform.
+The case of uniform weights or weights that can be written as 
+    an outer product of row and column weights is somewhat faster, 
+however there are much faster algorithms for this available elsewhere.
 
-An iterative method is used, starting from a random initial set of components.
+An iterative method is used, 
+    starting from a random initial set of components.
 It is possible for this to get stuck at a local minimum.
-To ameliorate this, the iteration is initially run \code{n_restarts} times and the best result used. This is then iterated further.
+To ameliorate this, the iteration is initially run \code{n_restarts} times 
+    and the best result used. 
+This is then iterated further.
 Examine \code{all_R2s} in the output to see if this is happening -- 
-if the values are not all nearly identital, the iteration is sometimes getting stuck at local minima..
-Increase \code{n_restarts} to increase the odds of finding the global minimum.
+    if the values are not all nearly identital, 
+    the iteration is sometimes getting stuck at local minima.
+Increase \code{n_restarts} to 
+    increase the odds of finding the global minimum.
 }
 \section{Functions}{
 \itemize{
@@ -54,7 +121,7 @@ Increase \code{n_restarts} to increase the odds of finding the global minimum.
 }}
 
 \examples{
-# Variables in rows, observations in columns, as is the Bioconductor convention
+# Variables in rows, observations in columns, as per Bioconductor convention
 dat <- t(iris[,1:4])
 
 # Find two components

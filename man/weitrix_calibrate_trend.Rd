@@ -7,12 +7,21 @@
 weitrix_calibrate_trend(weitrix, design = ~1, formula = NULL)
 }
 \arguments{
-\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
+with \code{as_weitrix}.}
 
-\item{design}{A formula in terms of \code{colData(weitrix} or a design matrix, which will be fitted to the weitrix on each row. Can also be a pre-existing Components object, in which case the existing fits (\code{design$row}) are used.}
+\item{design}{A formula in terms of \code{colData(weitrix} or a design matrix, 
+which will be fitted to the weitrix on each row. 
+Can also be a pre-existing Components object, 
+in which case the existing fits (\code{design$row}) are used.}
 
-\item{formula}{A formula specification for predicting log dispersion from columns of rowData(weitrix). If absent, metadata(weitrix)$weitrix$trend_formula is used.}
+\item{formula}{A formula specification for predicting log dispersion from 
+columns of rowData(weitrix). 
+If absent, metadata(weitrix)$weitrix$trend_formula is used.}
 }
 \description{
-Dispersions are estimated using \code{weitrix_dispersions}. A trend line is then fitted to log dispersions using a linear model. Weitrix weights are calibrated based on this trend line. Any zero or very-near-zero dispersions are ignored when fitting this model.
+Dispersions are estimated using \code{weitrix_dispersions}. 
+A trend line is then fitted to log dispersions using a linear model. 
+Weitrix weights are calibrated based on this trend line. 
+Any zero or very-near-zero dispersions are ignored when fitting this model.
 }

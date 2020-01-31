@@ -1,12 +1,17 @@
 
-
 document :
 	Rscript -e "devtools::document()"
+
+data :
+	Rscript -e 'devtools::load_all("."); source("data-raw/simwei.R")'
 
 check : document
 	R CMD build .
 	R CMD check weitrix_*.tar.gz
 	rm weitrix_*.tar.gz
+
+bioccheck : document
+	R CMD BiocCheck .
 
 test :
 	Rscript -e "devtools::test()"
@@ -32,3 +37,7 @@ articles-devel :
 
 publish : 
 	rsync -rv docs/* logarithmic.net:www/weitrix/
+
+
+
+.PHONY : document data check bioccheck test install vignette site site-devel articles-devel publish

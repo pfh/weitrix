@@ -21,7 +21,8 @@ realize_if_delayed <- function(x, check=x) {
 #
 
 # item_size is how many doubles per item
-partitions <- function(n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL, cpu_heavy=FALSE) {
+partitions <- function(
+        n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL, cpu_heavy=FALSE) {
     if (n == 0L) return(list())
 
     step <- max(1L, as.integer(max_bytes/(8*item_size)))
@@ -67,6 +68,19 @@ with_bp_up <- function(expr) {
 
 
 #' Convert a matrix to long form for ggplotting
+#'
+#' A convenience function which melts the matrix and then joins row and column information.
+#'
+#' @param matrix A matrix, or object that can be converted to a matrix.
+#'
+#' @param row_info Information about rows of the matrix. A data frame, or object that can be converted to a data frame.
+#'
+#' @param col_info Information about columns of the matrix. A data frame, or object that can be converted to a data frame.
+#'
+#' @param varnames Vector of two column names in the output, the first for the row and the second for the column.
+#'
+#' @return
+#' A data frame containing the matrix and associated information in long format.
 #'
 #' @export
 matrix_long <- function(matrix, row_info=NULL, col_info=NULL, varnames=c("name","col")) {

@@ -13,7 +13,8 @@ calc_row_dispersion_inner <- function(args) with(args, {
         wi_present <- wi[present]
         df <- length(wi_present)-p
         if (df > 0) {
-            errors <- as.vector(x[i,present]) - as.vector(col[present,,drop=F] %*% row[i,]) 
+            errors <- as.vector(x[i,present]) - 
+                as.vector(col[present,,drop=FALSE] %*% row[i,]) 
             result[i] <- sum(errors*errors*wi_present) / df
         }
     }
@@ -26,9 +27,9 @@ calc_row_dispersion <- function(x, w, row, col) {
     parts <- partitions(nrow(x), ncol(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
-            x=x[part,,drop=F],
-            w=w[part,,drop=F],
-            row=row[part,,drop=F],
+            x=x[part,,drop=FALSE],
+            w=w[part,,drop=FALSE],
+            row=row[part,,drop=FALSE],
             col=col)
     })
     result <- bplapply(feed, calc_row_dispersion_inner, BPPARAM=BPPARAM)
@@ -38,10 +39,15 @@ calc_row_dispersion <- function(x, w, row, col) {
 
 #' Calculate row dispersions
 #'
-#' Calculate the dispersion of each row. For each observation, this value divided by the weight gives the observation's variance.
+#' Calculate the dispersion of each row. For each observation, 
+#' this value divided by the weight gives the observation's variance.
 #'
-#' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
-#' @param comp A Components, an approximate matrix decomposition of the weitrix x values, for example created with \code{weitrix_components}.
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#' with \code{as_weitrix}.
+#' @param comp 
+#' A Components, an approximate matrix decomposition of 
+#' the weitrix x values, for example created with \code{weitrix_components}.
 #'
 #' @export
 weitrix_dispersions <- function(weitrix, comp) {
@@ -61,10 +67,18 @@ weitrix_dispersions <- function(weitrix, comp) {
 #'
 #' Based on estimated row dispersions, adjust weights in each row.
 #'
-#' For large numbers of samples this can be based directly on weitrix_dispersions. For small numbers of samples, when using limma, it should be based on a trend-line fitted to known co-variates of the dispersions. This can be done using \code{weitrix_calibrate_trend}.
+#' For large numbers of samples this can be based directly 
+#' on weitrix_dispersions. 
+#' For small numbers of samples, when using limma, 
+#' it should be based on a trend-line fitted to known co-variates of 
+#' the dispersions. 
+#' This can be done using \code{weitrix_calibrate_trend}.
 #'
-#' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
-#' @param dispersions A dispersion for each row.
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#' with \code{as_weitrix}.
+#' @param dispersions 
+#' A dispersion for each row.
 #'
 #' @export
 weitrix_calibrate <- function(weitrix, dispersions) {
@@ -88,11 +102,23 @@ weitrix_calibrate <- function(weitrix, dispersions) {
 
 #' Adjust weights by fitting a trend to estimated dispersions
 #'
-#' Dispersions are estimated using \code{weitrix_dispersions}. A trend line is then fitted to log dispersions using a linear model. Weitrix weights are calibrated based on this trend line. Any zero or very-near-zero dispersions are ignored when fitting this model.
+#' Dispersions are estimated using \code{weitrix_dispersions}. 
+#' A trend line is then fitted to log dispersions using a linear model. 
+#' Weitrix weights are calibrated based on this trend line. 
+#' Any zero or very-near-zero dispersions are ignored when fitting this model.
 #'
-#' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
-#' @param design A formula in terms of \code{colData(weitrix} or a design matrix, which will be fitted to the weitrix on each row. Can also be a pre-existing Components object, in which case the existing fits (\code{design$row}) are used.
-#' @param formula A formula specification for predicting log dispersion from columns of rowData(weitrix). If absent, metadata(weitrix)$weitrix$trend_formula is used.
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#' with \code{as_weitrix}.
+#' @param design 
+#' A formula in terms of \code{colData(weitrix} or a design matrix, 
+#' which will be fitted to the weitrix on each row. 
+#' Can also be a pre-existing Components object, 
+#' in which case the existing fits (\code{design$row}) are used.
+#' @param formula 
+#' A formula specification for predicting log dispersion from 
+#' columns of rowData(weitrix). 
+#' If absent, metadata(weitrix)$weitrix$trend_formula is used.
 #'
 #' @export
 weitrix_calibrate_trend <- function(weitrix, design=~1, formula=NULL) {
@@ -124,9 +150,8 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, formula=NULL) {
     ))
     
     pred <- exp(
-       predict(fit, newdata=rowData(weitrix)) +
-       sigma(fit)^2/2
-    )
+        predict(fit, newdata=rowData(weitrix)) +
+        sigma(fit)^2/2)
     
     rowData(weitrix)$dispersion_trend <- pred
     metadata(weitrix)$weitrix$trend_fit <- fit

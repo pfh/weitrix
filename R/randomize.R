@@ -12,7 +12,7 @@ weitrix_randomize_inner <- function(w) {
 #' Generate a random normally distributed version of a weitrix
 #'
 #' Values are generated with variance equal to 1/weight.
-#' This can be use see what R-squared would be achieved with purely random data,
+#' This can be used to see what R-squared would be achieved with purely random data,
 #' and therefore an appropriate number of components to use.
 #' This is known as Parallel Analysis.
 #'
@@ -32,7 +32,7 @@ weitrix_randomize <- function(weitrix) {
     w <- weitrix_weights(weitrix)
     parts <- partitions(ncol(w), nrow(w))
     feed <- map(parts, function(part) {
-        w[,part,drop=F]
+        w[,part,drop=FALSE]
     })
     #Realization currently not working in workers
     #result <- bplapply(feed, weitrix_randomize_inner, BPPARAM=BPPARAM)
