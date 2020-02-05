@@ -13,9 +13,24 @@ weitrix_hill(weitrix, what = c("row", "col"), order = 2)
 
 \item{order}{Order of the Hill numbers.}
 }
+\value{
+A numeric vector of effective numbers of observations.
+}
 \description{
 Effective numbers of observations. 
 \code{order=0} produces count of non-zero weights. 
 \code{order=1} produces exp(entropy). 
 \code{order=2} produces the inverse Simpson index.
+}
+\examples{
+weitrix_weights(simwei)
+
+weitrix_hill(simwei, what="row", order=0)
+weitrix_hill(simwei, what="row", order=1)
+weitrix_hill(simwei, what="row", order=2)
+
+weitrix_hill(simwei, what="col", order=0)
+weitrix_hill(simwei, what="col", order=1)
+weitrix_hill(simwei, what="col", order=2)
+
 }

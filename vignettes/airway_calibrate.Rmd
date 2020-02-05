@@ -32,7 +32,7 @@ airway
 ```
 
 
-## Initial processing
+# Initial processing
 
 Initial steps are the same as for a differential expression analysis.
 
@@ -65,6 +65,8 @@ rowData(airway_weitrix)$mean_lcpm <- rowMeans(airway_lcpm)
 airway_weitrix
 ```
 
+
+# Exploration
 
 ## Find components of variation
 
@@ -138,7 +140,7 @@ airway_cal <- weitrix_calibrate_trend(airway_weitrix, comp, ~splines::ns(mean_lc
 
 rowData(airway_cal) %>% as.data.frame() %>% 
     ggplot(aes(x=mean_lcpm)) +
-    geom_point(aes(y=dispersion^0.25), size=0.1) +
+    geom_point(aes(y=dispersion_before^0.25), size=0.1) +
     geom_point(aes(y=dispersion_trend^0.25), size=0.1, color="red") +
     labs(x="Mean log2 RPM", y="sqrt( Standard deviation )")
 

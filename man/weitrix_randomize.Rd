@@ -7,13 +7,22 @@
 weitrix_randomize(weitrix)
 }
 \arguments{
-\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.}
+\item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
+with \code{as_weitrix}.}
+}
+\value{
+A SummarizedExperiment object with metadata fields marking it as a weitrix.
 }
 \description{
 Values are generated with variance equal to 1/weight.
-This can be used to see what R-squared would be achieved with purely random data,
+This can be used to see what R-squared would be achieved 
+    with purely random data,
 and therefore an appropriate number of components to use.
 This is known as Parallel Analysis.
+}
+\examples{
+weitrix_randomize(simwei)
+
 }
 \seealso{
 \code{\link{components_seq_screeplot}}

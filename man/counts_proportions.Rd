@@ -17,10 +17,32 @@ Should have a column "group" naming the group and
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
 }
+\value{
+A SummarizedExperiment object with metadata fields marking it as a weitrix.
+}
 \description{
 Produce a weitrix of proportions between 0 and 1. 
 The input is read counts at a collection of features 
     in a collection of samples. 
 The features need to be grouped, for example by gene. 
 The proportions will add to 1 within each group.
+}
+\examples{
+grouping <- data.frame(
+    group=c("A","A","A","B","B"),
+    name=c("p1","p2","p3","p4","p5"))
+
+counts <- rbind(
+    p1=c(1,2,0),
+    p2=c(0,1,0),
+    p3=c(1,0,0),
+    p4=c(0,0,1),
+    p5=c(0,2,1))
+
+wei <- counts_proportions(counts, grouping)
+
+weitrix_x(wei)
+weitrix_weights(wei)
+rowData(wei)
+
 }

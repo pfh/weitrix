@@ -27,17 +27,18 @@ site : document
 	Rscript -e "pkgdown::build_site(new_process=FALSE)"
 
 # Note: must install package for system.file to work
-site-devel : 
+site-devel : document
 	Rscript -e "devtools::load_all('.',export_all=F);pkgdown::build_site(new_process=FALSE,devel=TRUE,lazy=TRUE)"
 
 # Note: must install package for system.file to work
 articles-devel : 
 	Rscript -e "devtools::load_all('.',export_all=F);pkgdown::build_articles(lazy=TRUE,quiet=FALSE)"
 
-
 publish : 
 	rsync -rv docs/* logarithmic.net:www/weitrix/
 
+clean :
+	rm -rf weitrix.Rcheck vignettes/*.html vignettes/*_cache vignettes/*_files
 
 
-.PHONY : document data check bioccheck test install vignette site site-devel articles-devel publish
+.PHONY : document data check bioccheck test install vignette site site-devel articles-devel publish clean

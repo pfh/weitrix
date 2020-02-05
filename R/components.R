@@ -28,16 +28,12 @@ components_order_and_flip <- function(comp) {
 }
 
 
-#' Seek meaningful components by varimax rotation
-#'
-#' Varimax rotation rotates components in a decomposition so that
-#'     each component has a few large loadings and the rest small.
-#' By the grace of sparsity we hope that these components 
-#'     are then individually interpretable.
-#'
-#' @param comp A Components object.
-#'
-#' @export
+# Seek meaningful components by varimax rotation
+#
+# Varimax rotation rotates components in a decomposition so that
+#     each component has a few large loadings and the rest small.
+# By the grace of sparsity we hope that these components 
+#     are then individually interpretable.
 components_varimax <- function(comp) {
     if (length(comp$ind_components) < 2)
         return(comp)
@@ -575,6 +571,13 @@ weitrix_components_seq <- function(
 #' \code{components_seq_scree} returns a data frame listing 
 #'     the variance explained by each further component.
 #'
+#' @examples
+#' comp_seq <- weitrix_components_seq(simwei, 4, verbose=FALSE)
+#' rand_comp <- weitrix_components(weitrix_randomize(simwei), 1, verbose=FALSE)
+#'
+#' components_seq_scree(comp_seq, rand_comp)
+#' components_seq_screeplot(comp_seq, rand_comp)
+#'
 #' @export
 components_seq_scree <- function(comp_seq, rand_comp=NULL) {
     R2 <- map_dbl(comp_seq, "R2")
@@ -609,7 +612,6 @@ components_seq_scree <- function(comp_seq, rand_comp=NULL) {
 #' @rdname components_seq_scree
 #'
 #' @return
-#' 
 #' \code{components_seq_screeplot} returns a ggplot2 plot object.
 #' 
 #' @export

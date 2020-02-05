@@ -12,14 +12,23 @@ weitrix_randomize_inner <- function(w) {
 #' Generate a random normally distributed version of a weitrix
 #'
 #' Values are generated with variance equal to 1/weight.
-#' This can be used to see what R-squared would be achieved with purely random data,
+#' This can be used to see what R-squared would be achieved 
+#'     with purely random data,
 #' and therefore an appropriate number of components to use.
 #' This is known as Parallel Analysis.
 #'
-#' @param weitrix A weitrix object, or an object that can be converted to a weitrix with \code{as_weitrix}.
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#'     with \code{as_weitrix}.
 #'
+#' @return 
+#' A SummarizedExperiment object with metadata fields marking it as a weitrix.
+#' 
 #' @seealso
 #' \code{\link{components_seq_screeplot}}
+#'
+#' @examples
+#' weitrix_randomize(simwei)
 #'
 #' @export
 weitrix_randomize <- function(weitrix) {

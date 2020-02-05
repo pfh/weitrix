@@ -30,8 +30,6 @@ If weights are not present in "object" and not given with "weights", they
 default for 0 for NA values and 1 for everything else.
 }
 \examples{
-library(SummarizedExperiment)
-
 mat <- matrix(c(1,2,NA,3,NA,4), ncol=2)
 weitrix <- as_weitrix(mat)
 

@@ -2,16 +2,17 @@
 # Shift statistic and associated weights
 
 #
-# Converts a matrix of read counts into a vector of shifts relative to the average
+# Converts a matrix of read counts into a vector of shifts 
+# relative to the average.
 #
-# Weights are simply total read count
+# Weights are simply total read count.
 #
-# Samples with less than min_read reads are given shift=0, weight=0
+# Samples with no reads are given shift=NA, weight=0.
 #
-weighted_shift <- function(mat, min_reads=1) {
+weighted_shift <- function(mat) {
     n <- nrow(mat)
     totals <- colSums(mat)
-    good <- totals >= min_reads
+    good <- totals > 0
     good_mat <- mat[,good,drop=FALSE]
     good_totals <- totals[good]
     
@@ -36,18 +37,22 @@ weighted_shift <- function(mat, min_reads=1) {
     weights <- rep(0, length(good))
     weights[good] <- good_totals
 
-    grand_total <- sum(good_totals) # Only include peaks used
+    grand_total <- sum(good_totals)
     
-    list(shifts=shifts, weights=weights, total=grand_total, per_read_var=per_read_var)
+    list(
+        shifts=shifts, 
+        weights=weights, 
+        total=grand_total, 
+        per_read_var=per_read_var)
 }
 
 
-counts_shift_inner <- function(counts, groups, min_reads) {
+counts_shift_inner <- function(counts, groups) {
     relevant <- unique(unlist(groups))
     counts <- as.matrix(counts[relevant,,drop=FALSE])
     
     results <- map(groups, function(members) {
-        weighted_shift(counts[members,,drop=FALSE], min_reads=min_reads)
+        weighted_shift(counts[members,,drop=FALSE])
     })
     rm(counts)
     
@@ -87,18 +92,47 @@ counts_shift_inner <- function(counts, groups, min_reads) {
 #' at a collection of peaks (or other features) in a collection of samples. The
 #' peaks can be grouped by gene, and are ordered within each gene.
 #' 
-#' For a particular gene, a shift score measures measures the tendency of reads to be upstrand (negative) or downstrand (positive) of the average over all samples. Shift scores range between -1 and 1. 
+#' For a particular gene, a shift score measures measures the tendency of 
+#' reads to be upstrand (negative) or downstrand (positive) of 
+#' the average over all samples. 
+#' Shift scores range between -1 and 1. 
 #' 
-#' @param counts A matrix of read counts. Rows are peaks and columns are samples.
+#' @param counts 
+#' A matrix of read counts. Rows are peaks and columns are samples.
 #' 
-#' @param grouping A data frame defining the grouping of peaks into genes. Should have a column "group" naming the gene and a column "name" naming the peak (corresponding to \code{rownames(counts)}). Within each group, peak names should be ordered from 5' to 3' position.
+#' @param grouping 
+#' A data frame defining the grouping of peaks into genes. 
+#' Should have a column "group" naming the gene and 
+#'     a column "name" naming the peak 
+#'     (corresponding to \code{rownames(counts)}). 
+#' Within each group, peak names should be ordered from 5' to 3' position.
 #' 
-#' @param min_reads Minimum reads to produce a shift score. Where there are fewer than this many reads for a combination of gene and sample, NA and a weight of zero is given.
+#' @param verbose 
+#' If TRUE, output some debugging and progress information.
+#'
+#' @return 
+#' A SummarizedExperiment object with metadata fields marking it as a weitrix.
 #' 
-#' @param verbose If TRUE, output some debugging and progress information.
+#' @examples
+#' grouping <- data.frame(
+#'     group=c("A","A","A","B","B"),
+#'     name=c("p1","p2","p3","p4","p5"))
+#'
+#' counts <- rbind(
+#'     p1=c(1,2,0),
+#'     p2=c(0,1,0),
+#'     p3=c(1,0,0),
+#'     p4=c(0,0,1),
+#'     p5=c(0,2,1))
+#'
+#' wei <- counts_shift(counts, grouping)
+#'
+#' weitrix_x(wei)
+#' weitrix_weights(wei)
+#' rowData(wei)
 #'
 #' @export
-counts_shift <- function(counts, grouping, min_reads=1, verbose=TRUE) {
+counts_shift <- function(counts, grouping, verbose=TRUE) {
     assert_that(
         is.data.frame(grouping), 
         "group" %in% colnames(grouping), 
@@ -109,12 +143,13 @@ counts_shift <- function(counts, grouping, min_reads=1, verbose=TRUE) {
     good <- map_int(groups, length) >= 2
     groups <- groups[good]
 
-    parts <- partitions(length(groups), ncol(counts)/length(groups)*nrow(counts))
+    parts <- partitions(
+        length(groups), ncol(counts)/length(groups)*nrow(counts))
     if (verbose)
         message("Calculating shifts in ",length(parts)," blocks")
 
     result <- lapply(parts, function(part) {
-        counts_shift_inner(counts, groups[part], min_reads)
+        counts_shift_inner(counts, groups[part])
     })
     result <- do.call(rbind, result)
     colnames(result) <- colnames(counts)

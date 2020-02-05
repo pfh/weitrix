@@ -9,6 +9,8 @@
 simwei
 }
 \description{
-This is a simulated weitrix used in examples.
+This is a small simulated weitrix used in examples.
+There is one component of variation to be found, 
+    plus Gaussian noise with variance inversely proportional to the weights.
 }
 \keyword{datasets}

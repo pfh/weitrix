@@ -16,6 +16,16 @@ weitrix_x(x) <- value
 
 \item{value}{The new matrix.}
 }
+\value{
+A matrix-like object such as a matrix or a DelayedArray.
+}
 \description{
 Gets or sets the appropriate assay in the SummarizedExperiment object.
+}
+\examples{
+weitrix_x(simwei)
+
+simwei2 <- simwei
+weitrix_x(simwei2) <- weitrix_x(simwei2) * 2
+
 }

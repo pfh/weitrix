@@ -8,6 +8,8 @@ template:
     params:
         bootswatch: cerulean
 
+toc:
+    depth: 1
 
 reference:
 - title: Create weitrix
@@ -16,7 +18,6 @@ reference:
   - bless_weitrix
   - counts_shift
   - counts_proportions
-  - counts_in_totals_proportions
 - title: Access or cast weitrix
   contents:
   - weitrix_x
@@ -26,7 +27,6 @@ reference:
   contents:
   - weitrix_components
   - components_seq_scree
-  - components_varimax
 - title: Summary statistics and calibration
   contents:
   - weitrix_dispersions

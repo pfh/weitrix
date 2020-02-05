@@ -16,6 +16,13 @@ weitrix_weights(x) <- value
 
 \item{value}{The new matrix.}
 }
+\value{
+A matrix-like object such as a matrix or a DelayedArray.
+}
 \description{
 Gets or sets the appropriate assay in the SummarizedExperiment object.
+}
+\examples{
+weitrix_weights(simwei)
+
 }

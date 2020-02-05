@@ -12,6 +12,9 @@ with \code{as_weitrix}.}
 
 \item{dispersions}{A dispersion for each row.}
 }
+\value{
+A SummarizedExperiment object with metadata fields marking it as a weitrix.
+}
 \description{
 Based on estimated row dispersions, adjust weights in each row.
 }
@@ -22,4 +25,13 @@ For small numbers of samples, when using limma,
 it should be based on a trend-line fitted to known co-variates of 
 the dispersions. 
 This can be done using \code{weitrix_calibrate_trend}.
+}
+\examples{
+# Adjust weights so dispersion for each row is exactly 1. This is dubious 
+# for a small dataset, but would be fine for a dataset with many columns.
+comp <- weitrix_components(simwei, p=1, verbose=FALSE)
+disp <- weitrix_dispersions(simwei, comp)
+cal <- weitrix_calibrate(simwei, disp)
+weitrix_dispersions(cal, comp)
+
 }

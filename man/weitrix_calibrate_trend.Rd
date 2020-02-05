@@ -4,7 +4,7 @@
 \alias{weitrix_calibrate_trend}
 \title{Adjust weights by fitting a trend to estimated dispersions}
 \usage{
-weitrix_calibrate_trend(weitrix, design = ~1, formula = NULL)
+weitrix_calibrate_trend(weitrix, design = ~1, trend_formula = NULL)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
@@ -15,13 +15,39 @@ which will be fitted to the weitrix on each row.
 Can also be a pre-existing Components object, 
 in which case the existing fits (\code{design$row}) are used.}
 
-\item{formula}{A formula specification for predicting log dispersion from 
+\item{trend_formula}{A formula specification for predicting log dispersion from 
 columns of rowData(weitrix). 
 If absent, metadata(weitrix)$weitrix$trend_formula is used.}
+}
+\value{
+A SummarizedExperiment object with metadata fields marking it as a weitrix.
 }
 \description{
 Dispersions are estimated using \code{weitrix_dispersions}. 
 A trend line is then fitted to log dispersions using a linear model. 
 Weitrix weights are calibrated based on this trend line. 
 Any zero or very-near-zero dispersions are ignored when fitting this model.
+}
+\examples{
+rowData(simwei)$total_weight <- rowSums(weitrix_weights(simwei))
+
+# To estimate dispersions, use a simple model containing only an intercept
+# term. Model log dispersion as a straight line relationship with log total 
+# weight and adjust weights to remove any trend. 
+cal <- weitrix_calibrate_trend(simwei,~1,trend_formula=~log(total_weight))
+
+# This dataset has few rows, so calibration like this is dubious.
+# Predictors in the fitted model are not significant.
+summary( metadata(cal)$weitrix$trend_fit )
+
+# Information about the calibration is added to rowData
+rowData(cal)
+
+
+# A Components object may also be used as the design argument.
+comp <- weitrix_components(simwei, p=1, verbose=FALSE)
+cal2 <- weitrix_calibrate_trend(simwei,comp,trend_formula=~log(total_weight))
+
+rowData(cal2)
+
 }

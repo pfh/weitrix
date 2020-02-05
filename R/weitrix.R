@@ -84,6 +84,7 @@ as_weitrix <- function(object, weights=NULL) {
     bless_weitrix(result, "x", "weights")
 }
 
+
 #' Bless a SummarizedExperiment as a weitrix
 #'
 #' Set metadata entries in a SummarizedExperiment object
@@ -128,6 +129,9 @@ bless_weitrix <- function(object, x_name, weights_name) {
 #'
 #' @param weitrix A weitrix object.
 #'
+#' @return 
+#' A matrix-like object such as a matrix or a DelayedArray.
+#' 
 #' @examples
 #' weitrix_x(simwei)
 #'
@@ -145,6 +149,9 @@ weitrix_x <- function(weitrix) {
 #'
 #' @param weitrix A weitrix object.
 #'
+#' @return 
+#' A matrix-like object such as a matrix or a DelayedArray.
+#' 
 #' @examples
 #' weitrix_weights(simwei)
 #'
@@ -179,7 +186,10 @@ weitrix_weights <- function(weitrix) {
 #'
 #' @param weitrix A weitrix object.
 #'
-#' @example
+#' @return
+#' A limma EList object.
+#'
+#' @examples
 #' library(limma)
 #'
 #' elist <- weitrix_elist(simwei)

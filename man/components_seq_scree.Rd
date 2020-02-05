@@ -49,3 +49,11 @@ This is a somewhat ad-hoc method,
     but may indicate more components are justified 
     than by criteria based on a flat threshold.
 }
+\examples{
+comp_seq <- weitrix_components_seq(simwei, 4, verbose=FALSE)
+rand_comp <- weitrix_components(weitrix_randomize(simwei), 1, verbose=FALSE)
+
+components_seq_scree(comp_seq, rand_comp)
+components_seq_screeplot(comp_seq, rand_comp)
+
+}

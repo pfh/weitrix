@@ -2,8 +2,9 @@
 # Utility/helper functions
 
 
-# Realize a DelayedArray, but don't infect non-delayed arrays
-# Checks Delayedness of first argument by default, but can check a second argument instead
+# Realize a DelayedArray, but don't infect non-delayed arrays.
+# Checks Delayedness of first argument by default, 
+#     but can check a second argument instead.
 realize_if_delayed <- function(x, check=x) {
     if (is(check, "DelayedArray"))
         x <- realize(x)
@@ -15,14 +16,15 @@ realize_if_delayed <- function(x, check=x) {
 #
 # Blocking helper functions
 #
-# DelayedArray has various utilties for this, but so far I've found them awkward to use.
+# DelayedArray has various utilties for this, 
+#     but so far I've found them awkward to use.
 #
 # We will however respect the DelayedArray auto block size
 #
-
 # item_size is how many doubles per item
 partitions <- function(
-        n, item_size, max_bytes=getAutoBlockSize(), BPPARAM=NULL, cpu_heavy=FALSE) {
+        n, item_size, max_bytes=getAutoBlockSize(), 
+        BPPARAM=NULL, cpu_heavy=FALSE) {
     if (n == 0L) return(list())
 
     step <- max(1L, as.integer(max_bytes/(8*item_size)))
@@ -46,7 +48,8 @@ partitions <- function(
 # Otherwise pool will be started for each individual operation!
 #
 # Sets BLAS threads to 1 before starting worker pool!
-# For a fork-based worker pool, this will ensure each worker only tries to use one BLAS thread.
+# For a fork-based worker pool, 
+#     this will ensure each worker only tries to use one BLAS thread.
 # BLAS threads are reset to default after the expression is calculated.
 # This may need further tweaking.
 #
@@ -69,37 +72,55 @@ with_bp_up <- function(expr) {
 
 #' Convert a matrix to long form for ggplotting
 #'
-#' A convenience function which melts the matrix and then joins row and column information.
+#' A convenience function which melts the matrix and then 
+#'     joins row and column information.
 #'
-#' @param matrix A matrix, or object that can be converted to a matrix.
+#' @param matrix 
+#' A matrix, or object that can be converted to a matrix.
 #'
-#' @param row_info Information about rows of the matrix. A data frame, or object that can be converted to a data frame.
+#' @param row_info 
+#' Information about rows of the matrix. 
+#' A data frame, or object that can be converted to a data frame.
 #'
-#' @param col_info Information about columns of the matrix. A data frame, or object that can be converted to a data frame.
+#' @param col_info 
+#' Information about columns of the matrix. 
+#' A data frame, or object that can be converted to a data frame.
 #'
-#' @param varnames Vector of two column names in the output, the first for the row and the second for the column.
+#' @param varnames 
+#' Vector of two column names in the output, 
+#'     the first for the row and the second for the column.
 #'
 #' @return
 #' A data frame containing the matrix and associated information in long format.
 #'
+#' @examples
+#' matrix_long(weitrix_x(simwei), rowData(simwei), colData(simwei))
+#'
 #' @export
-matrix_long <- function(matrix, row_info=NULL, col_info=NULL, varnames=c("name","col")) {
+matrix_long <- function(
+        matrix, row_info=NULL, col_info=NULL, varnames=c("name","col")) {
     matrix <- as.matrix(matrix)
-    long <- melt(matrix, varnames=varnames)
+
+    long <- melt(matrix, varnames=varnames, as.is=TRUE)
 
     if (!is.null(row_info)) {
         name_col <- varnames[1]
         row_info <- as.data.frame(row_info)
-        row_info[[name_col]] <- factor(row_info[[name_col]], rownames(matrix))
+        row_info[[name_col]] <- rownames(matrix)
         long <- left_join(long, row_info, by=name_col)
     }
 
     if (!is.null(col_info)) {
         name_col <- varnames[2]
         col_info <- as.data.frame(col_info)
-        col_info[[name_col]] <- factor(col_info[[name_col]], colnames(matrix))
+        col_info[[name_col]] <- colnames(matrix)
         long <- left_join(long, col_info, by=name_col)
     }
 
+    long[[ varnames[1] ]] <- factor(long[[ varnames[1] ]], rownames(matrix))
+    long[[ varnames[2] ]] <- factor(long[[ varnames[2] ]], colnames(matrix))
+
     long
 }
+
+

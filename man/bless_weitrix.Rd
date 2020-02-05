@@ -23,8 +23,6 @@ Set metadata entries in a SummarizedExperiment object
 so that it can be used as a weitrix.
 }
 \examples{
-library(SummarizedExperiment)
-
 mat <- matrix(c(1,2,NA,3,NA,4), ncol=2)
 weights <- matrix(c(1,0.5,0,2,0,1), ncol=2)
 se <- SummarizedExperiment(assays=list(foo=mat, bar=weights))

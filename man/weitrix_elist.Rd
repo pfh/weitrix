@@ -9,7 +9,19 @@ weitrix_elist(weitrix)
 \arguments{
 \item{weitrix}{A weitrix object.}
 }
+\value{
+A limma EList object.
+}
 \description{
 The resulting object can be used as input to \code{limma::lmFit}
 for a limma analysis.
+}
+\examples{
+library(limma)
+
+elist <- weitrix_elist(simwei)
+design <- model.matrix(~true_score, data=colData(simwei))
+fit <- lmFit(elist, design)
+# ...perform further limma analysis steps as desired...
+
 }

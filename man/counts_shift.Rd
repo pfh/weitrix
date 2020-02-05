@@ -4,16 +4,21 @@
 \alias{counts_shift}
 \title{Produce a weitrix of shift scores}
 \usage{
-counts_shift(counts, grouping, min_reads = 1, verbose = TRUE)
+counts_shift(counts, grouping, verbose = TRUE)
 }
 \arguments{
 \item{counts}{A matrix of read counts. Rows are peaks and columns are samples.}
 
-\item{grouping}{A data frame defining the grouping of peaks into genes. Should have a column "group" naming the gene and a column "name" naming the peak (corresponding to \code{rownames(counts)}). Within each group, peak names should be ordered from 5' to 3' position.}
-
-\item{min_reads}{Minimum reads to produce a shift score. Where there are fewer than this many reads for a combination of gene and sample, NA and a weight of zero is given.}
+\item{grouping}{A data frame defining the grouping of peaks into genes. 
+Should have a column "group" naming the gene and 
+    a column "name" naming the peak 
+    (corresponding to \code{rownames(counts)}). 
+Within each group, peak names should be ordered from 5' to 3' position.}
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
+}
+\value{
+A SummarizedExperiment object with metadata fields marking it as a weitrix.
 }
 \description{
 Produce a weitrix of shift scores between -1 and 1. The input is read counts
@@ -21,5 +26,27 @@ at a collection of peaks (or other features) in a collection of samples. The
 peaks can be grouped by gene, and are ordered within each gene.
 }
 \details{
-For a particular gene, a shift score measures measures the tendency of reads to be upstrand (negative) or downstrand (positive) of the average over all samples. Shift scores range between -1 and 1.
+For a particular gene, a shift score measures measures the tendency of 
+reads to be upstrand (negative) or downstrand (positive) of 
+the average over all samples. 
+Shift scores range between -1 and 1.
+}
+\examples{
+grouping <- data.frame(
+    group=c("A","A","A","B","B"),
+    name=c("p1","p2","p3","p4","p5"))
+
+counts <- rbind(
+    p1=c(1,2,0),
+    p2=c(0,1,0),
+    p3=c(1,0,0),
+    p4=c(0,0,1),
+    p5=c(0,2,1))
+
+wei <- counts_shift(counts, grouping)
+
+weitrix_x(wei)
+weitrix_weights(wei)
+rowData(wei)
+
 }

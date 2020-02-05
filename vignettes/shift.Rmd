@@ -1,8 +1,8 @@
 ---
-title: "Alternative polyadenylation"
+title: "3. Alternative polyadenylation"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{shift}
+  %\VignetteIndexEntry{3. Alternative polyadenylation}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -27,16 +27,15 @@ library(limma)
 library(topconfects)
 library(weitrix)
 
-peaks <- system.file("shift_example", "peaks.csv.gz", package="weitrix") %>%
+peaks <- system.file("GSE83162", "peaks.csv.gz", package="weitrix") %>%
     read_csv()
 
-counts <- system.file("shift_example", "peak-counts.csv.gz", package="weitrix") %>%
+counts <- system.file("GSE83162", "peak_count.csv.gz", package="weitrix") %>%
     read_csv() %>%
     column_to_rownames("name") %>%
     as.matrix()
 
-
-genes <- system.file("shift_example", "genes.csv.gz", package="weitrix") %>%
+genes <- system.file("GSE83162", "genes.csv.gz", package="weitrix") %>%
     read_csv() %>%
     column_to_rownames("name")
     

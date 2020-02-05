@@ -1,15 +1,13 @@
 ---
-title: "poly(A) tail length"
+title: "2. poly(A) tail length example"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{tail_length}
+  %\VignetteIndexEntry{2. poly(A) tail length example}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads that include the poly(A) tail. We examine [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
-
-# Download files
 
 ```{r echo=F}
 knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
@@ -19,18 +17,6 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
 # Produce consistent results
 set.seed(12345)
-```
-
-```{r download}
-if (!file.exists("GSE83162_tail.csv.gz"))
-    download.file(
-        "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE83nnn/GSE83162/suppl/GSE83162_tail.csv.gz",
-        "GSE83162_tail.csv.gz")
-
-if (!file.exists("GSE83162_tail_count.csv.gz"))
-    download.file(
-        "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE83nnn/GSE83162/suppl/GSE83162_tail_count.csv.gz",
-        "GSE83162_tail_count.csv.gz")
 ```
 
 # Read files, extract experimental design from sample names
@@ -44,10 +30,13 @@ library(topconfects)
 library(org.Sc.sgd.db)
 library(weitrix)
 
-tail <- read_csv("GSE83162_tail.csv.gz") %>%
+tail <- system.file("GSE83162", "tail.csv.gz", package="weitrix") %>%
+    read_csv() %>%
     column_to_rownames("Feature") %>%
     as.matrix()
-tail_count <- read_csv("GSE83162_tail_count.csv.gz") %>%
+
+tail_count <- system.file("GSE83162", "tail_count.csv.gz", package="weitrix") %>%
+    read_csv() %>%
     column_to_rownames("Feature") %>%
     as.matrix()
     
@@ -63,25 +52,25 @@ samples
 
 "tpre" is the cells in an unsynchronized state, other times are minutes after release into cycling.
 
-The two strains are a wildtype and a straing with a mutated set1 gene.
+The two strains are a wildtype and a strain with a mutated set1 gene.
 
 
 # Create weitrix object
 
 From experience, noise scales with the length of the tail. Therefore to stabilize the variance we will be examing log2 of the tail length.
 
-These tail lengths are each the average over many reads. We therefore weight each tail length by the number of reads. (This is somewhat overoptimistic, as there is biological noise that doesn't go away with more reads. We will approximately correct for this in a later calibration step.)
+These tail lengths are each the average over many reads. We therefore weight each tail length by the number of reads. This is somewhat overoptimistic as there is biological noise that doesn't go away with more reads, which we will correct for in the next step.
 
 
-```{r weitrix, message=F}
+```{r weitrix, message=FALSE}
 log2_tail <- log2(tail)
 
 good <- rowMeans(tail_count) >= 10
 table(good)
 
 wei <- as_weitrix(
-    log2_tail[good,,drop=F], 
-    weights=tail_count[good,,drop=F])
+    log2_tail[good,,drop=FALSE], 
+    weights=tail_count[good,,drop=FALSE])
 
 rowData(wei)$gene <- AnnotationDbi::select(
     org.Sc.sgd.db, keys=rownames(wei), columns=c("GENENAME"))$GENENAME
@@ -89,28 +78,21 @@ rowData(wei)$total_reads <- rowSums(weitrix_weights(wei))
 colData(wei) <- cbind(colData(wei), samples)
 ```
 
-# Testing using experimental design
 
-The lack of replicates makes life difficult. For simplicity here we will assume time and strain are independent.
+# Calibration
+
+Our first step is to calibrate our weights. Our weights are overoptimistic for large numbers of reads, as there is a biological components of noise that does not go away with more reads.
+
+Calibration requires a model explaining non-random effects. We provide a design matrix and a weighted linear model fit is found for each row. The lack of replicates makes life difficult, for simplicity here we will assume time and strain are independent.
 
 ```{r cal}
 design <- model.matrix(~ strain + time, data=colData(wei))
 ```
 
-## Calibration
-
-Our first step is to calibrate our weights. Our weights are overoptimistic for large numbers of reads, as there is a biological components of noise that does not go away with more reads.
-
-The first step of calibration is to have a fitted model, so that we can calculate the residual noise. We will use `weitrix_components`, but won't will supply the design matrix rather than asking it to discover components, making this step similar to limma's lmFit step. This produces a `Components` object containing an approximate matrix decomposition of our tail lengths and will serve as our fitted model.
+The dispersion is then calculated for each row. A spline curve is fitted to the log dispersion. Weights in each row are then scaled so as to flatten this curve.
 
 ```{r}
-comp_design <- weitrix_components(wei, p=0, design=design)
-```
-
-We use `comp_design` as a model while calibrating out the overdispersion due to biological noise. Note: the dispersion shown is *after taking into account weights*.
-
-```{r}
-cal_design <- weitrix_calibrate_trend(wei, comp_design, ~splines::ns(log2(total_reads),3))
+cal_design <- weitrix_calibrate_trend(wei, design, ~splines::ns(log2(total_reads),3))
 ```
 
 ## Examining the effect of calibration
@@ -118,9 +100,7 @@ cal_design <- weitrix_calibrate_trend(wei, comp_design, ~splines::ns(log2(total_
 Let's unpack what happens in that `weitrix_calibrate_trend` step.
 
 ```{r disp-calc}
-rowData(cal_design)$dispersion_unweighted <- weitrix_dispersions(weitrix_x(wei), comp_design)
-rowData(cal_design)$dispersion_weighted <- weitrix_dispersions(wei, comp_design)
-rowData(cal_design)$dispersion_calibrated <- weitrix_dispersions(cal_design, comp_design)
+rowData(cal_design)$dispersion_unweighted <- weitrix_dispersions(weitrix_x(wei), design)
 ```
 
 Consider first the dispersion if weights were uniform. Missing data is weighted 0, all other weights are 1.
@@ -138,7 +118,7 @@ Here are the dispersions using read-counts as weights.
 
 ```{r disp-plot-weighted}
 rowData(cal_design) %>% as.data.frame() %>%
-    ggplot(aes(x=total_reads, y=dispersion_weighted)) + geom_point(size=0.1) +
+    ggplot(aes(x=total_reads, y=dispersion_before)) + geom_point(size=0.1) +
     geom_line(aes(y=dispersion_trend), color="red") +
     scale_x_log10() + scale_y_log10() +
     labs(title="Dispersion with read-counts as weights (log scales)")
@@ -150,39 +130,83 @@ Finally, here are the dispersion from the calibrated weitrix.
 
 ```{r disp-plot-cal}
 rowData(cal_design) %>% as.data.frame() %>%
-    ggplot(aes(x=total_reads, y=dispersion_calibrated)) + geom_point(size=0.1) +
+    ggplot(aes(x=total_reads, y=dispersion_after)) + geom_point(size=0.1) +
     scale_x_log10() + scale_y_log10() +
     labs(title="Dispersion with read-count weights / trend-based calibration\n(log scales)")
 ```
 
 This is reasonably close to uniform, with no trend from the number of reads. `limma` can now estimate the variability of dispersions between genes, and apply its Emprical-Bayes squeezed dispersion based testing.
 
-## Testing
 
-We are now ready to test things. We feed our calibrated weitrix to [limma](https://bioconductor.org/packages/release/bioc/html/limma.html) and then to [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html).
+# Testing
+
+We are now ready to test things. We feed our calibrated weitrix to [limma](https://bioconductor.org/packages/release/bioc/html/limma.html).
+
 
 ```{r limmadesign}
 fit_cal_design <- cal_design %>%
     weitrix_elist() %>%
     lmFit(design)
 
-limma_confects(fit_cal_design, "strainDeltaSet1", full=TRUE, fdr=0.05)
+ebayes_fit <- eBayes(fit_cal_design)
+result_signif <- topTable(ebayes_fit, "strainDeltaSet1", n=Inf)
+
+result_signif %>%
+    dplyr::select(gene,diff_log2_tail=logFC,ave_log2_tail=AveExpr,
+        adj.P.Val,total_reads) %>%
+    head(20)
 ```
 
-This lists the largest confident log2 fold changes in poly(A) tail length. These confidence bounds are adjusted for multiple testing.
+My package [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) can be used to find top confident differential tail length. Rather than picking "most significant" genes, it will highlight genes with a large effect size.
 
-Column | Description
----: | ---
-confect | Confident bound on the log2 fold change in tail length (including adjustment for multiple testing)
-effect | Estimated log2 fold change in tail length
-se | Standard error of estimate
-df | Degreees of freedom, including Emprical-Bayes prior
-fdr_zero | FDR-adjust p-value that the change is non-zero (i.e. the traditional result from differential testing)
-AveExpr | A misnomer, actually the average log2 tail length
 
-We could just as well use `limma::topTable`, which by default would give results sorted by the `fdr_zero` values in the table above.
+```{r confectsdesign}
+result_confects <- limma_confects(
+    fit_cal_design, "strainDeltaSet1", full=TRUE, fdr=0.05)
+
+result_confects$table %>% 
+    dplyr::select(gene,diff_log2_tail=effect,confect,total_reads) %>% 
+    head(20)
+
+cat(sum(!is.na(result_confects$table$confect)), 
+    "genes significantly non-zero at FDR 0.05\n")
+```
+
+This lists the largest confident log2 fold changes in poly(A) tail length.
+The `confect` column is an inner confidence bound on 
+the difference in log2 tail length,
+adjusted for multiple testing.
+
+We discover some genes with less total reads, but large change in tail length.
 
 Note that due to PCR amplification slippage and limited read length, the observed log2 poly(A) tail lengths may be an underestimate. However as all samples have been prepared in the same way, observed differences should indicate the existence of true differences.
+
+
+
+
+## Examine individual genes
+
+Having discovered genes with differential tail length, let's look at some genes in detail.
+
+```{r examine, fig.show="hold", fig.width=4, fig.height=3}
+view_gene <- function(id, title="") {
+    ggplot(samples, aes(x=time,color=strain,group=strain, y=tail[id,])) +
+       geom_hline(yintercept=0) + 
+       geom_line() + 
+       geom_point(aes(size=tail_count[id,])) +
+       labs(x="Time", y="Tail length", size="Read count", title=paste(id,title))
+}
+
+# Top "significant" genes
+view_gene("YDR170W-A")
+view_gene("YJR027W/YJR026W")
+view_gene("YAR009C")
+view_gene("YIL015W","BAR1")
+
+# topconfects has highlighted some genes with lower total reads
+view_gene("YER133W","GLC7")
+view_gene("YCR014C","POL4")
+```
 
 
 # Exploratory analysis
@@ -197,7 +221,7 @@ comp_seq <- weitrix_components_seq(wei, p=10)
 components_seq_screeplot(comp_seq)
 ```
 
-Three components seems reasonable.
+Looking at three components shows some of the major trends in this data-set.
 
 ```{r exam}
 comp <- comp_seq[[3]]
@@ -232,48 +256,69 @@ fit_comp <- cal_comp %>%
 ## Gene loadings for C1: gradual lengthing over time
 
 ```{r C1}
-limma_confects(fit_comp, "C1", full=TRUE, fdr=0.05)
+result_C1 <- limma_confects(fit_comp, "C1")
+```
+
+```{r examine_C1, echo=FALSE, fig.show="hold", fig.width=4, fig.height=3}
+result_C1$table %>% 
+    dplyr::select(gene,loading=effect,confect,total_reads) %>% 
+    head(10)
+
+cat(sum(!is.na(result_C1$table$confect)), 
+    "genes significantly non-zero at FDR 0.05\n")
+
+view_gene("YBL016W", "FUS3")
+view_gene("YOR096W", "RPS7A")
+view_gene("YDR092W", "UBC1")
+view_gene("YLR118C", "")
 ```
 
 FUS3 is involved in yeast mating. We see here a poly(A) tail signature of yeast realizing there are not actually any $\alpha$ cells around to mate with.
 
+
 ## Gene loadings for C2: longer tails in set1 mutant
 
 ```{r C2}
-limma_confects(fit_comp, "C2", full=TRUE, fdr=0.05)
+result_C2 <- limma_confects(fit_comp, "C2")
+```
+
+```{r examine_C2, echo=FALSE, fig.show="hold", fig.width=4, fig.height=3}
+result_C2$table %>% 
+    dplyr::select(gene,loading=effect,confect,total_reads) %>% 
+    head(10)
+
+cat(sum(!is.na(result_C2$table$confect)), 
+    "genes significantly non-zero at FDR 0.05\n")
+
+view_gene("YDR476C","")
+view_gene("YPL131W","RPL5")
+view_gene("YCR014C","POL4")
+view_gene("YGR251W","NOP19")
 ```
 
 ## Gene loadings for C3: cell-cycle associated changes
 
 ```{r C3}
-limma_confects(fit_comp, "C3", full=TRUE, fdr=0.05)
+result_C3 <- limma_confects(fit_comp, "C3")
 ```
 
 Given the mixture of signs for effects in C3, different genes are longer in different stages of the cell cycle. We see many genes to do with replication, and also Mating Factor A.
 
+```{r examine_C3, echo=FALSE, fig.show="hold", fig.width=4, fig.height=3}
+result_C3$table %>% 
+    dplyr::select(gene,loading=effect,confect,total_reads) %>% 
+    head(10)
 
-## Check individual genes
+cat(sum(!is.na(result_C3$table$confect)), 
+    "genes significantly non-zero at FDR 0.05\n")
 
-Having discovered patterns of tail length change and their associated genes, let's look at some genes in detail.
-
-```{r check}
-view_gene <- function(id, title) {
-    ggplot(samples, aes(x=time,color=strain,group=strain, 
-        y=tail[id,])) +
-       geom_line() + geom_point(aes(size=tail_count[id,])) +
-       labs(x="Time", y="Tail length", size="Read count", title=title)
-}
-
-view_gene("YBL016W", "FUS3 (C1)")
-view_gene("YOR096W", "RPS7A (C1)")
-view_gene("YDR092W", "UBC1 (C1)")
-view_gene("YDR476C","YDR476C (C2)")
-view_gene("YPL131W","RPL5 (C2)")
-view_gene("YCR014C","POL4 (C2)")
-view_gene("YFL014W", "HSP12 (C3)")
-view_gene("YBL003C","HTA2 (C3)")
-view_gene("YDR461W", "MFA1 (C3)")
+view_gene("YFL014W", "HSP12")
+view_gene("YNL036W",  "NCE103")
+view_gene("YJL173C", "RFA3")
+view_gene("YBL003C","HTA2")
+view_gene("YDR461W", "MFA1")
 ```
+
 
 
 

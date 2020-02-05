@@ -4,16 +4,30 @@
 \alias{weitrix_dispersions}
 \title{Calculate row dispersions}
 \usage{
-weitrix_dispersions(weitrix, comp)
+weitrix_dispersions(weitrix, design = ~1)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
 with \code{as_weitrix}.}
 
-\item{comp}{A Components, an approximate matrix decomposition of 
-the weitrix x values, for example created with \code{weitrix_components}.}
+\item{design}{A formula in terms of \code{colData(weitrix} or a design matrix, 
+which will be fitted to the weitrix on each row. 
+Can also be a pre-existing Components object, 
+in which case the existing fits (\code{design$row}) are used.}
+}
+\value{
+A numeric vector.
 }
 \description{
 Calculate the dispersion of each row. For each observation, 
 this value divided by the weight gives the observation's variance.
+}
+\examples{
+# Using a model just containing an intercept
+weitrix_dispersions(simwei, ~1)
+
+# Allowing for one component of variation, the dispersions are lower
+comp <- weitrix_components(simwei, p=1, verbose=FALSE)
+weitrix_dispersions(simwei, comp)
+
 }

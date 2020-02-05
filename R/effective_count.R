@@ -20,6 +20,20 @@ hill_1 <- function(x) {
 #'
 #' @param order Order of the Hill numbers.
 #'
+#' @return
+#' A numeric vector of effective numbers of observations.
+#'
+#' @examples
+#' weitrix_weights(simwei)
+#'
+#' weitrix_hill(simwei, what="row", order=0)
+#' weitrix_hill(simwei, what="row", order=1)
+#' weitrix_hill(simwei, what="row", order=2)
+#'
+#' weitrix_hill(simwei, what="col", order=0)
+#' weitrix_hill(simwei, what="col", order=1)
+#' weitrix_hill(simwei, what="col", order=2)
+#'
 #' @export
 weitrix_hill <- function(weitrix, what=c("row","col"), order=2) {
     weitrix <- as_weitrix(weitrix)

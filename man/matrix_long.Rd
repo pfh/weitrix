@@ -14,15 +14,23 @@ matrix_long(
 \arguments{
 \item{matrix}{A matrix, or object that can be converted to a matrix.}
 
-\item{row_info}{Information about rows of the matrix. A data frame, or object that can be converted to a data frame.}
+\item{row_info}{Information about rows of the matrix. 
+A data frame, or object that can be converted to a data frame.}
 
-\item{col_info}{Information about columns of the matrix. A data frame, or object that can be converted to a data frame.}
+\item{col_info}{Information about columns of the matrix. 
+A data frame, or object that can be converted to a data frame.}
 
-\item{varnames}{Vector of two column names in the output, the first for the row and the second for the column.}
+\item{varnames}{Vector of two column names in the output, 
+the first for the row and the second for the column.}
 }
 \value{
 A data frame containing the matrix and associated information in long format.
 }
 \description{
-A convenience function which melts the matrix and then joins row and column information.
+A convenience function which melts the matrix and then 
+    joins row and column information.
+}
+\examples{
+matrix_long(weitrix_x(simwei), rowData(simwei), colData(simwei))
+
 }

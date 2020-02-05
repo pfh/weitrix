@@ -81,6 +81,27 @@ counts_proportions_inner <- function(counts, groups) {
 #' @param verbose 
 #' If TRUE, output some debugging and progress information.
 #'
+#' @return 
+#' A SummarizedExperiment object with metadata fields marking it as a weitrix.
+#'
+#' @examples
+#' grouping <- data.frame(
+#'     group=c("A","A","A","B","B"),
+#'     name=c("p1","p2","p3","p4","p5"))
+#'
+#' counts <- rbind(
+#'     p1=c(1,2,0),
+#'     p2=c(0,1,0),
+#'     p3=c(1,0,0),
+#'     p4=c(0,0,1),
+#'     p5=c(0,2,1))
+#'
+#' wei <- counts_proportions(counts, grouping)
+#'
+#' weitrix_x(wei)
+#' weitrix_weights(wei)
+#' rowData(wei)
+#'
 #' @export
 counts_proportions <- function(counts, grouping, verbose=TRUE) {
     assert_that(

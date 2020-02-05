@@ -45,13 +45,32 @@ calc_row_dispersion <- function(x, w, row, col) {
 #' @param weitrix 
 #' A weitrix object, or an object that can be converted to a weitrix 
 #' with \code{as_weitrix}.
-#' @param comp 
-#' A Components, an approximate matrix decomposition of 
-#' the weitrix x values, for example created with \code{weitrix_components}.
+#' @param design 
+#' A formula in terms of \code{colData(weitrix} or a design matrix, 
+#' which will be fitted to the weitrix on each row. 
+#' Can also be a pre-existing Components object, 
+#' in which case the existing fits (\code{design$row}) are used.
+#'
+#' @return
+#' A numeric vector.
+#'
+#' @examples
+#' # Using a model just containing an intercept
+#' weitrix_dispersions(simwei, ~1)
+#'
+#' # Allowing for one component of variation, the dispersions are lower
+#' comp <- weitrix_components(simwei, p=1, verbose=FALSE)
+#' weitrix_dispersions(simwei, comp)
 #'
 #' @export
-weitrix_dispersions <- function(weitrix, comp) {
+weitrix_dispersions <- function(weitrix, design=~1) {
     weitrix <- as_weitrix(weitrix)
+
+    if (is(design, "Components"))
+        comp <- design
+    else
+        comp <- weitrix_components(weitrix, design=design, p=0, verbose=FALSE)
+    
     assert_that(nrow(comp$row) == nrow(weitrix))
     assert_that(nrow(comp$col) == ncol(weitrix))
 
@@ -79,6 +98,17 @@ weitrix_dispersions <- function(weitrix, comp) {
 #' with \code{as_weitrix}.
 #' @param dispersions 
 #' A dispersion for each row.
+#'
+#' @return 
+#' A SummarizedExperiment object with metadata fields marking it as a weitrix.
+#' 
+#' @examples
+#' # Adjust weights so dispersion for each row is exactly 1. This is dubious 
+#' # for a small dataset, but would be fine for a dataset with many columns.
+#' comp <- weitrix_components(simwei, p=1, verbose=FALSE)
+#' disp <- weitrix_dispersions(simwei, comp)
+#' cal <- weitrix_calibrate(simwei, disp)
+#' weitrix_dispersions(cal, comp)
 #'
 #' @export
 weitrix_calibrate <- function(weitrix, dispersions) {
@@ -115,38 +145,58 @@ weitrix_calibrate <- function(weitrix, dispersions) {
 #' which will be fitted to the weitrix on each row. 
 #' Can also be a pre-existing Components object, 
 #' in which case the existing fits (\code{design$row}) are used.
-#' @param formula 
+#' @param trend_formula 
 #' A formula specification for predicting log dispersion from 
 #' columns of rowData(weitrix). 
 #' If absent, metadata(weitrix)$weitrix$trend_formula is used.
 #'
+#' @return 
+#' A SummarizedExperiment object with metadata fields marking it as a weitrix.
+#' 
+#' @examples
+#' rowData(simwei)$total_weight <- rowSums(weitrix_weights(simwei))
+#'
+#' # To estimate dispersions, use a simple model containing only an intercept
+#' # term. Model log dispersion as a straight line relationship with log total 
+#' # weight and adjust weights to remove any trend. 
+#' cal <- weitrix_calibrate_trend(simwei,~1,trend_formula=~log(total_weight))
+#'
+#' # This dataset has few rows, so calibration like this is dubious.
+#' # Predictors in the fitted model are not significant.
+#' summary( metadata(cal)$weitrix$trend_fit )
+#'
+#' # Information about the calibration is added to rowData
+#' rowData(cal)
+#'
+#'
+#' # A Components object may also be used as the design argument.
+#' comp <- weitrix_components(simwei, p=1, verbose=FALSE)
+#' cal2 <- weitrix_calibrate_trend(simwei,comp,trend_formula=~log(total_weight))
+#'
+#' rowData(cal2)
+#'
 #' @export
-weitrix_calibrate_trend <- function(weitrix, design=~1, formula=NULL) {
+weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
     weitrix <- as_weitrix(weitrix)
 
-    if (is.null(formula))
-        formula <- metadata(weitrix)$weitrix$trend_formula
-    assert_that(!is.null(formula))
+    if (is.null(trend_formula))
+        trend_formula <- metadata(weitrix)$weitrix$trend_formula
+    assert_that(!is.null(trend_formula))
     
-    formula <- as.formula(formula)
+    trend_formula <- as.formula(trend_formula)
 
-    if (is(design, "Components"))
-        comp <- design
-    else
-        comp <- weitrix_components(weitrix, design=design, p=0, verbose=FALSE)
-        
-    rowData(weitrix)$dispersion <- weitrix_dispersions(weitrix, comp)
+    rowData(weitrix)$dispersion_before <- weitrix_dispersions(weitrix, design)
     
-    formula <- update(formula, log(dispersion)~.)
+    trend_formula <- update(trend_formula, log(dispersion_before)~.)
     
     data <- rowData(weitrix)
-    tiny <- mean(data$dispersion,na.rm=TRUE)*1e-9
-    good <- !is.na(data$dispersion) & data$dispersion > tiny
+    tiny <- mean(data$dispersion_before,na.rm=TRUE)*1e-9
+    good <- !is.na(data$dispersion_before) & data$dispersion_before > tiny
     data <- data[good,]
     
     fit <- eval(substitute(
-        lm(formula, data=data),
-        list(formula=formula)
+        lm(trend_formula, data=data),
+        list(trend_formula=trend_formula)
     ))
     
     pred <- exp(
@@ -154,6 +204,9 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, formula=NULL) {
         sigma(fit)^2/2)
     
     rowData(weitrix)$dispersion_trend <- pred
+    rowData(weitrix)$dispersion_after <- 
+        rowData(weitrix)$dispersion_before / pred
+    
     metadata(weitrix)$weitrix$trend_fit <- fit
     
     weitrix_calibrate(weitrix, pred)

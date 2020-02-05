@@ -35,7 +35,7 @@ airway
 ```
 
 
-## Initial processing
+# Initial processing
 
 Initial steps are the same as for a differential expression analysis.
 
@@ -78,6 +78,8 @@ rowData(airway_weitrix) <-
 airway_weitrix
 ```
 
+
+# Exploration
 
 ## Find components of variation
 
