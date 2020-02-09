@@ -211,11 +211,19 @@ view_gene("YCR014C","POL4")
 
 # Exploratory analysis
 
-We can also look for components of variation.
+The test we've performed was somewhat unsatisfactory. Due to the design of the experiment it's difficul to specify differential tests that fully interrogate this dataset: the lack of replicates, and the difficult specifying apriori how tail length will change over time.
+
+Perhaps we should let the data speak for itself.
+
+Perhaps this is what we should have done first!
+
+The weitrix package allows us to look for components of variation. We'll try to explain the data with different numbers of components (from 1 to 10 components).
 
 ```{r comp, message=F}
 comp_seq <- weitrix_components_seq(wei, p=10)
 ```
+
+`weitrix_seq_screeplot` shows how much additional variation in the data is explained as each further component is allowed. However the ultimate decision of how many components to examine is a matter of judgement.
 
 ```{r scree}
 components_seq_screeplot(comp_seq)
@@ -226,8 +234,7 @@ Looking at three components shows some of the major trends in this data-set.
 ```{r exam}
 comp <- comp_seq[[3]]
 
-comp$col[,-1] %>% melt(varnames=c("sample","component")) %>%
-    left_join(samples,by="sample") %>%
+matrix_long(comp$col[,-1], row_info=samples, varnames=c("sample","component")) %>%
     ggplot(aes(x=time, y=value, color=strain, group=strain)) + 
     geom_hline(yintercept=0) + 
     geom_line() + 
@@ -319,7 +326,9 @@ view_gene("YBL003C","HTA2")
 view_gene("YDR461W", "MFA1")
 ```
 
+# Discussion
 
+Looking back to our initial differential testing in light of these results, a reasonable refinement would be to omit "tpre" and "t0m", considering only the samples that have settled into cell cycling.
 
 
 

@@ -539,8 +539,9 @@ weitrix_components_seq <- function(
 #'    work out how much further variance is explained 
 #'    by adding further components.
 #'
-#' Some possible threshold levels for including further components 
-#' are also calculated. 
+#' If \code{rand_comp} is given, 
+#'     some possible threshold levels for including further components 
+#'     are also calculated. 
 #'
 #' The "Parallel analysis" threshold is chosen based on 
 #'     varianced explained by a single component in a randomized weitrix. 
@@ -573,10 +574,9 @@ weitrix_components_seq <- function(
 #'
 #' @examples
 #' comp_seq <- weitrix_components_seq(simwei, 4, verbose=FALSE)
-#' rand_comp <- weitrix_components(weitrix_randomize(simwei), 1, verbose=FALSE)
 #'
-#' components_seq_scree(comp_seq, rand_comp)
-#' components_seq_screeplot(comp_seq, rand_comp)
+#' components_seq_scree(comp_seq)
+#' components_seq_screeplot(comp_seq)
 #'
 #' @export
 components_seq_scree <- function(comp_seq, rand_comp=NULL) {

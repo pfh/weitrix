@@ -9,10 +9,29 @@ vignette: >
 
 APA sites can be detected using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads. We examine [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
 
+
+# Shift score definition
+
+Each gene has several APA sites, ordered from furthest upstrand to furthest downstrand. For each sample, we have a read count at each site.
+
+For each gene:
+
+We define the "shift" of a particular sample relative to all reads from all samples. 
+
+A "shift" score is first assigned to each site, being the proportion of all reads upstrand of the site minus the proportion of all reads downstrand of it (i.e. an average over all reads where upstrand reads are 1, downstrand reads are -1 and reads from the site itself are 0). The measurement for each sample is then an average over the site score for each read. The weight is the number of reads.
+
+Shifts scores range from -1 to 1, and summarize whether upstrand (more negative) or downstrand (more positive) sites are being favoured. The weighted average score is zero.
+
+The weights are the number of reads, however for a randomly chosen read we can estimate its variance based on the number of reads at each site and the site scores. (This estimate of variance includes any biological signal, so it's not exactly a residual variance.) This is stored in the `rowData()` of the weitrix, and can be used to further calibrate weights. We prefer to defer this sort of calibration until after we've discoverd components of variation, as it tends to give high weight to genes with little APA. There are clearly some alternative choices to how weighting could be performed, and we hope the weitrix package gives you basic building blocks with which you can experiment!
+
+
 # Load files
 
-```{r echo=F}
+```{r setup, echo=F}
 knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
+
+# To examine objects:
+# devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/3_shift_cache/html")
 
 options(width=1000)
 
@@ -46,18 +65,29 @@ samples <- data.frame(sample=I(colnames(counts))) %>%
         time=factor(time,unique(time)))
 rownames(samples) <- samples$sample
 
-samples
-```
-
-```{r shift}
 groups <- select(peaks, group=gene_name, name=name)
 # Note the order of this data frame is important
+```
 
+```{r examine_raw}
+samples
+
+head(groups, 10)
+
+counts[1:10,1:5]
+```
+
+A "shift" weitrix is constructed based on a matrix of site-level counts, plus a data frame grouping sites into genes. The order of this data frame is important, earlier sites are considered upstrand of later sites.
+
+```{r shift}
 wei <- counts_shift(counts, groups)
 
 colData(wei) <- cbind(colData(wei), samples)
 rowData(wei) <- cbind(rowData(wei), genes[match(rownames(wei), rownames(genes)),])
 ```
+
+Having obtained a weitrix, everthing discussed for the [poly(A) tail length example](2_tail_length.html) is applicable here as well. We will only perform a brief exploratory analysis here.
+
 
 # Exploratory analysis
 
@@ -73,11 +103,10 @@ components_seq_screeplot(comp_seq)
 
 Pushing a point somewhat, we examine four components.
 
-```{r exam}
+```{r exam, fig.height=6}
 comp <- comp_seq[[4]]
 
-comp$col %>% melt(varnames=c("sample","component")) %>%
-    left_join(samples,by="sample") %>%
+matrix_long(comp$col, row_info=samples, varnames=c("sample","component")) %>%
     ggplot(aes(x=time, y=value, color=strain, group=strain)) + 
     geom_hline(yintercept=0) + 
     geom_line() + 
@@ -88,10 +117,24 @@ comp$col %>% melt(varnames=c("sample","component")) %>%
 
 A weitrix created with `counts_shift` has a built-in default trend formula, so we don't need to give a formula explicitly to `weitrix_calibrate_trend`.
 
-```{r limmacomp}
+```{r calibrate}
 cal_comp <- weitrix_calibrate_trend(wei, comp)
 metadata(cal_comp)$weitrix$trend_fit
+```
 
+The calibration is based on two predictors of dispersion, the total number of reads and the estimated per read variance. To illustrate the calibration, we facet by bins of the per-read variance and show total reads on the x axis.
+
+```{r calibrate_show}
+rowData(cal_comp) %>% as.data.frame() %>%
+    ggplot(aes(x=total_reads, y=dispersion_before)) + 
+    facet_wrap(~ cut(per_read_var, 9)) +
+    geom_point(size=0.1) +
+    geom_point(aes(y=dispersion_trend), color="red", size=0.1) +
+    scale_x_log10() + scale_y_log10() +
+    labs(y="Dispersion (log scale)", x="Total reads (log scale)")
+```
+
+```{r limma}
 fit_comp <- cal_comp %>%
     weitrix_elist() %>%
     lmFit(comp$col)

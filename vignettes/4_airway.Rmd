@@ -1,8 +1,8 @@
 ---
-title: "RNA-Seq components, airway dataset, using cpm+vooma"
+title: "4. RNA-Seq expression example, components of the airway dataset"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{airway_vooma}
+  %\VignetteIndexEntry{4. RNA-Seq expression example}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,9 +16,10 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4)
 
 Let's look at the [airway](http://bioconductor.org/packages/release/data/experiment/html/airway.html) dataset as an example of a typical small-scale RNA-Seq experiment. In this experiment, four Airway Smooth Muscle (ASM) cell lines are treated with the asthma medication dexamethasone.
 
+The limma `voom` function will be used to assign precision weights, then the result converted to a weitrix.
+
 ```{r setup, warning=F, message=F}
 library(weitrix)
-library(SummarizedExperiment)
 library(EnsDb.Hsapiens.v86)
 library(edgeR)
 library(limma)
@@ -42,27 +43,22 @@ Initial steps are the same as for a differential expression analysis.
 ```{r}
 counts <- assay(airway,"counts")
 
-# Keep genes with an average of at least 1 read per sample
-good <- rowMeans(counts) >= 1 
-table(good)
-
-airway_cpm <- 
-    DGEList(counts[good,]) %>%
-    calcNormFactors() %>%
-    cpm(log=TRUE, prior.count=1)
-
 design <- model.matrix(~ dex + cell, data=colData(airway))
 
-airway_elist <- vooma(airway_cpm, design=design, plot=TRUE)
+good <- filterByExpr(counts, design=design) 
+table(good)
+
+airway_elist <- 
+    DGEList(counts[good,]) %>%
+    calcNormFactors() %>%
+    voom(design, plot=TRUE)
 ```
 
-Some of these steps are optional and have marginal value:
+There are many possible variations on this:
 
-* `vooma` provides precision weights. One could instead choose a `prior.count` for `cpm` to produce a flat (or at least non-decreasing) mean-variance trend-line.
+* `voom` provides precision weights. One could instead choose a `prior.count` for `cpm` to produce a flat (or at least non-decreasing) mean-variance trend-line.
 
-* Using a design matrix with `vooma` may not provide much benefit, and if you want an analysis completely blinded to the experimental design it might be better to omit this.
-
-There are many options here, so adjust to your taste!
+* Use `cpm` to produce log transformed counts with a small prior count, then use `weitrix_calibrate_trend` to account for any mean-variance relationship.
 
 
 ## Conversion to weitrix
@@ -81,6 +77,8 @@ airway_weitrix
 
 # Exploration
 
+RNA-Seq expression is well trodden ground. The main contribution of the weitrix package here is to aid exploration by discovering components of variation, providing not just column scores but row loadings and respecting precision weights.
+
 ## Find components of variation
 
 This will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability. The result is a list of Components objects.
@@ -89,6 +87,8 @@ This will find various numbers of components, from 1 to 6. In each case, the com
 comp_seq <- weitrix_components_seq(airway_weitrix, p=6)
 comp_seq
 ```
+
+We can compare the proportion of variation explained to what would be explained in a completely random weitrix. Random normally distributed values are generated with variances equal to one over the weights.
 
 ```{r message=F}
 rand_weitrix <- weitrix_randomize(airway_weitrix)
@@ -140,9 +140,7 @@ comp_nonvarimax$col[,-1] %>% melt(varnames=c("Run","component")) %>%
 
 ## `col` can potentially be used as a design matrix with limma
 
-* If you are willing to place your trust in sparsity of effects, this may be a somewhat magical way of removing unwanted variation. 
-
-* If you're not sure of the experimental design, for example the exact timing of a time series or how evenly a drug treatment was applied, the extracted component might actually be more accurate.
+If you're not sure of the experimental design, for example the exact timing of a time series or how evenly a drug treatment was applied, the extracted component might actually be more accurate.
 
 Note that this ignores uncertainty about the `col` matrix itself.
 
