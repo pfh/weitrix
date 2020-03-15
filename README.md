@@ -2,10 +2,10 @@
 
 R package for working with matrices with precision weights.
 
-Install with:
+The master branch is being prepared for Bioconductor submission, so please **install using the devel branch for R 3.6**. Install with:
 
 ```
-BiocManager::install("pfh/weitrix")
+BiocManager::install("pfh/weitrix@devel")
 ```
 
 * [GitHub page](https://github.com/pfh/weitrix)
