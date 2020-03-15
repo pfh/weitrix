@@ -46,7 +46,10 @@ weitrix_randomize <- function(weitrix) {
     #Realization currently not working in workers
     #result <- bplapply(feed, weitrix_randomize_inner, BPPARAM=BPPARAM)
     result <- lapply(feed, weitrix_randomize_inner)
-    weitrix_x(weitrix) <- do.call(cbind, result)
+    result <- do.call(cbind, result)
+    rownames(result) <- rownames(weitrix)
+    colnames(result) <- colnames(weitrix)
+    weitrix_x(weitrix) <- result
 
     weitrix
 }
