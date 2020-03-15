@@ -1,8 +1,8 @@
 Package: weitrix
-Title: Weighted matrix manipulation
+Title: Weighted matrix manipulation, finding components of variation with weighted or sparse data
 Version: 0.1.0
 Authors@R: person("Paul", "Harrison", email = "paul.harrison@monash.edu", role = c("aut", "cre"), comment=c(ORCID="0000-0002-3980-268X"))
-Description: Work with matrices having precision weights.
+Description: Data type and tools for working with matrices having precision weights and missing data. This package provides a common representation and tools for many types of high-throughput data. The meaning of the weights is compatible with how they are used in packages such as "stats" and "limma". Calibrate weights by scaling weights row-wise to account for known sources of variation in precision. Find components of variation even with many missing values, rotated so that individual components may be meaningfully interpreted, and including how strongly each gene and sample is associated with each component. DelayedArray matrices and parallel processing are supported.
 License: LGPL-2.1 | file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -39,4 +39,4 @@ Suggests:
     testthat (>= 2.1.0)
 RoxygenNote: 7.0.2
 VignetteBuilder: knitr
-biocViews: Software, DataRepresentation, FeatureExtraction, GeneExpression, Transcriptomics, RNASeq, SingleCell, Regression
+biocViews: Software, DataRepresentation, DimensionReduction, GeneExpression, Transcriptomics, RNASeq, SingleCell, Regression
