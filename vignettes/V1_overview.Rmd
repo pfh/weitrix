@@ -133,7 +133,7 @@ setHDF5DumpDir("__dump__")
 
 Parallel processing in R and Bioconductor remains finicky but is necessary for large datasets. weitrix uses DelayedArray's default parallel processing as its own default, see `DelayedArray::getAutoBPPARAM()` and `DelayedArray::setAutoBPPARAM()`.
 
-If weitrix hangs, try running it with serial processing:
+If weitrix hangs or produces weird errors, try running it with serial processing:
 
 ```
 DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )

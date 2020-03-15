@@ -8,7 +8,7 @@ document :
 data :
 	Rscript -e 'devtools::load_all("."); source("data-raw/simwei.R")'
 
-check : document
+check :
 	R CMD build .
 	R_CHECK_ENVIRON=check.Renviron R CMD check weitrix_*.tar.gz
 	rm weitrix_*.tar.gz

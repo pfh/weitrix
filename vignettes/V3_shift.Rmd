@@ -34,9 +34,6 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 # devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/3_shift_cache/html")
 
 options(width=1000)
-
-# Produce consistent results
-set.seed(12345)
 ```
 
 ```{r load, message=F, warning=F}
@@ -45,6 +42,12 @@ library(reshape2)
 library(limma)
 library(topconfects)
 library(weitrix)
+
+# Produce consistent results
+set.seed(12345)
+
+# If parallel processing causes problems, set to use serial processing
+DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
 
 peaks <- system.file("GSE83162", "peaks.csv.gz", package="weitrix") %>%
     read_csv()

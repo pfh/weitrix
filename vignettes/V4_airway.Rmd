@@ -28,6 +28,9 @@ library(tidyverse)
 library(airway)
 
 set.seed(1234)
+
+# If parallel processing causes problems, set to use serial processing
+DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
 ```
 
 ```{r}

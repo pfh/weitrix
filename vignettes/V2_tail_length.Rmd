@@ -14,9 +14,6 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
 # To examine objects:
 # devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/tail_length_cache/html")
-
-# Produce consistent results
-set.seed(12345)
 ```
 
 # Read files, extract experimental design from sample names
@@ -29,6 +26,12 @@ library(limma)
 library(topconfects)
 library(org.Sc.sgd.db)
 library(weitrix)
+
+# Produce consistent results
+set.seed(12345)
+
+# If parallel processing causes problems, set to use serial processing
+DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
 
 tail <- system.file("GSE83162", "tail.csv.gz", package="weitrix") %>%
     read_csv() %>%
