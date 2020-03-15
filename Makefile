@@ -1,4 +1,7 @@
 
+# Obtain check.Renviron with:
+# curl https://raw.githubusercontent.com/Bioconductor/packagebuilder/master/check.Renviron >check.Renviron
+
 document :
 	Rscript -e "devtools::document()"
 
@@ -7,7 +10,7 @@ data :
 
 check : document
 	R CMD build .
-	R CMD check weitrix_*.tar.gz
+	R_CHECK_ENVIRON=check.Renviron R CMD check weitrix_*.tar.gz
 	rm weitrix_*.tar.gz
 
 bioccheck : document

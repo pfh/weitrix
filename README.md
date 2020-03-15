@@ -1,6 +1,6 @@
 # weitrix
 
-R package for working with matrices with precision weights.
+This is an R package for working with matrices with precision weights.
 
 The master branch is being prepared for Bioconductor submission, so please **install using the devel branch for R 3.6**. Install with:
 

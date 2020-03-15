@@ -65,7 +65,7 @@ samples <- data.frame(sample=I(colnames(counts))) %>%
         time=factor(time,unique(time)))
 rownames(samples) <- samples$sample
 
-groups <- select(peaks, group=gene_name, name=name)
+groups <- dplyr::select(peaks, group=gene_name, name=name)
 # Note the order of this data frame is important
 ```
 
