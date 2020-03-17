@@ -41,9 +41,9 @@ Weights can be calibrated per row so they are one over the variance of a measure
 
 Some examples of possible measurements and weights:
 
-* poly(A) tail length is measured for a collection of reads. The measurement is the average log tail length (number of non-templated "A"s), and the weight is the number of reads. See [poly(A) tail length example](tail_length.html).
+* poly(A) tail length is measured for a collection of reads. The measurement is the average log tail length (number of non-templated "A"s), and the weight is the number of reads. See the poly(A) tail length vignette.
 
-* Several different polyadenylation sites are observed per gene. A "shift" score is assigned to each site: the proportion of all reads upstrand of the site minus the proportion of all reads downstrand of it. The measurement is an average over the site score for each read, and the weight is the number of reads. See [alternative polyadenylation example](shift.html).
+* Several different polyadenylation sites are observed per gene. A "shift" score is assigned to each site: the proportion of all reads upstrand of the site minus the proportion of all reads downstrand of it. The measurement is an average over the site score for each read, and the weight is the number of reads. See alternative polyadenylation vignette.
 
 * A read aligning to a gene is assigned to a particular exon. For a particular sample, gene, and exon, the measurement is the proportion of reads aligning to that exon out of all reads aligning to that gene, and the weight is the total reads aligning to the gene. `counts_proportions` can be used to construct an approporiate weitrix. Some further calibration is possible based on the average proportion in each exon over all samples (a somewhat rough-and-ready strategy compared to using a GLM).
 

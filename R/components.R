@@ -394,7 +394,9 @@ weitrix_components_inner <- function(
 weitrix_components <- function(
         weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE
-        ) with_bp_up({
+        ) {
+    this_function_bp_up()
+
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p), p >= 0)
 
@@ -493,7 +495,7 @@ weitrix_components <- function(
         result <- components_order_and_flip(result)
 
     result
-})
+}
 
 
 #' @describeIn weitrix_components
@@ -502,7 +504,9 @@ weitrix_components <- function(
 weitrix_components_seq <- function(
         weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE
-        ) with_bp_up({
+        ) {
+    this_function_bp_up()
+
     weitrix <- as_weitrix(weitrix)
     assert_that(is.number(p))
     assert_that(p >= 1)
@@ -530,7 +534,7 @@ weitrix_components_seq <- function(
     }
 
     result
-})
+}
 
 
 #' Proportion more variance explained by adding components one at a time

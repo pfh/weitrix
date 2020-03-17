@@ -1,17 +1,18 @@
 
-# Obtain check.Renviron with:
-# curl https://raw.githubusercontent.com/Bioconductor/packagebuilder/master/check.Renviron >check.Renviron
-
 document :
 	Rscript -e "devtools::document()"
 
 data :
 	Rscript -e 'devtools::load_all("."); source("data-raw/simwei.R")'
 
-check :
-	R CMD build .
-	R_CHECK_ENVIRON=check.Renviron R CMD check weitrix_*.tar.gz
-	rm weitrix_*.tar.gz
+check.Renviron :
+	curl https://raw.githubusercontent.com/Bioconductor/packagebuilder/master/check.Renviron >check.Renviron
+
+check : check.Renviron
+	rm weitrix_*.tar.gz || echo No old tarball
+	time R CMD build .
+	R_CHECK_ENVIRON=check.Renviron time R CMD check weitrix_*.tar.gz
+	ls -lh weitrix_*.tar.gz
 
 bioccheck : document
 	R CMD BiocCheck .
