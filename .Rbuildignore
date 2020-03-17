@@ -1,5 +1,10 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^doc$
+^docs$
 ^Meta$
 ^data-raw$
+_cache$
+sublime-project$
+sublime-workspace$
+^check\.Renviron$
+^weitrix.*\.tar\.gz$

@@ -43,7 +43,7 @@ partitions <- function(
 }
 
 
-# Evaluate an expression with a running worker pool.
+# Start up a worker pool that stays up until the calling function exits.
 #
 # Otherwise pool will be started for each individual operation!
 #
@@ -53,19 +53,30 @@ partitions <- function(
 # BLAS threads are reset to default after the expression is calculated.
 # This may need further tweaking.
 #
-with_bp_up <- function(expr) {
+this_function_bp_up <- function() {
     BPPARAM <- getAutoBPPARAM()
     if (!bpisup(BPPARAM)) {
         old_threads <- blas_get_num_procs()
         blas_set_num_threads(1)
         
-        on.exit({
-            bpstop(BPPARAM)
-            blas_set_num_threads(old_threads)
-        })
+        do.call(
+            on.exit, 
+            list(
+                substitute({
+                    bpstop(BPPARAM)
+                    blas_set_num_threads(old_threads)
+                }), 
+                add=TRUE
+            ), 
+            envir = parent.frame()
+        )
         bpstart(BPPARAM)        
     }
+}
 
+# Run an expression with a running worker pool.
+with_bp_up <- function(expr) {
+    this_function_bp_up()
     expr
 }
 

@@ -46,8 +46,12 @@ library(weitrix)
 # Produce consistent results
 set.seed(12345)
 
-# If parallel processing causes problems, set to use serial processing
-DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
+# BiocParallel supports multiple backends. 
+# If the default hangs or errors, try others.
+DelayedArray::setAutoBPPARAM( BiocParallel::SnowParam() )
+
+# The most reliable backed is to use serial processing
+#DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
 
 peaks <- system.file("GSE83162", "peaks.csv.gz", package="weitrix") %>%
     read_csv()

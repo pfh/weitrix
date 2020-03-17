@@ -2,6 +2,7 @@
 *.Rproj
 /docs/
 check.Renviron
+weitrix*.tar.gz
 
 # History files
 .Rhistory
