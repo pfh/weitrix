@@ -348,7 +348,7 @@ weitrix_components_inner <- function(
 #'
 #' @return
 #' A "Components" object with the following elements accessible using \code{$}.
-#' \describe{
+#' \itemize{
 #'     \item{row}{
 #'         Row matrix, aka loadings. 
 #'         Rows are rows in the weitrix, 

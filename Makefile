@@ -42,7 +42,7 @@ publish :
 	rsync -rv docs/* logarithmic.net:www/weitrix/
 
 clean :
-	rm -rf weitrix.Rcheck vignettes/*.html vignettes/*_cache vignettes/*_files
+	rm -rf weitrix.Rcheck vignettes/*.html vignettes/*_cache vignettes/*_files docs weitrix_*.tar.gz
 
 
 .PHONY : document data check bioccheck test install vignette site site-devel articles-devel publish clean

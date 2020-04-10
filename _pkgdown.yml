@@ -33,6 +33,7 @@ reference:
   - weitrix_hill
   - weitrix_calibrate
   - weitrix_calibrate_trend
+  - weitrix_calibrate_all
 - title: Other
   contents:
   - weitrix_randomize

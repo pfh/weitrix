@@ -126,6 +126,7 @@ A weitrix created with `counts_shift` has a built-in default trend formula, so w
 
 ```{r calibrate}
 cal_comp <- weitrix_calibrate_trend(wei, comp)
+
 metadata(cal_comp)$weitrix$trend_fit
 ```
 

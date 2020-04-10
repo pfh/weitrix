@@ -60,7 +60,7 @@ Can have more columns than \code{p},
 }
 \value{
 A "Components" object with the following elements accessible using \code{$}.
-\describe{
+\itemize{
     \item{row}{
         Row matrix, aka loadings. 
         Rows are rows in the weitrix, 

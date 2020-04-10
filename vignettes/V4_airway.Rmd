@@ -9,7 +9,7 @@ vignette: >
 
 ```{r echo=F}
 # To test
-# devtools::load_all(".",export_all=F) ; rmarkdown::render("vignettes/airway.Rmd")
+# devtools::load_all(".",export_all=F) ; rmarkdown::render("vignettes/V4_airway.Rmd")
 
 knitr::opts_chunk$set(fig.width=6, fig.height=4)
 ```

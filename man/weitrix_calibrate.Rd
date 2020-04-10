@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibrate.R
 \name{weitrix_calibrate}
 \alias{weitrix_calibrate}
-\title{Adjust weights based on given row dispersions}
+\title{Adjust weights row-wise based on given row dispersions}
 \usage{
 weitrix_calibrate(weitrix, dispersions)
 }

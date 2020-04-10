@@ -2,7 +2,7 @@
 % Please edit documentation in R/calibrate.R
 \name{weitrix_calibrate_trend}
 \alias{weitrix_calibrate_trend}
-\title{Adjust weights by fitting a trend to estimated dispersions}
+\title{Adjust weights row-wise by fitting a trend to estimated dispersions}
 \usage{
 weitrix_calibrate_trend(weitrix, design = ~1, trend_formula = NULL)
 }
@@ -21,12 +21,20 @@ If absent, metadata(weitrix)$weitrix$trend_formula is used.}
 }
 \value{
 A SummarizedExperiment object with metadata fields marking it as a weitrix.
+
+Several columns are added to the \code{rowData}:
+\itemize{
+  \item{deg_free}{ Degrees of freedom for dispersion calculation.}
+  \item{dispersion_before}{ Dispersion before calibration.}
+  \item{dispersion_trend}{ Fitted dispersion trend.}
+  \item{dispersion_after}{ Dispersion for these new weights.}
+}
 }
 \description{
 Dispersions are estimated using \code{weitrix_dispersions}. 
-A trend line is then fitted to log dispersions using a linear model. 
-Weitrix weights are calibrated based on this trend line. 
-Any zero or very-near-zero dispersions are ignored when fitting this model.
+A trend line is then fitted to the dispersions using a gamma GLM
+    with log link function.
+Weitrix weights are calibrated based on this trend line.
 }
 \examples{
 rowData(simwei)$total_weight <- rowSums(weitrix_weights(simwei))
