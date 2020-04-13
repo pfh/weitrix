@@ -342,17 +342,21 @@ weitrix_calibrate_all <- function(
     data$weight <- as.vector(weitrix_weights(weitrix))
     data$mu <- as.vector(comp$row %*% t(comp$col))
     data$.y <- (as.vector(weitrix_x(weitrix)) - data$mu)^2
-    data$.y[data$weight == 0] <- NA
+    
+    # Want to be able to use poly(log(weight),2)
+    # so zero weights need to be dropped.
+    good <- data$weight > 0 
+    good_data <- data[good,,drop=FALSE]
 
     mustart <- mean(data$.y, na.rm=TRUE)
-    n <- nrow(data)
+    n <- nrow(good_data)
 
     trend_formula <- update(trend_formula, .y ~ .)
     
     fit <- eval(substitute(
         glm(
             trend_formula,
-            data=data,
+            data=good_data,
             family=quasi(link="log", variance="mu^2"),
             mustart=rep(mustart, n),
             model=FALSE, x=FALSE, y=FALSE
@@ -360,14 +364,10 @@ weitrix_calibrate_all <- function(
         list(trend_formula=trend_formula, mustart=mustart, n=n)
     ))
 
-    pred <- predict(fit, newdata=data, type="response")
+    pred <- predict(fit, newdata=good_data, type="response")
     pred[is.na(pred)] <- Inf
 
-    pred <- matrix(pred, nrow=nrow(weitrix), ncol=ncol(weitrix))
-    rownames(pred) <- rownames(weitrix)
-    colnames(pred) <- colnames(weitrix)
-
-    weitrix_weights(weitrix) <- 1/pred
+    weitrix_weights(weitrix)[good] <- 1/pred
     metadata(weitrix)$weitrix$all_fit <- fit
 
     if (keep_data) {
