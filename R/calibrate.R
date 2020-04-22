@@ -22,7 +22,7 @@ calc_row_dispersion_inner <- function(args) with(args, {
 })
 
 calc_row_dispersion <- function(x, w, row, col) {
-    BPPARAM <- getAutoBPPARAM()
+    BPPARAM <- bpparam()
 
     parts <- partitions(nrow(x), ncol(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {

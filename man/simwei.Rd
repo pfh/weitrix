@@ -4,7 +4,9 @@
 \name{simwei}
 \alias{simwei}
 \title{Simulated weitrix dataset.}
-\format{A weitrix object.}
+\format{
+A weitrix object.
+}
 \usage{
 simwei
 }

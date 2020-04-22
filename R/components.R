@@ -116,7 +116,7 @@ fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=ncol(y), ncol=0))
         
-    BPPARAM <- getAutoBPPARAM()
+    BPPARAM <- bpparam()
 
     parts <- partitions(ncol(y), nrow(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
     #cat("cols",length(parts),"\n")
@@ -153,7 +153,7 @@ fit_all_rows <- function(x,y,w) {
     if (ncol(x) == 0)
         return(matrix(0, nrow=nrow(y), ncol=0))
 
-    BPPARAM <- getAutoBPPARAM()
+    BPPARAM <- bpparam()
 
     parts <- partitions(nrow(y), ncol(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
     feed <- map(parts, function(part) {
@@ -205,7 +205,7 @@ calc_weighted_ss_inner <- function(args) with(args, {
 })
 
 calc_weighted_ss <- function(x, w, row, col) {
-    BPPARAM <- getAutoBPPARAM()
+    BPPARAM <- bpparam()
     parts <- partitions(ncol(x), nrow(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
