@@ -1,4 +1,9 @@
 
+# weitrix 0.99.2
+
+* Automatic package builder wants package to depend on R version 4.0.
+
+
 # weitrix 0.99.1
 
 * weitrix now uses the BiocParallel default parallel processing, rather than
