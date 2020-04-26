@@ -30,7 +30,7 @@
 #'     SummarizedExperiment assay assay<- rowData rowData<- colData
 #'
 #' @importFrom DelayedArray
-#'     realize getAutoBPPARAM getAutoBlockSize sweep apply
+#'     realize getAutoBPPARAM setAutoBPPARAM getAutoBlockSize sweep apply
 #'
 #' @importFrom DelayedMatrixStats
 #'     rowSums2 colSums2
@@ -39,7 +39,7 @@
 #'     metadata metadata<-
 #'
 #' @importFrom BiocParallel
-#'     bplapply bpnworkers bpisup bpnworkers bpstart bpstop
+#'     bplapply bpnworkers bpisup bpnworkers bpstart bpstop bpparam
 #'
 #' @importFrom RhpcBLASctl
 #'     blas_get_num_procs blas_set_num_threads

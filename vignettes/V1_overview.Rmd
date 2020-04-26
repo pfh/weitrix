@@ -104,8 +104,7 @@ Having tested each row, there is then the question of which results are most int
 
 weitrix can use DelayedArray assays. Functions that produce weitrices will used `DelayedArray` output assays if given `DelayedArray` input assays.
 
-weitrix will attempt to perform calculations blockwise in parallel. weitrix tries to use DelayedArray defaults. Adjust with `DelayedArray::setRealizationBackend`, 
-`DelayedArray::setAutoBlockSize`, `DelayedArray::setAutoBPPARAM`.
+weitrix will attempt to perform calculations blockwise in parallel. weitrix tries to use DelayedArray and BiocParallel defaults. Adjust with `DelayedArray::setRealizationBackend`, `DelayedArray::setAutoBlockSize`, and use `BiocParallel::register` to adjust the parallel processing engine.
 
 It is always possible to convert an assay back to a normal R matrix with `as.matrix`.
 
@@ -131,12 +130,12 @@ setHDF5DumpDir("__dump__")
 
 ### BiocParallel problems
 
-Parallel processing in R and Bioconductor remains finicky but is necessary for large datasets. weitrix uses DelayedArray's default parallel processing as its own default, see `DelayedArray::getAutoBPPARAM()` and `DelayedArray::setAutoBPPARAM()`.
+Parallel processing in R and Bioconductor remains finicky but is necessary for large datasets. weitrix uses BiocParallel's default parallel processing settings.
 
-If weitrix hangs or produces weird errors, try running it with serial processing:
+If weitrix hangs or produces weird errors, try configuring BiocParallel to use serial processing by default:
 
 ```
-DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
+BiocParallel::register( BiocParallel::SerialParam() )
 ```
 
 ### OpenBLAS
