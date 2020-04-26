@@ -12,7 +12,6 @@ realize_if_delayed <- function(x, check=x) {
 }
 
 
-
 #
 # Blocking helper functions
 #
@@ -54,7 +53,27 @@ partitions <- function(
 # This may need further tweaking.
 #
 this_function_bp_up <- function() {
-    BPPARAM <- getAutoBPPARAM()
+    BPPARAM <- bpparam()
+
+    # Make sure DelayedArray will use the default bpparam
+    # Clean up on function exit
+    old_auto_bpparam <- getAutoBPPARAM()
+    do.call(
+        on.exit,
+        list(
+            substitute({
+                setAutoBPPARAM(old_auto_bpparam)
+            }),
+            add=TRUE
+        ),
+        envir = parent.frame()
+    )
+
+    setAutoBPPARAM(BPPARAM)
+
+
+    # Make sure the workers are running
+    # Clean up on exit
     if (!bpisup(BPPARAM)) {
         old_threads <- blas_get_num_procs()
         blas_set_num_threads(1)

@@ -32,10 +32,10 @@ set.seed(12345)
 
 # BiocParallel supports multiple backends. 
 # If the default hangs or errors, try others.
-DelayedArray::setAutoBPPARAM( BiocParallel::SnowParam() )
+BiocParallel::register( BiocParallel::SnowParam() )
 
 # The most reliable backed is to use serial processing
-#DelayedArray::setAutoBPPARAM( BiocParallel::SerialParam() )
+#BiocParallel::register( BiocParallel::SerialParam() )
 
 tail <- system.file("GSE83162", "tail.csv.gz", package="weitrix") %>%
     read_csv() %>%
