@@ -34,6 +34,7 @@ reference:
   - weitrix_calibrate
   - weitrix_calibrate_trend
   - weitrix_calibrate_all
+  - weitrix_calplot
 - title: Other
   contents:
   - weitrix_randomize

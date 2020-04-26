@@ -310,6 +310,10 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 #' in which case the existing fits (\code{design$row}) are used.
 #' @param trend_formula 
 #' A formula specification for predicting squared residuals. See below.
+#' @param keep_fit
+#' Keep glm fit and the data used to create it. This can be large!
+#' If TRUE, these will be stored in \code{metadata(weitrix)$weitrix$all_fit}
+#' and \code{metadata(weitrix)$weitrix$all_data}.
 #'
 #' @return 
 #' A SummarizedExperiment object with metadata fields marking it as a weitrix.
@@ -325,7 +329,7 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 #'
 #' @export
 weitrix_calibrate_all <- function(
-        weitrix, design=~1, trend_formula=~log(weight), keep_data=FALSE) {
+        weitrix, design=~1, trend_formula=~log(weight), keep_fit=FALSE) {
 
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
@@ -368,14 +372,134 @@ weitrix_calibrate_all <- function(
     pred[is.na(pred)] <- Inf
 
     weitrix_weights(weitrix)[good] <- 1/pred
-    metadata(weitrix)$weitrix$all_fit <- fit
 
-    if (keep_data) {
+    metadata(weitrix)$weitrix$all_coef <- coef(fit)
+
+    if (keep_fit) {
+        metadata(weitrix)$weitrix$all_fit <- fit
         data$new_weight <- as.vector(weitrix_weights(weitrix))
         metadata(weitrix)$weitrix$all_data <- data
     }
 
     weitrix
+}
+
+
+#' Weight calibration plots, optionally versus a covariate
+#'
+#' Various plots based on weighted squared residuals 
+#'     of each element in the weitrix.
+#' \code{weight*residual^2} is the Pearson residual for a gamma GLM plus one,
+#'     as used by \code{weitrix_calibrate_all}.
+#'
+#' This function is not memory efficient.
+#' It is suitable for typical bulk data, but generally not not for single-cell.
+#'
+#' Defaults to a boxplot of weighted squared residuals.
+#' Blue guide bars are shown for the expected quartiles,
+#'     these will ideally line up with the boxplot.
+#'
+#' If \code{cat} is given, it will be used to break the elements down
+#'     into categories.
+#'
+#' If \code{covar} is given, weighted squared residuals are plotted versus
+#'     the covariate, with a red trend line.
+#' If the weitrix is calibrated, the trend line should be a horizontal line
+#'     with y intercept 1.
+#' A blue guide line is shown for this ideal.
+#'
+#' Any of the variables available with \code{weitrix_calibrate_all}
+#'     can be used for \code{covar} or \code{cat}.
+#'
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#' with \code{as_weitrix}.
+#' @param design 
+#' A formula in terms of \code{colData(weitrix} or a design matrix, 
+#' which will be fitted to the weitrix on each row. 
+#' Can also be a Components object.
+#' @param covar
+#' Optional. A covariate. Specify as you would with \code{ggplot2::aes}.
+#' @param cat
+#' Optional. A categorical variable to break down the data by.
+#' Specify as you would with \code{ggplot2::aes}.
+#'
+#' @return
+#' A ggplot2 plot.
+#'
+#' @examples
+#' weitrix_calplot(simwei, ~1)
+#' weitrix_calplot(simwei, ~1, covar=mu)
+#' weitrix_calplot(simwei, ~1, cat=col)
+#'
+#' # weitrix_calplot should generally be used after calibration
+#' cal <- weitrix_calibrate_all(simwei, ~1, ~col+log(weight))
+#' weitrix_calplot(cal, ~1, cat=col)
+#'
+#' @export
+weitrix_calplot <- function(
+        weitrix, design=~1, covar, cat) {
+
+    weitrix <- as_weitrix(weitrix)
+    comp <- as_components(design, weitrix)
+
+    covar_var <- enquo(covar)
+    cat_var <- enquo(cat)
+    have_covar <- !identical(covar_var, quo())
+    have_cat <- !identical(cat_var, quo())
+
+    # data is very big. Not currently viable for large datasets.
+    data <- cbind(
+        as.data.frame(rowData(weitrix))[rep(seq_len(nrow(weitrix)), ncol(weitrix)),,drop=FALSE],
+        as.data.frame(colData(weitrix))[rep(seq_len(ncol(weitrix)), each=nrow(weitrix)),,drop=FALSE]
+    )
+    data$row <- 
+        rep(factor(rownames(weitrix), rownames(weitrix)), ncol(weitrix))
+    data$col <- 
+        rep(factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+    data$weight <- as.vector(weitrix_weights(weitrix))
+    data$mu <- as.vector(comp$row %*% t(comp$col))
+    data$weighted_squared_residual <- 
+        data$weight * (as.vector(weitrix_x(weitrix)) - data$mu)^2
+
+    data <- data[data$weight > 0,,drop=FALSE]
+
+    if (!have_covar && !have_cat) {
+        data$weitrix <- ""
+        cat_var <- quo(weitrix)
+        have_cat <- TRUE
+    }
+
+    if (have_covar && !have_cat) {
+        ggplot(data, 
+                aes(y=.data$weighted_squared_residual, x=!!covar_var)) + 
+            geom_point(stroke=0,size=2) + 
+            geom_hline(yintercept=1, color="blue") + 
+            geom_smooth(se=FALSE, color="red") + 
+            coord_trans(y="sqrt", 
+                ylim=c(0,max(data$weighted_squared_residual))) +
+            labs(y="Weighted residual (sqrt scale)")
+    } else if (!have_covar && have_cat) {
+        ggplot(data, 
+                aes(y=.data$weighted_squared_residual, x=!!cat_var)) + 
+            geom_hline(
+                yintercept=qchisq(c(0.25,0.5,0.75), df=1), color="blue") + 
+            geom_boxplot() + 
+            coord_trans(y="sqrt", 
+                ylim=c(0,max(data$weighted_squared_residual))) +
+            labs(y="Weighted residual (sqrt scale)") +
+            theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    } else {
+        ggplot(data, 
+                aes(y=.data$weighted_squared_residual, x=!!covar_var)) +
+            facet_wrap(vars(!!cat_var)) + 
+            geom_point(stroke=0,size=2) + 
+            geom_hline(yintercept=1, color="blue") + 
+            geom_smooth(se=FALSE, color="red") + 
+            coord_trans(y="sqrt", 
+                ylim=c(0,max(data$weighted_squared_residual))) +
+            labs(y="Weighted residual (sqrt scale)")
+    }
 }
 
 

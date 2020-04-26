@@ -37,6 +37,6 @@ Suggests:
     org.Sc.sgd.db,
     AnnotationDbi,
     testthat (>= 2.1.0)
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0
 VignetteBuilder: knitr
 biocViews: Software, DataRepresentation, DimensionReduction, GeneExpression, Transcriptomics, RNASeq, SingleCell, Regression

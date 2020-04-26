@@ -8,7 +8,7 @@ weitrix_calibrate_all(
   weitrix,
   design = ~1,
   trend_formula = ~log(weight),
-  keep_data = FALSE
+  keep_fit = FALSE
 )
 }
 \arguments{
@@ -21,6 +21,10 @@ Can also be a pre-existing Components object,
 in which case the existing fits (\code{design$row}) are used.}
 
 \item{trend_formula}{A formula specification for predicting squared residuals. See below.}
+
+\item{keep_fit}{Keep glm fit and the data used to create it. This can be large!
+If TRUE, these will be stored in \code{metadata(weitrix)$weitrix$all_fit}
+and \code{metadata(weitrix)$weitrix$all_data}.}
 }
 \value{
 A SummarizedExperiment object with metadata fields marking it as a weitrix.
