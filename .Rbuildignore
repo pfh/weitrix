@@ -8,3 +8,4 @@ sublime-project$
 sublime-workspace$
 ^check\.Renviron$
 ^weitrix.*\.tar\.gz$
+^.travis.yml
