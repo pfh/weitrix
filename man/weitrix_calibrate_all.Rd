@@ -45,9 +45,6 @@ A trend model is then fitted to the squared residuals using a gamma GLM
 Weitrix weights are set to be the inverse of the fitted trend.
 }
 \details{
-This function is currently not memory efficient,
-   it should be fine for bulk experiments but not single cell.
-
 \code{trend_formula} may reference any row or column variables,
     or special factors \code{row} and \code{col},
     or \code{weight} for the existing weights.
@@ -56,6 +53,12 @@ Keep in mind also that a log link function is used.
 Unlike in \code{weitrix_calibrate_trend},
     existing weights must be explicitly included in the formula
     if they are to be retained (see examples).
+
+This function is currently not memory efficient,
+    it should be fine for bulk experiments but may struggle for single cell.
+To reduce memory usage somewhat, 
+    when constructing the data frame on which to fit the glm, 
+    only columns referenced in \code{trend_formula} are included.
 
 Example formulae:
 
@@ -78,7 +81,7 @@ Quadratic curve moderation of weights, applied to each sample individually.
 }
 \examples{
 
-simcal <- weitrix_calibrate_all(simwei, ~1, ~log(weight))
+simcal <- weitrix_calibrate_all(simwei, ~1, ~log(weight), keep_fit=TRUE)
 
 metadata(simcal)$weitrix$all_fit
 

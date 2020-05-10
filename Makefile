@@ -8,7 +8,7 @@ data :
 check.Renviron :
 	curl https://raw.githubusercontent.com/Bioconductor/packagebuilder/master/check.Renviron >check.Renviron
 
-check : check.Renviron
+check : document check.Renviron
 	rm weitrix_*.tar.gz || echo No old tarball
 	time R CMD build .
 	R_CHECK_ENVIRON=check.Renviron time R CMD check weitrix_*.tar.gz

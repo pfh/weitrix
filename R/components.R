@@ -392,7 +392,7 @@ weitrix_components_inner <- function(
 #' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
-        weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
+        weitrix, p=0, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE
         ) {
     this_function_bp_up()

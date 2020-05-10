@@ -256,6 +256,19 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 }
 
 
+# Hack!
+# Extract anything that might be referred to in a formula
+all_names <- function(obj) {
+    if (class(obj) == "name")
+        return(as.character(obj))
+    
+    if (!class(obj) %in% c("formula","call"))
+        return(c())
+    
+    do.call(c, lapply(obj, all_names))
+}
+
+
 #' Adjust weights element-wise by fitting a trend to squared residuals
 #'
 #' This is a very flexible method of calibrating weights.
@@ -269,9 +282,6 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 #'     with log link function.
 #' Weitrix weights are set to be the inverse of the fitted trend. 
 #'
-#' This function is currently not memory efficient,
-#'    it should be fine for bulk experiments but not single cell.
-#'
 #' \code{trend_formula} may reference any row or column variables,
 #'     or special factors \code{row} and \code{col},
 #'     or \code{weight} for the existing weights.
@@ -281,6 +291,12 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 #'     existing weights must be explicitly included in the formula
 #'     if they are to be retained (see examples).
 #' 
+#' This function is currently not memory efficient,
+#'     it should be fine for bulk experiments but may struggle for single cell.
+#' To reduce memory usage somewhat, 
+#'     when constructing the data frame on which to fit the glm, 
+#'     only columns referenced in \code{trend_formula} are included.
+#'
 #' Example formulae:
 #'
 #' \code{trend_formula=~1+offset(-log(weight))} 
@@ -323,7 +339,7 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 #'
 #' @examples
 #'
-#' simcal <- weitrix_calibrate_all(simwei, ~1, ~log(weight))
+#' simcal <- weitrix_calibrate_all(simwei, ~1, ~log(weight), keep_fit=TRUE)
 #'
 #' metadata(simcal)$weitrix$all_fit
 #'
@@ -334,15 +350,29 @@ weitrix_calibrate_all <- function(
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
 
-    # data is very big. Not currently viable for large datasets.
+    needed <- all_names(trend_formula)
+    needed_rowdata <- intersect(colnames(rowData(weitrix)), needed)
+    needed_coldata <- intersect(colnames(colData(weitrix)), needed)
+
     data <- cbind(
-        as.data.frame(rowData(weitrix))[rep(seq_len(nrow(weitrix)), ncol(weitrix)),,drop=FALSE],
-        as.data.frame(colData(weitrix))[rep(seq_len(ncol(weitrix)), each=nrow(weitrix)),,drop=FALSE]
+        as.data.frame(rowData(weitrix)[
+            rep(seq_len(nrow(weitrix)), ncol(weitrix)),
+            needed_rowdata,
+            drop=FALSE]),
+        as.data.frame(colData(weitrix)[
+            rep(seq_len(ncol(weitrix)), each=nrow(weitrix)),
+            needed_coldata,
+            drop=FALSE])
     )
-    data$row <- 
-        rep(factor(rownames(weitrix), rownames(weitrix)), ncol(weitrix))
-    data$col <- 
-        rep(factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+
+    if ("row" %in% needed)
+        data$row <- rep(
+            factor(rownames(weitrix), rownames(weitrix)), ncol(weitrix))
+
+    if ("col" %in% needed)
+        data$col <- rep(
+            factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+    
     data$weight <- as.vector(weitrix_weights(weitrix))
     data$mu <- as.vector(comp$row %*% t(comp$col))
     data$.y <- (as.vector(weitrix_x(weitrix)) - data$mu)^2

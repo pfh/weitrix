@@ -7,7 +7,7 @@
 \usage{
 weitrix_components(
   weitrix,
-  p,
+  p = 0,
   design = ~1,
   n_restarts = 3,
   max_iter = 1000,
