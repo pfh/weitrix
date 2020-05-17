@@ -259,10 +259,10 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
 # Hack!
 # Extract anything that might be referred to in a formula
 all_names <- function(obj) {
-    if (class(obj) == "name")
+    if (inherits(obj, "name"))
         return(as.character(obj))
     
-    if (!class(obj) %in% c("formula","call"))
+    if (!inherits(obj, c("formula","call")))
         return(c())
     
     do.call(c, lapply(obj, all_names))
@@ -400,8 +400,12 @@ weitrix_calibrate_all <- function(
 
     pred <- predict(fit, newdata=good_data, type="response")
     pred[is.na(pred)] <- Inf
+    new_weights <- matrix(0, nrow=nrow(weitrix), ncol=ncol(weitrix))
+    new_weights[good] <- 1/pred
+    rownames(new_weights) <- rownames(weitrix)
+    colnames(new_weights) <- colnames(weitrix)
 
-    weitrix_weights(weitrix)[good] <- 1/pred
+    weitrix_weights(weitrix) <- new_weights
 
     metadata(weitrix)$weitrix$all_coef <- coef(fit)
 
@@ -450,9 +454,12 @@ weitrix_calibrate_all <- function(
 #' Can also be a Components object.
 #' @param covar
 #' Optional. A covariate. Specify as you would with \code{ggplot2::aes}.
+#' Can be a matrix of the same size as \code{weitrix}.
 #' @param cat
 #' Optional. A categorical variable to break down the data by.
 #' Specify as you would with \code{ggplot2::aes}.
+#' @param guides
+#' Show blue guide lines.
 #'
 #' @return
 #' A ggplot2 plot.
@@ -466,9 +473,13 @@ weitrix_calibrate_all <- function(
 #' cal <- weitrix_calibrate_all(simwei, ~1, ~col+log(weight))
 #' weitrix_calplot(cal, ~1, cat=col)
 #'
+#' # You can use a matrix of the same size as the weitrix as a covariate.
+#' # It will often be useful to assess vs the original weighting.
+#' weitrix_calplot(cal, ~1, covar=weitrix_weights(weight))
+#'
 #' @export
 weitrix_calplot <- function(
-        weitrix, design=~1, covar, cat) {
+        weitrix, design=~1, covar, cat, guides=TRUE) {
 
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
@@ -478,22 +489,36 @@ weitrix_calplot <- function(
     have_covar <- !identical(covar_var, quo())
     have_cat <- !identical(cat_var, quo())
 
-    # data is very big. Not currently viable for large datasets.
+    needed <- c(all_names(covar_var), all_names(cat_var))
+    needed_rowdata <- intersect(colnames(rowData(weitrix)), needed)
+    needed_coldata <- intersect(colnames(colData(weitrix)), needed)
+
     data <- cbind(
-        as.data.frame(rowData(weitrix))[rep(seq_len(nrow(weitrix)), ncol(weitrix)),,drop=FALSE],
-        as.data.frame(colData(weitrix))[rep(seq_len(ncol(weitrix)), each=nrow(weitrix)),,drop=FALSE]
+        as.data.frame(rowData(weitrix)[
+            rep(seq_len(nrow(weitrix)), ncol(weitrix)),
+            needed_rowdata,
+            drop=FALSE]),
+        as.data.frame(colData(weitrix)[
+            rep(seq_len(ncol(weitrix)), each=nrow(weitrix)),
+            needed_coldata,
+            drop=FALSE])
     )
-    data$row <- 
-        rep(factor(rownames(weitrix), rownames(weitrix)), ncol(weitrix))
-    data$col <- 
-        rep(factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+
+    if ("row" %in% needed)
+        data$row <- 
+            rep(factor(rownames(weitrix), rownames(weitrix)), ncol(weitrix))
+    
+    if ("col" %in% needed)
+        data$col <- 
+            rep(factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+
     data$weight <- as.vector(weitrix_weights(weitrix))
     data$mu <- as.vector(comp$row %*% t(comp$col))
-    data$weighted_squared_residual <- 
-        data$weight * (as.vector(weitrix_x(weitrix)) - data$mu)^2
-
-    data <- data[data$weight > 0,,drop=FALSE]
-
+    data$weighted_squared_residual <- ifelse(
+        data$weight > 0,
+        data$weight * (as.vector(weitrix_x(weitrix)) - data$mu)^2,
+        rep(NA, nrow(data)))
+    
     if (!have_covar && !have_cat) {
         data$weitrix <- ""
         cat_var <- quo(weitrix)
@@ -501,34 +526,37 @@ weitrix_calplot <- function(
     }
 
     if (have_covar && !have_cat) {
-        ggplot(data, 
-                aes(y=.data$weighted_squared_residual, x=!!covar_var)) + 
-            geom_point(stroke=0,size=2) + 
-            geom_hline(yintercept=1, color="blue") + 
-            geom_smooth(se=FALSE, color="red") + 
+        ggplot(data, aes(
+                y=.data$weighted_squared_residual, 
+                x=as.vector(!!covar_var))) + 
+            geom_point(stroke=0, size=1, alpha=0.5, na.rm=TRUE) + 
+            {if (guides) geom_hline(yintercept=1, color="blue")} + 
+            geom_smooth(se=FALSE, color="red", na.rm=TRUE) + 
             coord_trans(y="sqrt", 
                 ylim=c(0,max(data$weighted_squared_residual))) +
-            labs(y="Weighted residual (sqrt scale)")
+            labs(y="Weighted residual (square root scale)", x=as_label(covar_var))
     } else if (!have_covar && have_cat) {
-        ggplot(data, 
-                aes(y=.data$weighted_squared_residual, x=!!cat_var)) + 
-            geom_hline(
-                yintercept=qchisq(c(0.25,0.5,0.75), df=1), color="blue") + 
-            geom_boxplot() + 
+        ggplot(data, aes(
+                y=.data$weighted_squared_residual, 
+                x=as.vector(!!cat_var))) + 
+            {if (guides) geom_hline(
+                yintercept=qchisq(c(0.25,0.5,0.75), df=1), color="blue")} + 
+            geom_boxplot(na.rm=TRUE) + 
             coord_trans(y="sqrt", 
                 ylim=c(0,max(data$weighted_squared_residual))) +
-            labs(y="Weighted residual (sqrt scale)") +
+            labs(y="Weighted residual (square root scale)") +
             theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
     } else {
-        ggplot(data, 
-                aes(y=.data$weighted_squared_residual, x=!!covar_var)) +
+        ggplot(data, aes(
+                y=.data$weighted_squared_residual, 
+                x=as.vector(!!covar_var))) +
             facet_wrap(vars(!!cat_var)) + 
-            geom_point(stroke=0,size=2) + 
-            geom_hline(yintercept=1, color="blue") + 
-            geom_smooth(se=FALSE, color="red") + 
+            geom_point(stroke=0, size=1, alpha=0.5, na.rm=TRUE) + 
+            {if (guides) geom_hline(yintercept=1, color="blue")} + 
+            geom_smooth(se=FALSE, color="red", na.rm=TRUE) + 
             coord_trans(y="sqrt", 
                 ylim=c(0,max(data$weighted_squared_residual))) +
-            labs(y="Weighted residual (sqrt scale)")
+            labs(y="Weighted residual (square root scale)", x=as_label(covar_var))
     }
 }
 

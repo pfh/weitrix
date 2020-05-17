@@ -4,7 +4,7 @@
 \alias{weitrix_calplot}
 \title{Weight calibration plots, optionally versus a covariate}
 \usage{
-weitrix_calplot(weitrix, design = ~1, covar, cat)
+weitrix_calplot(weitrix, design = ~1, covar, cat, guides = TRUE)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
@@ -14,10 +14,13 @@ with \code{as_weitrix}.}
 which will be fitted to the weitrix on each row. 
 Can also be a Components object.}
 
-\item{covar}{Optional. A covariate. Specify as you would with \code{ggplot2::aes}.}
+\item{covar}{Optional. A covariate. Specify as you would with \code{ggplot2::aes}.
+Can be a matrix of the same size as \code{weitrix}.}
 
 \item{cat}{Optional. A categorical variable to break down the data by.
 Specify as you would with \code{ggplot2::aes}.}
+
+\item{guides}{Show blue guide lines.}
 }
 \value{
 A ggplot2 plot.
@@ -56,5 +59,9 @@ weitrix_calplot(simwei, ~1, cat=col)
 # weitrix_calplot should generally be used after calibration
 cal <- weitrix_calibrate_all(simwei, ~1, ~col+log(weight))
 weitrix_calplot(cal, ~1, cat=col)
+
+# You can use a matrix of the same size as the weitrix as a covariate.
+# It will often be useful to assess vs the original weighting.
+weitrix_calplot(cal, ~1, covar=weitrix_weights(weight))
 
 }

@@ -23,6 +23,7 @@ Imports:
     dplyr,
     purrr,
     ggplot2,
+    rlang,
     scales,
     reshape2,
     RhpcBLASctl
