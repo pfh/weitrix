@@ -21,7 +21,7 @@
 #'    element_text facet_wrap vars
 #'
 #' @importFrom rlang
-#'    enquo quo quo_get_expr as_label
+#'    enquo quo quo_get_expr as_label .data
 #'
 #' @importFrom scales
 #'    percent

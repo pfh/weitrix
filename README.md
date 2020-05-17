@@ -11,10 +11,10 @@ This is an R package for working with matrices with precision weights.
 BiocManager::install("weitrix")
 ```
 
-The bleeding-edge devel branch can be installed from github with:
+Bleeding-edge development can be installed from github with:
 
 ```
-BiocManager::install("pfh/weitrix@devel")
+BiocManager::install("pfh/weitrix")
 ```
 
 [![Build Status](https://travis-ci.org/pfh/weitrix.svg?branch=devel)](https://travis-ci.org/pfh/weitrix)
