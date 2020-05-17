@@ -1,9 +1,9 @@
 
-
-# weitrix 0.99.3
+# weitrix 1.1.1
 
 * Switch calibration from linear model on log dispersions to using a gamma GLM.
 * Add weitrix_calibrate_all function for very flexible calibration.
+* Add weitrix_calplot to examine quality of weights.
 
 
 # weitrix 0.99.2

@@ -17,4 +17,4 @@ Bleeding-edge development can be installed from github with:
 BiocManager::install("pfh/weitrix")
 ```
 
-[![Build Status](https://travis-ci.org/pfh/weitrix.svg?branch=devel)](https://travis-ci.org/pfh/weitrix)
+[![Build Status](https://travis-ci.org/pfh/weitrix.svg?branch=master)](https://travis-ci.org/pfh/weitrix)
