@@ -62,6 +62,6 @@ weitrix_calplot(cal, ~1, cat=col)
 
 # You can use a matrix of the same size as the weitrix as a covariate.
 # It will often be useful to assess vs the original weighting.
-weitrix_calplot(cal, ~1, covar=weitrix_weights(weight))
+weitrix_calplot(cal, ~1, covar=weitrix_weights(simwei))
 
 }
