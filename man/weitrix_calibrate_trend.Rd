@@ -17,7 +17,7 @@ in which case the existing fits (\code{design$row}) are used.}
 
 \item{trend_formula}{A formula specification for predicting log dispersion from 
 columns of rowData(weitrix). 
-If absent, metadata(weitrix)$weitrix$trend_formula is used.}
+If absent, metadata(weitrix)$weitrix$calibrate_trend_formula is used.}
 }
 \value{
 A SummarizedExperiment object with metadata fields marking it as a weitrix.

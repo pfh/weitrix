@@ -16,7 +16,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4)
 
 Let's look at the [airway](http://bioconductor.org/packages/release/data/experiment/html/airway.html) dataset as an example of a typical small-scale RNA-Seq experiment. In this experiment, four Airway Smooth Muscle (ASM) cell lines are treated with the asthma medication dexamethasone.
 
-The limma `voom` function will be used to assign precision weights, then the result converted to a weitrix.
+The function `weitrix_calibrate_all` will be used to assign precision weights to log Counts Per Million values.
 
 ```{r setup, warning=F, message=F}
 library(weitrix)
@@ -55,23 +55,17 @@ design <- model.matrix(~ dex + cell, data=colData(airway))
 good <- filterByExpr(counts, design=design) 
 table(good)
 
-airway_elist <- 
-    DGEList(counts[good,]) %>%
-    calcNormFactors() %>%
-    voom(design, plot=TRUE)
+airway_dgelist <- DGEList(counts[good,]) %>% calcNormFactors()
+
+airway_lcpm <- cpm(airway_dgelist, log=TRUE, prior.count=1)
 ```
 
-There are many possible variations on this:
+log2 CPM values have been calculated, with an added "prior" count of (on average) 1 read, so that zeros aren't sent to negative infinity.
 
-* `voom` provides precision weights. One could instead choose a `prior.count` for `cpm` to produce a flat (or at least non-decreasing) mean-variance trend-line.
-
-* Use `cpm` to produce log transformed counts with a small prior count, then use `weitrix_calibrate_trend` to account for any mean-variance relationship.
-
-
-## Conversion to weitrix
+# Conversion to weitrix
 
 ```{r}
-airway_weitrix <- as_weitrix(airway_elist)
+airway_weitrix <- as_weitrix(airway_lcpm)
 
 # Include row and column information
 colData(airway_weitrix) <- colData(airway)
@@ -80,6 +74,70 @@ rowData(airway_weitrix) <-
 
 airway_weitrix
 ```
+
+# Calibration
+
+To calibrate, we need predicted expression levels so we can calculate residuals. The function `weitrix_components` can provide linear model fits to each gene. (We will see a more advanced use of this function later.)
+
+```{r}
+fit <- weitrix_components(airway_weitrix, design=design)
+```
+
+Currently the weitrix has weights uniformly equal to 1. Examining residuals, we see a variance trend relative to the linear model prediction.
+
+Each dot in the plot below is a residual weighted by sqrt(weight). The x-axis is the linear model prediction. The y-axis is the weighted residual (all weights are currently 1). The red line is fitted to the weighted *squared* residuals. (The red line is shown simply mirrored below, i.e. any bias in the residuals will show as a widening in both red lines.)
+
+```{r}
+weitrix_calplot(airway_weitrix, fit, covar=mu, guides=FALSE)
+```
+
+We will use the function `weitrix_calibrate_all` to set the weights by fitting a gamma GLM with log link function to the weighted squared residuals. 1 over the predictions from this GLM are used as weights. Here we fit a natural spline based on the linear model predictions from `fit`, which are referred to in the formula as `mu`.
+
+```{r}
+airway_cal <- weitrix_calibrate_all(airway_weitrix, fit, ~splines::ns(mu,4))
+
+metadata(airway_cal)
+
+weitrix_calplot(airway_cal, fit, covar=mu)
+```
+
+The trend line (red) for the calibrated weitrix is now uniformly close to 1 (guide line shown in blue). Weights can now be treated as inverse residual variance.
+
+Another way to check this is to plot the unweighted residuals against 1/sqrt(weight), i.e. the residual standard deviation.
+
+```{r}
+weitrix_calplot(airway_cal, fit, funnel=TRUE)
+```
+
+We can also check each sample individually.
+
+```{r}
+weitrix_calplot(airway_cal, fit, covar=mu, cat=col)
+```
+
+Nothing looks amiss.
+
+## Advanced calibration
+
+If there was an odd sample, we could use a more complex trend formula such as `~col*splines::ns(mu,4)`:
+
+```{r eval=FALSE}
+airway_cal <- weitrix_calibrate_all(airway_weitrix, fit, ~col*splines::ns(mu,4))
+```
+
+## Similar to limma voom
+
+While the precise details differ, what we have done is very similar to the `voom` function in limma.
+
+`weitrix_calplot` can be used with voomed data as well.
+
+```{r}
+airway_voomed <- voom(airway_dgelist, design, plot=TRUE)
+
+weitrix_calplot(airway_voomed, design, covar=mu)
+```
+
+`voom` achieves a similar result to `weitrix_calibrate_all` (but note the input to `voom` is a DGEList of counts, not a matrix that is already log transformed). limma EList objects can be converted to weitrix objects with `as_weitrix`. Weitrix objects can be converted to limma EList objects with `weitrix_elist`.
 
 
 # Exploration
@@ -91,14 +149,14 @@ RNA-Seq expression is well trodden ground. The main contribution of the weitrix 
 This will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability. The result is a list of Components objects.
 
 ```{r message=F}
-comp_seq <- weitrix_components_seq(airway_weitrix, p=6)
+comp_seq <- weitrix_components_seq(airway_cal, p=6)
 comp_seq
 ```
 
 We can compare the proportion of variation explained to what would be explained in a completely random weitrix. Random normally distributed values are generated with variances equal to one over the weights.
 
 ```{r message=F}
-rand_weitrix <- weitrix_randomize(airway_weitrix)
+rand_weitrix <- weitrix_randomize(airway_cal)
 rand_comp <- weitrix_components(rand_weitrix, p=1)
 
 components_seq_screeplot(comp_seq, rand_comp)
@@ -133,7 +191,7 @@ If varimax rotation isn't used, `weitrix_components` and `weitrix_components_seq
 Without varimax rotation the treatment effect is still mostly in the first component, but has also leaked a small amount into the other components.
 
 ```{r message=F}
-comp_nonvarimax <- weitrix_components(airway_weitrix, p=4, use_varimax=FALSE)
+comp_nonvarimax <- weitrix_components(airway_cal, p=4, use_varimax=FALSE)
 
 comp_nonvarimax$col[,-1] %>% melt(varnames=c("Run","component")) %>%
     left_join(as.data.frame(colData(airway)), by="Run") %>%
@@ -154,7 +212,7 @@ Note that this ignores uncertainty about the `col` matrix itself.
 This may be useful for hypothesis generation -- finding some potentially interesting genes, while discounting noisy or lowly expressed genes -- but don't use it as proof of significance.
 
 ```{r}
-airway_elist <- weitrix_elist(airway_weitrix)
+airway_elist <- weitrix_elist(airway_cal)
 
 fit <- 
     lmFit(airway_elist, comp$col) %>% 

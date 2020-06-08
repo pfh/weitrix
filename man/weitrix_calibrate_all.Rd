@@ -7,7 +7,7 @@
 weitrix_calibrate_all(
   weitrix,
   design = ~1,
-  trend_formula = ~log(weight),
+  trend_formula = NULL,
   keep_fit = FALSE
 )
 }
@@ -20,7 +20,8 @@ which will be fitted to the weitrix on each row.
 Can also be a pre-existing Components object, 
 in which case the existing fits (\code{design$row}) are used.}
 
-\item{trend_formula}{A formula specification for predicting squared residuals. See below.}
+\item{trend_formula}{A formula specification for predicting squared residuals. See below.
+If absent, metadata(weitrix)$weitrix$calibrate_all_formula is used.}
 
 \item{keep_fit}{Keep glm fit and the data used to create it. This can be large!
 If TRUE, these will be stored in \code{metadata(weitrix)$weitrix$all_fit}

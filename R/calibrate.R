@@ -152,7 +152,7 @@ weitrix_calibrate <- function(weitrix, dispersions) {
 #' @param trend_formula 
 #' A formula specification for predicting log dispersion from 
 #' columns of rowData(weitrix). 
-#' If absent, metadata(weitrix)$weitrix$trend_formula is used.
+#' If absent, metadata(weitrix)$weitrix$calibrate_trend_formula is used.
 #'
 #' @return 
 #' A SummarizedExperiment object with metadata fields marking it as a weitrix.
@@ -192,6 +192,8 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
 
+    if (is.null(trend_formula))
+        trend_formula <- metadata(weitrix)$weitrix$calibrate_trend_formula
     if (is.null(trend_formula))
         trend_formula <- metadata(weitrix)$weitrix$trend_formula
     assert_that(!is.null(trend_formula))
@@ -326,6 +328,8 @@ all_names <- function(obj) {
 #' in which case the existing fits (\code{design$row}) are used.
 #' @param trend_formula 
 #' A formula specification for predicting squared residuals. See below.
+#' If absent, metadata(weitrix)$weitrix$calibrate_all_formula is used.
+#'
 #' @param keep_fit
 #' Keep glm fit and the data used to create it. This can be large!
 #' If TRUE, these will be stored in \code{metadata(weitrix)$weitrix$all_fit}
@@ -345,10 +349,16 @@ all_names <- function(obj) {
 #'
 #' @export
 weitrix_calibrate_all <- function(
-        weitrix, design=~1, trend_formula=~log(weight), keep_fit=FALSE) {
+        weitrix, design=~1, trend_formula=NULL, keep_fit=FALSE) {
 
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
+
+    if (is.null(trend_formula))
+        trend_formula <- metadata(weitrix)$weitrix$calibrate_all_formula
+    assert_that(!is.null(trend_formula))
+    
+    trend_formula <- as.formula(trend_formula)
 
     needed <- all_names(trend_formula)
     needed_rowdata <- intersect(colnames(rowData(weitrix)), needed)
@@ -458,6 +468,9 @@ weitrix_calibrate_all <- function(
 #' @param cat
 #' Optional. A categorical variable to break down the data by.
 #' Specify as you would with \code{ggplot2::aes}.
+#' @param funnel
+#' Flag. Produce a funnel plot? 
+#' Note: \code{covar} can not be used for funnel plots.
 #' @param guides
 #' Show blue guide lines.
 #'
@@ -479,15 +492,21 @@ weitrix_calibrate_all <- function(
 #'
 #' @export
 weitrix_calplot <- function(
-        weitrix, design=~1, covar, cat, guides=TRUE) {
-
-    weitrix <- as_weitrix(weitrix)
-    comp <- as_components(design, weitrix)
+        weitrix, design=~1, covar, cat, funnel=FALSE, guides=TRUE) {
 
     covar_var <- enquo(covar)
     cat_var <- enquo(cat)
     have_covar <- !identical(covar_var, quo())
     have_cat <- !identical(cat_var, quo())
+
+    if (funnel) {
+        assert_that(!have_covar, msg="Can't use covar with funnel.")
+        covar_var <- quo(1/sqrt(weight))
+        have_covar <- TRUE
+    }
+
+    weitrix <- as_weitrix(weitrix)
+    comp <- as_components(design, weitrix)
 
     needed <- c(all_names(covar_var), all_names(cat_var))
     needed_rowdata <- intersect(colnames(rowData(weitrix)), needed)
@@ -514,49 +533,66 @@ weitrix_calplot <- function(
 
     data$weight <- as.vector(weitrix_weights(weitrix))
     data$mu <- as.vector(comp$row %*% t(comp$col))
-    data$weighted_squared_residual <- ifelse(
+    data$residual <- ifelse(
         data$weight > 0,
-        data$weight * (as.vector(weitrix_x(weitrix)) - data$mu)^2,
+        as.vector(weitrix_x(weitrix)) - data$mu,
         rep(NA, nrow(data)))
+    data$weighted_residual <- sqrt(data$weight) * data$residual
     
-    if (!have_covar && !have_cat) {
+    if (!have_cat) {
         data$weitrix <- ""
         cat_var <- quo(weitrix)
-        have_cat <- TRUE
     }
 
-    if (have_covar && !have_cat) {
-        ggplot(data, aes(
-                y=.data$weighted_squared_residual, 
-                x=as.vector(!!covar_var))) + 
-            geom_point(stroke=0, size=1, alpha=0.5, na.rm=TRUE) + 
-            {if (guides) geom_hline(yintercept=1, color="blue")} + 
-            geom_smooth(se=FALSE, color="red", na.rm=TRUE) + 
-            coord_trans(y="sqrt", 
-                ylim=c(0,max(data$weighted_squared_residual))) +
-            labs(y="Weighted residual (square root scale)", x=as_label(covar_var))
-    } else if (!have_covar && have_cat) {
-        ggplot(data, aes(
-                y=.data$weighted_squared_residual, 
-                x=as.vector(!!cat_var))) + 
-            {if (guides) geom_hline(
-                yintercept=qchisq(c(0.25,0.5,0.75), df=1), color="blue")} + 
-            geom_boxplot(na.rm=TRUE) + 
-            coord_trans(y="sqrt", 
-                ylim=c(0,max(data$weighted_squared_residual))) +
-            labs(y="Weighted residual (square root scale)") +
-            theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    if (have_covar) {
+        y <- if (funnel) data$residual else data$weighted_residual
+        x <- eval_tidy(covar_var, data=data)
+        cat <- droplevels(factor(eval_tidy(cat_var, data=data)))
+        present <- !is.na(y)
+        y <- y[present]
+        x <- x[present]
+        cat <- cat[present]
+        plot_data <- data.frame(x=x,y=y,cat=cat)
+
+        # Calculate a trend line, needs to be square-unbiassed
+        # Could be made more efficient
+        bin_x <- c()
+        bin_y <- c()
+        bin_cat <- c()
+        for(level in levels(cat)) {
+            this_x <- x[ cat == level ]
+            this_y <- y[ cat == level ]
+            n <- length(this_x)
+            n_bins_wanted <- ceiling(n^(1/3))
+            bins <- droplevels(cut(rank(this_x), 
+                seq(0.5,n+0.5,length.out=n_bins_wanted+1)))
+            bin_x <- c(bin_x, tapply(this_x, list(bins), mean))
+            bin_y <- c(bin_y, sqrt(tapply(this_y^2, list(bins), mean)))
+            bin_cat <- c(bin_cat, rep(level, length(levels(bins))))
+        }
+        bin_cat <- factor(bin_cat, levels=levels(cat))
+
+        line_data <- data.frame(x=bin_x,y=bin_y,cat=bin_cat)
+
+        ggplot(plot_data, aes(y=.data$y, x=.data$x)) + 
+            {if (have_cat) facet_wrap(vars(.data$cat))} +
+            geom_point(stroke=0, size=0.5, alpha=0.5, na.rm=TRUE) + 
+            {if (guides && !funnel) geom_hline(yintercept=c(-1,1), color="blue")} + 
+            {if (guides && funnel) geom_abline(slope=c(1,-1),intercept=c(0,0),color="blue")} +
+            geom_line(data=line_data, size=1, color="red")+
+            geom_line(aes(y=-.data$y), data=line_data, size=1, color="red")+
+            labs(
+                y=if (funnel) "residual" else "sqrt(weight) * residual", 
+                x=as_label(covar_var))
     } else {
         ggplot(data, aes(
-                y=.data$weighted_squared_residual, 
-                x=as.vector(!!covar_var))) +
-            facet_wrap(vars(!!cat_var)) + 
-            geom_point(stroke=0, size=1, alpha=0.5, na.rm=TRUE) + 
-            {if (guides) geom_hline(yintercept=1, color="blue")} + 
-            geom_smooth(se=FALSE, color="red", na.rm=TRUE) + 
-            coord_trans(y="sqrt", 
-                ylim=c(0,max(data$weighted_squared_residual))) +
-            labs(y="Weighted residual (square root scale)", x=as_label(covar_var))
+                y=.data$weighted_residual, 
+                x=as.vector(!!cat_var))) + 
+            {if (guides) geom_hline(
+                yintercept=qnorm(c(0.25,0.5,0.75)), color="blue")} + 
+            geom_boxplot(na.rm=TRUE) + 
+            labs(y="sqrt(weight) * residual", x="") +
+            theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
     }
 }
 

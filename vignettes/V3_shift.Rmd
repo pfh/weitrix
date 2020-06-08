@@ -32,8 +32,6 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
 # To examine objects:
 # devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/3_shift_cache/html")
-
-options(width=1000)
 ```
 
 ```{r load, message=F, warning=F}
@@ -90,7 +88,7 @@ A "shift" weitrix is constructed based on a matrix of site-level counts, plus a 
 wei <- counts_shift(counts, groups)
 
 colData(wei) <- cbind(colData(wei), samples)
-rowData(wei) <- cbind(rowData(wei), genes[match(rownames(wei), rownames(genes)),])
+rowData(wei)$symbol <- genes$symbol[match(rownames(wei), rownames(genes))]
 ```
 
 Having obtained a weitrix, everthing discussed for the [poly(A) tail length example](2_tail_length.html) is applicable here as well. We will only perform a brief exploratory analysis here.
@@ -122,28 +120,48 @@ matrix_long(comp$col, row_info=samples, varnames=c("sample","component")) %>%
     labs(title="Sample scores for each component", y="Sample score", x="Time", color="Strain")
 ```
 
-A weitrix created with `counts_shift` has a built-in default trend formula, so we don't need to give a formula explicitly to `weitrix_calibrate_trend`.
+## Calibration
 
-```{r calibrate}
-cal_comp <- weitrix_calibrate_trend(wei, comp)
+Weights can be calibrated. Ideally the weights should be 1 over the residual variance. We will fit a gamma GLM with log link function to the squared residuals, and use the predictions from this to produce better weights. This model uses the `per_read_var` information present in the rowData, as well as applying a non-linear transformation to the existing weights.
 
-metadata(cal_comp)$weitrix$trend_fit
+```{r calibrate_all}
+cal <- weitrix_calibrate_all(wei, comp, ~log(per_read_var)+splines::ns(log(weight),4))
+
+metadata(cal)$weitrix$all_coef
 ```
 
-The calibration is based on two predictors of dispersion, the total number of reads and the estimated per read variance. To illustrate the calibration, we facet by bins of the per-read variance and show total reads on the x axis.
+A mean-variance trend is visible in the uncalibrated weighted residuals. Calibration has removed this, by making use of the information in `per_read_var`.
 
-```{r calibrate_show}
-rowData(cal_comp) %>% as.data.frame() %>%
-    ggplot(aes(x=total_reads, y=dispersion_before)) + 
-    facet_wrap(~ cut(per_read_var, 9)) +
-    geom_point(size=0.1) +
-    geom_point(aes(y=dispersion_trend), color="red", size=0.1) +
-    scale_x_log10() + scale_y_log10() +
-    labs(y="Dispersion (log scale)", x="Total reads (log scale)")
+```{r calibrate_all_fig1,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, covar=mu) + labs(title="Before")
+weitrix_calplot(cal, comp, covar=mu) + labs(title="After")
 ```
+
+We can look at the calibration to `per_read_var` directly.
+
+```{r calibrate_all_fig2,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, covar=per_read_var) + labs(title="Before")
+weitrix_calplot(cal, comp, covar=per_read_var) + labs(title="After")
+```
+
+Weights were too large for large read counts. Calibration has applied a non-linear transformation to the weights that fixes this.
+
+```{r calibrate_all_fig3,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")
+weitrix_calplot(cal, comp, covar=log2(weitrix_weights(wei))) + labs(title="After")
+```
+
+Another way of looking at this is with a "funnel" plot of 1/sqrt(weight) vs residuals. This should make a cone shape. Note how before calibration the pointy end of the cone is too wide.
+
+```{r calibrate_all_fig4,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, funnel=TRUE, guides=FALSE) + labs(title="Before")
+weitrix_calplot(cal, comp, funnel=TRUE, guides=FALSE) + labs(title="After")
+```
+
+## Using the calibrated weitrix with limma
 
 ```{r limma}
-fit_comp <- cal_comp %>%
+fit_comp <- cal %>%
     weitrix_elist() %>%
     lmFit(comp$col)
 ```
@@ -153,25 +171,25 @@ fit_comp <- cal_comp %>%
 ## Gene loadings for C1
 
 ```{r C1}
-limma_confects(fit_comp, "C1", full=TRUE, fdr=0.05)
+limma_confects(fit_comp, "C1", fdr=0.05)
 ```
 
 ## Gene loadings for C2
 
 ```{r C2}
-limma_confects(fit_comp, "C2", full=TRUE, fdr=0.05)
+limma_confects(fit_comp, "C2", fdr=0.05)
 ```
 
 ## Gene loadings for C3
 
 ```{r C3}
-limma_confects(fit_comp, "C3", full=TRUE, fdr=0.05)
+limma_confects(fit_comp, "C3", fdr=0.05)
 ```
 
 ## Gene loadings for C4
 
 ```{r C4}
-limma_confects(fit_comp, "C4", full=TRUE, fdr=0.05)
+limma_confects(fit_comp, "C4", fdr=0.05)
 ```
 
 ## Examine individual genes
@@ -197,6 +215,31 @@ examine("tK(CUU)M", "tK(CUU)M, from C4")
 ```
 
 
+# Alternative calibration method
 
+For larger datasets, `weitrix_calibrate_all` may use a lot of memory. The weitrix packages has an older version of calibration that operates, `weitrix_calibrate_trend`. Rather than operating on weights individually, it applies a scaling to the weights of each *row*.
 
+```{r calibrate}
+cal_trend <- weitrix_calibrate_trend(wei, comp, ~log(per_read_var)+splines::ns(total_reads,4))
+```
 
+A mean-variance trend is visible in the uncalibrated weighted residuals. Calibration removes this, by making use of the information in `per_read_var`.
+
+```{r calibrate_trend_fig1,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, covar=mu) + labs(title="Before")
+weitrix_calplot(cal_trend, comp, covar=mu) + labs(title="After")
+```
+
+We can look at the calibration to `per_read_var` directly.
+
+```{r calibrate_trend_fig2,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, covar=per_read_var) + labs(title="Before")
+weitrix_calplot(cal_trend, comp, covar=per_read_var) + labs(title="After")
+```
+
+Weights were too large for large read counts. Calibration has applied a row-level adjustment for this based on the total number of reads for each row.
+
+```{r calibrate_trend_fig3,fig.width=3,fig.height=5,fig.show="hold"}
+weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")
+weitrix_calplot(cal_trend, comp, covar=log2(weitrix_weights(wei))) + labs(title="After")
+```

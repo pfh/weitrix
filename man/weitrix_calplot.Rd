@@ -4,7 +4,14 @@
 \alias{weitrix_calplot}
 \title{Weight calibration plots, optionally versus a covariate}
 \usage{
-weitrix_calplot(weitrix, design = ~1, covar, cat, guides = TRUE)
+weitrix_calplot(
+  weitrix,
+  design = ~1,
+  covar,
+  cat,
+  funnel = FALSE,
+  guides = TRUE
+)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
@@ -19,6 +26,9 @@ Can be a matrix of the same size as \code{weitrix}.}
 
 \item{cat}{Optional. A categorical variable to break down the data by.
 Specify as you would with \code{ggplot2::aes}.}
+
+\item{funnel}{Flag. Produce a funnel plot? 
+Note: \code{covar} can not be used for funnel plots.}
 
 \item{guides}{Show blue guide lines.}
 }
