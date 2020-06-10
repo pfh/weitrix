@@ -37,7 +37,17 @@ A weight of 0 indicates completely missing data.
 
 The concept of weights used in this package is the same as for weights specified to the `lm` function or the limma `lmFit` function.
 
-Weights can be calibrated per row so they are one over the variance of a measurement. When testing using limma, a calibrated weitrix will produce better results than an uncalibrated one. A trend line or curve can be fitted to dispersions for each row, based on known predictors. This is similar to the trend option in limma's `eBayes` function, but allows other predictors beyond the row average.
+### Calibration
+
+Weights can be calibrated per row so they are one over the variance of a measurement. When testing using limma, a calibrated weitrix will produce better results than an uncalibrated one. Two main functions for calibrating weights are provided:
+
+* `weitrix_calibrate_all`: A model is fitted to squared residuals, using as predictors the existing weights, the fitted linear model predictions, or further known covariates. A gamma GLM with log link function is used. The weights then become 1 over the predictions of this model. This is similar to the `voom` and `vooma` functions in limma, but allowing a more complex model.
+
+* `weitrix_calibrate_trend`: A model is fitted to dispersions for each row (see section in "dispersion" below). A gamma GLM with log link function is used. Weights in each row are then scaled down by the model prediction. This is similar to the trend option in limma's `eBayes` function, but allows other predictors beyond the row average. This is less powerful than `weitrix_calibrate_all`, but also requires less computation and memory.
+
+Calibration performance should be judged using the `weitrix_calplot` function. This can be used to plot weighted residuals against any known covariates. Properly calibrated weighted residuals should have uniform variance, i.e. no trend should be visible relative to any known covariate. `weitrix_calplot` can also plot residuals against 1/sqrt(weight) (i.e. the expected residual standard deviation), which we call a "funnel plot" due to its desired shape.
+
+### Examples
 
 Some examples of possible measurements and weights:
 
@@ -89,11 +99,9 @@ A weitrix can be converted to an EList object for use with limma: `weitrix_elist
 
 The `$col` matrix of a `Components` may be used as a design matrix for differential analysis with limma. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
 
-When there are a small number of columns (such as from a bulk RNA-Seq experiemtn), weights may be "calibrated" to a trend line before testing using limma, in order to make limma's Empirical Bayes squeezing of dispersions more effective. This is done using `weitrix_calibrate_trend`, which scales the weights of each row to eliminate any trends with known predictors of the dispersion. This is very similar to the "trend" option in `limma::eBayes`, but more flexible. `limma::eBayes` can account for a trend curve relative to the average expression level. `weitrix_calibrate_trend` can use a different predictor of the dispersion, or combine several predictors at once.
+When there are a small number of columns (such as from a bulk RNA-Seq experiemtn), weights should be "calibrated" to a trend as described above. This should adjust for any known explanations of levels of variation, but there will still remain differences between genes. Some genes (rows) may simply be more biologically variable than others. limma makes a regularaized estimate of the dispersion for each row using its Emprical Bayes approach.
 
 When there are many columns (such as from a single cell experiment), the dispersion can be estimated accurately and such considerations are irrelevant. Rows can be tested individually by any means that can use weights, such as `lm`. limma is convenient and there's no harm in using it, but also no advantage. If calibration is still desired, dispersions can be estimated with `weitrix_dispersions` and calibrated directly with `weitrix_calibrate`.
-
-Calibrating weights does not change estimates of coefficients for each row (the "row" matrix). It may have some effect on the components of variation discovered.
 
 Having tested each row, there is then the question of which results are most interesting. In happy data which has been collected from well behaved organisms (eg all the same strain or breed, grown under controlled conditions) and which has all been measured to the same accuracy, p-values can be abused as a proxy for effect size without much harm. This breaks down when different measurements have very different weights, and different rows have different dispersions. The common default of ordering results by p-value will tend to highly rank results that have been measured to high accuracy or have low variability, and may down-rank other results with much larger effect sizes. For this reason, we recommend following `limma::lmFit` with the use of `topconfects::limma_confects` from our [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) package, to find large confident effect sizes.
 

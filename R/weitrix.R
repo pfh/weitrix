@@ -58,7 +58,7 @@ as_weitrix <- function(object, weights=NULL) {
     if (!is.null(weights)) {
         if (!is.null(eawp$weights))
             warning("Overwriting existing weights")
-        eawp$weights <- weights
+        eawp$weights <- as.matrix(weights)
     }
 
     x <- eawp$exprs

@@ -501,6 +501,7 @@ weitrix_calplot <- function(
 
     if (funnel) {
         assert_that(!have_covar, msg="Can't use covar with funnel.")
+        weight <- NULL #Prevent R CMD check note. Is there a better way?
         covar_var <- quo(1/sqrt(weight))
         have_covar <- TRUE
     }
@@ -587,7 +588,7 @@ weitrix_calplot <- function(
     } else {
         ggplot(data, aes(
                 y=.data$weighted_residual, 
-                x=as.vector(!!cat_var))) + 
+                x=!!cat_var)) + 
             {if (guides) geom_hline(
                 yintercept=qnorm(c(0.25,0.5,0.75)), color="blue")} + 
             geom_boxplot(na.rm=TRUE) + 
