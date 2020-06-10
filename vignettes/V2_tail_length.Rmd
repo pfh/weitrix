@@ -176,7 +176,7 @@ Note that due to PCR amplification slippage and limited read length, the observe
 
 Having discovered genes with differential tail length, let's look at some genes in detail.
 
-```{r examine, fig.show="hold", fig.width=5, fig.height=3}
+```{r examine, fig.show="hold", fig.width=3, fig.height=3}
 view_gene <- function(id) {
     gene <- rowData(wei)[id,"gene"]
     if (is.na(gene)) gene <- ""
@@ -184,7 +184,8 @@ view_gene <- function(id) {
        geom_hline(yintercept=0) + 
        geom_line() + 
        geom_point(aes(size=tail_count[id,])) +
-       labs(x="Time", y="Tail length", size="Read count", title=paste(id,gene))
+       labs(x="Time", y="Tail length", size="Read count", title=paste(id,gene)) +
+       theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
 }
 
 # Top "significant" genes
@@ -197,8 +198,46 @@ view_gene("YIL053W")
 view_gene("YCR014C")
 ```
 
+# Exploratory analysis: overdispersed genes
 
-# Exploratory analysis
+Genes with high dispersion (weighted residual variance) are often of biological interest. Here we examine dispersion relative to a simple model with only an intercept term.
+
+```{r overdisp1}
+dispersion <- weitrix_dispersions(cal, ~1)
+
+# Sort genes by dispersion
+df <- rowData(cal)
+df$dispersion <- dispersion
+df <- df[order(-df$dispersion),]
+head(df, 10)
+```
+
+```{r overdisp2, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+plot(dispersion ~ total_reads, data=df, log="x", cex=0.5)
+for(id in rownames(df)[1:5]) print(view_gene(id))
+```
+
+MFA1 (mating pheromone a-factor) is clearly related to the arrest of cell cycling using yeast pheromones.
+
+The genes discovered tend to be changing over time. If we use a model that accounts for time, differences between the two strains will be emphasized instead.
+
+```{r overdisp3}
+dispersion2 <- weitrix_dispersions(cal, ~time)
+```
+
+```{r overdisp4, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+# Sort genes by dispersion
+df2 <- rowData(cal)
+df2$dispersion <- dispersion2
+df2 <- df2[order(-df2$dispersion),]
+head(df2, 10)
+plot(dispersion ~ total_reads, data=df2, log="x", cex=0.5)
+for(id in rownames(df2)[1:5]) print(view_gene(id))
+```
+
+
+
+# Exploratory analysis: components of variation
 
 The test we've performed was somewhat unsatisfactory. Due to the design of the experiment it's difficul to specify differential tests that fully interrogate this dataset: the lack of replicates, and the difficult specifying apriori how tail length will change over time.
 
@@ -254,7 +293,7 @@ fit_comp <- cal %>%
 result_C1 <- limma_confects(fit_comp, "C1")
 ```
 
-```{r examine_C1, echo=FALSE, fig.show="hold", fig.width=5, fig.height=3}
+```{r examine_C1, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
 result_C1$table %>% 
     dplyr::select(gene,loading=effect,confect,total_reads) %>% 
     head(10)
@@ -274,7 +313,7 @@ FUS3 is involved in yeast mating. We see here a poly(A) tail signature of yeast 
 result_C2 <- limma_confects(fit_comp, "C2")
 ```
 
-```{r examine_C2, echo=FALSE, fig.show="hold", fig.width=5, fig.height=3}
+```{r examine_C2, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
 result_C2$table %>% 
     dplyr::select(gene,loading=effect,confect,total_reads) %>% 
     head(10)
@@ -293,7 +332,7 @@ result_C3 <- limma_confects(fit_comp, "C3")
 
 Given the mixture of signs for effects in C3, different genes are longer in different stages of the cell cycle. We see many genes to do with replication.
 
-```{r examine_C3, echo=FALSE, fig.show="hold", fig.width=5, fig.height=3}
+```{r examine_C3, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
 result_C3$table %>% 
     dplyr::select(gene,loading=effect,confect,total_reads) %>% 
     head(10)

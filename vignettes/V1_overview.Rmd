@@ -91,6 +91,7 @@ $$
 
 Similarly where $R^2$ values are reported, these are proportions of *weighted* variation that have been explained.
 
+**Using dispersion for outlier detection:** Genes with high dispersion on a calibrated weitrix and relative to a simple linear model will often be of biological interest. This can be a good starting point for exploratory analysis. Calibration serves to de-emphasize variation that is not of interest, for example higher variability due to low read counts.
 
 
 ## Use with limma and topconfects
