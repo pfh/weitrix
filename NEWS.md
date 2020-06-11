@@ -1,4 +1,11 @@
 
+
+# weitrix 1.1.2
+
+* Vignettes use weitrix_calibrate_all, demonstrate weitrix_calplot.
+* weitrix_calplot now uses sqrt(weight)*residual on y axis.
+
+
 # weitrix 1.1.1
 
 * Switch calibration from linear model on log dispersions to using a gamma GLM.
