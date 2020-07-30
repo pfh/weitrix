@@ -20,6 +20,7 @@ The function `weitrix_calibrate_all` will be used to assign precision weights to
 
 ```{r setup, warning=F, message=F}
 library(weitrix)
+library(ComplexHeatmap)
 library(EnsDb.Hsapiens.v86)
 library(edgeR)
 library(limma)
@@ -144,9 +145,35 @@ weitrix_calplot(airway_voomed, design, covar=mu)
 
 RNA-Seq expression is well trodden ground. The main contribution of the weitrix package here is to aid exploration by discovering components of variation, providing not just column scores but row loadings and respecting precision weights.
 
+## Find genes with excess variation
+
+`weitrix_rms_confects` will find genes with excess variation in a *calibrated* weitrix.
+
+```{r warning=FALSE}
+confects <- weitrix_rms_confects(airway_cal, ~1)
+confects
+```
+
+"effect" is root-mean-square variation in residuals relative to a fitted model in *excess* of what is expected from the calibrated weights. Here the model only has an intercept term, so the residuals represent variation from the weighted mean. "confect" scores are lower confidence bounds on the effect, adjusted for multiple testing using the `topconfects` method.
+
+In single-cell experiments, this should be a good way to find marker genes.
+
+Top genes can then be examined to find a reason for their variation. For example, we see that XIST is highly expressed in a particular cell type.
+
+```{r}
+interesting <- confects$table$index[1:20]
+
+centered <- weitrix_x(airway_cal) - rowMeans(weitrix_x(airway_cal))
+rownames(centered) <- rowData(airway_cal)$gene_name
+Heatmap(
+    centered[interesting,], 
+    name="log2 RPM\nvs row mean", 
+    cluster_columns=FALSE)
+```
+
 ## Find components of variation
 
-This will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability. The result is a list of Components objects.
+The code below will find various numbers of components, from 1 to 6. In each case, the components discovered have varimax rotation applied to their gene loadings to aid interpretability. The result is a list of Components objects.
 
 ```{r message=F}
 comp_seq <- weitrix_components_seq(airway_cal, p=6)

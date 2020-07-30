@@ -40,12 +40,19 @@ It should be especially useful if your existing weights account for
     but there is also biological variation.
 In this case large weights will tend to be overly optimistic, 
     and a non-linear transformation of weights is needed.
+}
+\details{
 Residuals are found relative to a fitted model.
 A trend model is then fitted to the squared residuals using a gamma GLM
     with log link function.
-Weitrix weights are set to be the inverse of the fitted trend.
-}
-\details{
+Weitrix weights are set based on the inverse of the fitted trend. 
+
+Residuals from a fitted model are generally smaller than residuals 
+    from the true model.
+A simple adjustment to the weights is made to account for this.
+Weights are reduced by a factor of (n-ncol(design)*nrow(weitrix))/n 
+    where n is the number of non-missing values in the weitrix.
+
 \code{trend_formula} may reference any row or column variables,
     or special factors \code{row} and \code{col},
     or \code{weight} for the existing weights.
@@ -76,6 +83,10 @@ Apply a more complex quadratic curve-based moderation of weights.
 
 \code{trend_formula=~col+offset(-log(weight))}
 Calibrate each sample's weights by a scaling factor.
+Note that due to the simplistic adjustment for using a fitted model rather
+    than the true model, this may give misleading results when 
+    the design is unbalanced and there are few samples, 
+    i.e. when there are some samples with much higher leverage than others.
 
 \code{trend_formula=~col*poly(log(weight),2)}
 Quadratic curve moderation of weights, applied to each sample individually.

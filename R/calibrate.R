@@ -39,9 +39,14 @@ calc_row_dispersion <- function(x, w, row, col) {
 
 as_components <- function(design, weitrix) {
     if (is(design, "Components"))
-        design
+        result <- design
     else
-        weitrix_components(weitrix, design=design, p=0, verbose=FALSE)
+        result <- weitrix_components(weitrix, design=design, p=0, verbose=FALSE)
+    
+    assert_that(nrow(result$row) == nrow(weitrix))
+    assert_that(nrow(result$col) == ncol(weitrix))
+    
+    result
 }
 
 
@@ -74,9 +79,6 @@ as_components <- function(design, weitrix) {
 weitrix_dispersions <- function(weitrix, design=~1) {
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
-    
-    assert_that(nrow(comp$row) == nrow(weitrix))
-    assert_that(nrow(comp$col) == ncol(weitrix))
 
     calc_row_dispersion(
         weitrix_x(weitrix),
@@ -279,10 +281,17 @@ all_names <- function(obj) {
 #'     but there is also biological variation.
 #' In this case large weights will tend to be overly optimistic, 
 #'     and a non-linear transformation of weights is needed.
+#'
 #' Residuals are found relative to a fitted model.
 #' A trend model is then fitted to the squared residuals using a gamma GLM
 #'     with log link function.
-#' Weitrix weights are set to be the inverse of the fitted trend. 
+#' Weitrix weights are set based on the inverse of the fitted trend. 
+#'
+#' Residuals from a fitted model are generally smaller than residuals 
+#'     from the true model.
+#' A simple adjustment to the weights is made to account for this.
+#' Weights are reduced by a factor of (n-ncol(design)*nrow(weitrix))/n 
+#'     where n is the number of non-missing values in the weitrix.
 #'
 #' \code{trend_formula} may reference any row or column variables,
 #'     or special factors \code{row} and \code{col},
@@ -314,6 +323,10 @@ all_names <- function(obj) {
 #'
 #' \code{trend_formula=~col+offset(-log(weight))}
 #' Calibrate each sample's weights by a scaling factor.
+#' Note that due to the simplistic adjustment for using a fitted model rather
+#'     than the true model, this may give misleading results when 
+#'     the design is unbalanced and there are few samples, 
+#'     i.e. when there are some samples with much higher leverage than others.
 #'
 #' \code{trend_formula=~col*poly(log(weight),2)}
 #' Quadratic curve moderation of weights, applied to each sample individually.
@@ -408,10 +421,13 @@ weitrix_calibrate_all <- function(
         list(trend_formula=trend_formula, mustart=mustart, n=n)
     ))
 
+    n_good <- nrow(good_data)
+    overfitting_adjustment <- (n_good-ncol(comp$col)*nrow(weitrix)) / n_good
+
     pred <- predict(fit, newdata=good_data, type="response")
     pred[is.na(pred)] <- Inf
     new_weights <- matrix(0, nrow=nrow(weitrix), ncol=ncol(weitrix))
-    new_weights[good] <- 1/pred
+    new_weights[good] <- overfitting_adjustment/pred
     rownames(new_weights) <- rownames(weitrix)
     colnames(new_weights) <- colnames(weitrix)
 
@@ -449,7 +465,8 @@ weitrix_calibrate_all <- function(
 #' If \code{covar} is given, weighted squared residuals are plotted versus
 #'     the covariate, with a red trend line.
 #' If the weitrix is calibrated, the trend line should be a horizontal line
-#'     with y intercept 1.
+#'     with y intercept close to 1
+#'     (slightly less due to degrees of freedom lost to model fitting).
 #' A blue guide line is shown for this ideal.
 #'
 #' Any of the variables available with \code{weitrix_calibrate_all}
@@ -539,6 +556,10 @@ weitrix_calplot <- function(
         as.vector(weitrix_x(weitrix)) - data$mu,
         rep(NA, nrow(data)))
     data$weighted_residual <- sqrt(data$weight) * data$residual
+
+    n_good <- sum(!is.na(data$residual))
+    overfitting_adjustment <- (n_good-ncol(comp$col)*nrow(weitrix)) / n_good
+    guide_pos <- sqrt(overfitting_adjustment)
     
     if (!have_cat) {
         data$weitrix <- ""
@@ -578,8 +599,8 @@ weitrix_calplot <- function(
         ggplot(plot_data, aes(y=.data$y, x=.data$x)) + 
             {if (have_cat) facet_wrap(vars(.data$cat))} +
             geom_point(stroke=0, size=0.5, alpha=0.5, na.rm=TRUE) + 
-            {if (guides && !funnel) geom_hline(yintercept=c(-1,1), color="blue")} + 
-            {if (guides && funnel) geom_abline(slope=c(1,-1),intercept=c(0,0),color="blue")} +
+            {if (guides && !funnel) geom_hline(yintercept=c(-guide_pos,guide_pos), color="blue")} + 
+            {if (guides && funnel) geom_abline(slope=c(guide_pos,-guide_pos),intercept=c(0,0),color="blue")} +
             geom_line(data=line_data, size=1, color="red")+
             geom_line(aes(y=-.data$y), data=line_data, size=1, color="red")+
             labs(
@@ -590,7 +611,7 @@ weitrix_calplot <- function(
                 y=.data$weighted_residual, 
                 x=!!cat_var)) + 
             {if (guides) geom_hline(
-                yintercept=qnorm(c(0.25,0.5,0.75)), color="blue")} + 
+                yintercept=guide_pos*qnorm(c(0.25,0.5,0.75)), color="blue")} + 
             geom_boxplot(na.rm=TRUE) + 
             labs(y="sqrt(weight) * residual", x="") +
             theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))

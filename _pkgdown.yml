@@ -30,6 +30,7 @@ reference:
 - title: Summary statistics and calibration
   contents:
   - weitrix_dispersions
+  - weitrix_rms_confects
   - weitrix_hill
   - weitrix_calibrate
   - weitrix_calibrate_trend

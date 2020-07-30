@@ -13,7 +13,7 @@ poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](
 knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
 # To examine objects:
-# devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/tail_length_cache/html")
+# devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/V2_tail_length_cache/html")
 ```
 
 # Read files, extract experimental design from sample names
@@ -200,39 +200,34 @@ view_gene("YCR014C")
 
 # Exploratory analysis: overdispersed genes
 
-Genes with high dispersion (weighted residual variance) are often of biological interest. Here we examine dispersion relative to a simple model with only an intercept term.
+Genes with high dispersion (weighted residual variance) may be of biological interest. Here we examine dispersion relative to a simple model with only an intercept term. When the dispersion is greater than 1, there is variation in excess of that expected from our calibrated weights. The function `weitrix_dispersions` can be used to calculate dispersions.
 
-```{r overdisp1}
-dispersion <- weitrix_dispersions(cal, ~1)
+To make this a bit more concrete, we can estimate how much extra variation there is per observation not explained by the model. The function `weitrix_rms_confects` provides this, and further provides a confident lower bound on this excess with a multiple testing correction. The "effect" column in the output is excess variation, and the "confect" column is a confident lower bound on this. Results are sorted by confect. The units are root-(weighted)mean-square variation, i.e. in the same units as the observations themselves.
 
-# Sort genes by dispersion
-df <- rowData(cal)
-df$dispersion <- dispersion
-df <- df[order(-df$dispersion),]
-head(df, 10)
+```{r excess, warning=F}
+confects <- weitrix_rms_confects(cal, ~1)
+confects
 ```
 
-```{r overdisp2, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
-plot(dispersion ~ total_reads, data=df, log="x", cex=0.5)
-for(id in rownames(df)[1:5]) print(view_gene(id))
+```{r excess2, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+plot(effect ~ total_reads, data=confects$table, log="x", cex=0.5, col="gray",
+   ylab="confect (black) and effect (gray)")
+points(confect ~ total_reads, data=confects$table, cex=0.5)
+for(id in confects$table$name[1:5]) print(view_gene(id))
 ```
-
-MFA1 (mating pheromone a-factor) is clearly related to the arrest of cell cycling using yeast pheromones.
 
 The genes discovered tend to be changing over time. If we use a model that accounts for time, differences between the two strains will be emphasized instead.
 
-```{r overdisp3}
-dispersion2 <- weitrix_dispersions(cal, ~time)
+```{r excess3, warning=F}
+confects2 <- weitrix_rms_confects(cal, ~time)
+confects2
 ```
 
-```{r overdisp4, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
-# Sort genes by dispersion
-df2 <- rowData(cal)
-df2$dispersion <- dispersion2
-df2 <- df2[order(-df2$dispersion),]
-head(df2, 10)
-plot(dispersion ~ total_reads, data=df2, log="x", cex=0.5)
-for(id in rownames(df2)[1:5]) print(view_gene(id))
+```{r excess4, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+plot(effect ~ total_reads, data=confects2$table, log="x", cex=0.5, col="gray",
+   ylab="confect (black) and effect (gray)")
+points(confect ~ total_reads, data=confects2$table, cex=0.5)
+for(id in confects2$table$name[1:5]) print(view_gene(id))
 ```
 
 

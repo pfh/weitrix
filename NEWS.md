@@ -1,5 +1,13 @@
 
 
+# weitrix 1.1.3
+
+* weitrix_calibrate_all now includes a simple scaling factor to account for
+  residuals from a fitted model being smaller than residuals from the true 
+  model.
+* weitrix_calplot blue guidelines are similarly adjusted.
+* Add weitrix_rms_confects to find rows with confidently excessive variation.
+
 # weitrix 1.1.2
 
 * Vignettes use weitrix_calibrate_all, demonstrate weitrix_calplot.

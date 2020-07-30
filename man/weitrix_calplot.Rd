@@ -55,7 +55,8 @@ If \code{cat} is given, it will be used to break the elements down
 If \code{covar} is given, weighted squared residuals are plotted versus
     the covariate, with a red trend line.
 If the weitrix is calibrated, the trend line should be a horizontal line
-    with y intercept 1.
+    with y intercept close to 1
+    (slightly less due to degrees of freedom lost to model fitting).
 A blue guide line is shown for this ideal.
 
 Any of the variables available with \code{weitrix_calibrate_all}
