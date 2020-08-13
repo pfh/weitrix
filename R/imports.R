@@ -13,7 +13,7 @@
 #'     left_join
 #'
 #' @importFrom purrr
-#'     map map_chr map_dbl map_int map2
+#'     map map_chr map_dbl map_int map_lgl map2
 #'
 #' @importFrom ggplot2
 #'    ggplot aes aes_string geom_point geom_line geom_hline labs coord_cartesian
@@ -28,6 +28,9 @@
 #'
 #' @importFrom limma
 #'     getEAWP
+#'
+#' @importFrom topconfects
+#'     nest_confects normal_confects
 #'
 #' @importClassesFrom SummarizedExperiment 
 #'     SummarizedExperiment

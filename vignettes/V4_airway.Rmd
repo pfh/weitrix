@@ -1,6 +1,9 @@
 ---
 title: "4. RNA-Seq expression example, components of the airway dataset"
-output: rmarkdown::html_vignette
+author: "Paul Harrison"
+date: "`r Sys.Date()`"
+output: 
+    BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{4. RNA-Seq expression example}
   %\VignetteEngine{knitr::rmarkdown}
@@ -147,10 +150,10 @@ RNA-Seq expression is well trodden ground. The main contribution of the weitrix 
 
 ## Find genes with excess variation
 
-`weitrix_rms_confects` will find genes with excess variation in a *calibrated* weitrix.
+`weitrix_sd_confects` will find genes with excess variation in a *calibrated* weitrix.
 
 ```{r warning=FALSE}
-confects <- weitrix_rms_confects(airway_cal, ~1)
+confects <- weitrix_sd_confects(airway_cal, ~1)
 confects
 ```
 

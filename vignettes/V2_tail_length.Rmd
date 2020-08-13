@@ -1,6 +1,9 @@
 ---
 title: "2. poly(A) tail length example"
-output: rmarkdown::html_vignette
+author: "Paul Harrison"
+date: "`r Sys.Date()`"
+output: 
+    BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{2. poly(A) tail length example}
   %\VignetteEngine{knitr::rmarkdown}
@@ -202,10 +205,10 @@ view_gene("YCR014C")
 
 Genes with high dispersion (weighted residual variance) may be of biological interest. Here we examine dispersion relative to a simple model with only an intercept term. When the dispersion is greater than 1, there is variation in excess of that expected from our calibrated weights. The function `weitrix_dispersions` can be used to calculate dispersions.
 
-To make this a bit more concrete, we can estimate how much extra variation there is per observation not explained by the model. The function `weitrix_rms_confects` provides this, and further provides a confident lower bound on this excess with a multiple testing correction. The "effect" column in the output is excess variation, and the "confect" column is a confident lower bound on this. Results are sorted by confect. The units are root-(weighted)mean-square variation, i.e. in the same units as the observations themselves.
+To make this a bit more concrete, we can estimate how much extra variation there is per observation not explained by the model. The function `weitrix_sd_confects` provides this, and further provides a confident lower bound on this excess with a multiple testing correction. The "effect" column in the output is excess variation, and the "confect" column is a confident lower bound on this. Results are sorted by confect. The units are root-(weighted)mean-square variation, i.e. in the same units as the observations themselves.
 
 ```{r excess, warning=F}
-confects <- weitrix_rms_confects(cal, ~1)
+confects <- weitrix_sd_confects(cal, ~1)
 confects
 ```
 
@@ -219,7 +222,7 @@ for(id in confects$table$name[1:5]) print(view_gene(id))
 The genes discovered tend to be changing over time. If we use a model that accounts for time, differences between the two strains will be emphasized instead.
 
 ```{r excess3, warning=F}
-confects2 <- weitrix_rms_confects(cal, ~time)
+confects2 <- weitrix_sd_confects(cal, ~time)
 confects2
 ```
 

@@ -1,6 +1,9 @@
 ---
 title: "1. Concepts and practical details"
-output: rmarkdown::html_vignette
+author: "Paul Harrison"
+date: "`r Sys.Date()`"
+output: 
+    BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{1. Concepts and practical details}
   %\VignetteEngine{knitr::rmarkdown}

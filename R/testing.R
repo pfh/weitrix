@@ -1,0 +1,310 @@
+
+
+# Least squares and then apply linear combinations, 
+# calculate vcov.
+# K %*% weighted_pseudoinverse(A) %*% b
+fit_and_contrast <- function(K, X, w, y) {
+    present <- w > 0
+    w <- w[present]
+    y <- y[present]
+    X <- X[present,,drop=FALSE]
+
+    # Insufficient data?
+    if (length(y) < ncol(X)) 
+        return(NULL)
+
+    sw <- sqrt(w)
+    swy <- sw*y
+    swX <- sw*X
+    decomp <- svd(swX)
+    
+    # Fail if singular
+    if (any(decomp$d == 0)) 
+        return(NULL) 
+
+    solver <- decomp$v %*% (t(decomp$u)/decomp$d)
+    
+    beta_hat <- as.vector(solver %*% swy)
+    residuals <- swy - swX %*% beta_hat      #(weighted)
+    estimates <- as.vector(K %*% beta_hat)
+
+    Ksolver <- K %*% solver
+    unscaled_covar <- Ksolver %*% t(Ksolver)
+
+    # How big is the linear combination?
+    eig <- eigen(unscaled_covar)
+    unscaled_ss <- sum( (t(eig$vectors) %*% estimates)^2 / eig$values )
+    # unscaled_ss <- t(estimates) %*% solve(unscaled_cover) %*% estimates
+
+    # A unit step could cause up to this much inflation in SS
+    #biggest_unit_step <- 1/min(eig$values)
+
+    list(
+        estimates = estimates,
+        unscaled_vars = diag(unscaled_covar),
+        #unscaled_covar = unscaled_covar,
+        eigenvalues = eig$values,
+        unscaled_ss = unscaled_ss,
+        sum_weight = sum(w),
+        #biggest_unit_step = biggest_unit_step,
+        #kappa = max(eig$value)/min(eig$values),
+        n_present = length(y),
+        df_residuals = length(y)-ncol(X),
+        ss_residuals = sum(residuals^2),
+        weighted_mean = weighted.mean(y,w)
+    )
+}
+
+fit_and_contrast_inner <- function(args) with(args, {
+    n <- nrow(Y)
+    result <- rep(list(NULL), n)
+    for(i in seq_len(n))
+        result[[i]] <- fit_and_contrast(K,X,W[i,],Y[i,])
+    result
+})
+
+
+fit_and_contrast_all <- function(K, X, W, Y) {
+    this_function_bp_up()
+    BPPARAM <- bpparam()
+
+    parts <- partitions(nrow(Y), ncol(Y)*2, cpu_heavy=TRUE, BPPARAM=BPPARAM)
+    feed <- map(parts, function(part) {
+        list(
+            K=K, X=X,
+            W=W[part,,drop=FALSE],
+            Y=Y[part,,drop=FALSE])
+    })
+
+    result <- bplapply(feed, fit_and_contrast_inner, BPPARAM=BPPARAM)
+    do.call(c, result)
+}
+
+
+mvtreat_inner <- function(q, ss_observed, ss_hypothesized, df1, df2) {
+    precision <- qchisq(q, df=df2)/df2
+    1 - pchisq(ss_observed*precision, df=df1, ncp=ss_hypothesized*precision)
+}
+
+# Multivariate extension of TREAT
+#
+# This is a weird fusion of Bayesian and Frequentist
+# - Bayesian in that we have a prior belief about the distribution of residual variance
+#   which should be updated by observing the actual residuals before calling
+#   this function. (Typically this will be from empirical Bayes a la limma.)
+# - Frequentist in that we have no distributional beliefs about sum of squares of
+#   the quantities we're estimating.
+#
+# We believe the variance to be drawn from an inverse gamma distribution, 
+# as if produced by var*df2/rchisq(1,df2)
+#
+# We hypothesize the sum of squares to be less than or equal to ss_hypothesized*var
+# We observe a sum of squares ss_observed*var
+#
+# (Note: divide out "var" from everything before calling.)
+#
+pmvtreat <- function(ss_observed, ss_hypothesized, df1, df2) {
+    if (ss_hypothesized == 0)
+        return(pf(ss_observed/df1, df1, df2, lower.tail=FALSE))
+    
+    if (ss_observed <= ss_hypothesized)
+        return(1)
+
+    if (df2 == Inf)
+        return(1 - pchisq(ss_observed, df=df1, ncp=ss_hypothesized))
+    
+    result <- integrate(mvtreat_inner, 0, 1, 
+        ss_observed, ss_hypothesized, df1, df2, 
+        abs.tol=0, stop.on.error=FALSE)
+
+    #if (result$message != "OK")
+    #    warning(paste0("While calulating p-value, ", result$message))
+
+    result$value
+}
+
+#' Top confident effects based on one or more contrasts of a linear model for each row
+#'
+#' This function provides topconfects-style testing of a linear model contrast, as well as a multi-contrast extension to this method for F-tests with effect sizes.
+#'
+#' @export
+weitrix_confects <- function(
+        weitrix, design, contrasts, 
+        effect=c("auto","contrast","sd","cohen_f"),
+        dispersion_est=c("ebayes_limma","row","none"),
+        fdr=0.05, step=NULL, full=FALSE) {
+
+    effect_wanted <- match.arg(effect)
+    dispersion_est <- match.arg(dispersion_est)
+
+    weitrix <- as_weitrix(weitrix)
+    design <- as.matrix(design)
+    contrasts <- as.matrix(contrasts)
+    n <- nrow(weitrix)
+
+    assert_that(ncol(weitrix) == nrow(design))
+    assert_that(nrow(contrasts) == ncol(design))
+
+    if (effect_wanted == "auto") {
+        if (ncol(contrasts) == 1)
+            effect_wanted <- "contrast"
+        else
+            effect_wanted <- "sd"
+    }
+
+    if (is.null(step)) {
+        if (effect_wanted == "contrast")
+            step <- 0.001
+        else
+            step <- 0.01
+    }
+
+    assert_that(effect_wanted != "contrast" || ncol(contrasts) == 1, 
+        msg='Only one contrast allowed for "contrast" effect.') 
+
+
+    # ==== Fit and contrast each row ====
+
+    fits <- fit_and_contrast_all( 
+        t(contrasts), design, weitrix_weights(weitrix), weitrix_x(weitrix)) 
+
+
+    # ==== Extract vectors from list of fits ====
+    
+    good <- !map_lgl(fits, is.null)
+    fits_good <- fits[good]
+    get <- function(what) {
+        x <- rep(NA_real_, n)
+        x[good] <- map_dbl(fits_good, what)
+        x
+    }
+
+    ss1 <- get("unscaled_ss")
+    df1 <- ncol(contrasts)
+    sum_weight <- get("sum_weight")
+    n_present <- get("n_present")
+    ss_residuals <- get("ss_residuals")
+    df_residuals <- get("df_residuals")
+
+
+    # ==== Define denominator of F ratio as requested ====
+
+    if (dispersion_est == "none") {
+        sigma2 <- rep(1, n)
+        df2 <- rep(Inf, n)
+    } else if (dispersion_est == "row") {
+        sigma2 <- ss_residuals / df_residuals
+        df2 <- df_residuals
+        sigma2[ df2==0 ] <- NA
+    } else if (dispersion_est == "ebayes_limma") {
+        # Which rows can we actually estimate the residual variance for?
+        very_good <- good & df_residuals > 0
+        assert_that(sum(very_good) > 0, msg="No remaining degrees of freedom.")
+        squeeze <- squeezeVar(
+            ss_residuals[very_good]/df_residuals[very_good], 
+            df_residuals[very_good])
+        df2 <- df_residuals + squeeze$df.prior
+        if (squeeze$df.prior == Inf)
+            sigma2 <- rep(squeeze$var.prior, n)
+        else
+            sigma2 <- (ss_residuals+squeeze$var.prior*squeeze$df.prior)/df2
+    }
+
+
+    # ==== Calculate F ratio ====
+
+    F <- (ss1/df1)/sigma2
+
+
+    if (effect_wanted == "contrast") {
+       # ==== Topconfects for single contrast =====
+
+       effect_desc = "contrast"
+       effect <- get("estimates")
+       se <- sqrt( get("unscaled_vars")*sigma2 )
+
+       result <- normal_confects(
+           effect, se, df=df2, fdr=fdr, step=step, full=TRUE)
+    } else if (effect_wanted == "cohen_f") {
+        # ==== Topconfects for one or more contrasts ====
+
+        effect_desc <- "Cohen's f"
+        effect <- sqrt( (F*df1)/n_present )
+
+        pfunc <- function(indices, mag) {
+            1 - pf(
+                F[indices],
+                df1=df1,
+                df2=df2[indices],
+                ncp=mag^2 * n_present[indices])
+        }
+
+        result <- nest_confects(
+            n, pfunc, fdr=fdr, step=step, full=TRUE)
+    } else {
+        # ==== Mutlivariate version of TREAT ====
+
+        effect_desc <- "standard deviation explained"
+        effect <- sqrt( ss1/sum_weight )
+
+        pfunc <- function(indices, mag) {
+            map_dbl(indices, ~pmvtreat(
+                ss_observed=ss1[.]/sigma2[.],
+                ss_hypothesized=mag^2*sum_weight[.]/sigma2[.],
+                df1=df1,
+                df2=df2[.]))
+        }
+
+        result <- nest_confects(
+            n, pfunc, fdr=fdr, step=step, full=TRUE)
+    }
+
+
+    # ==== Provide further information in result ====
+    
+    fdr_zero <- result$table$fdr_zero
+    result$table$fdr_zero <- NULL
+
+    result$table$effect <- effect[result$table$index]
+
+    if (effect_wanted != "contrast") {
+        for(i in seq_len(ncol(contrasts))) {
+            name <- colnames(contrasts)[i]
+            if (is.null(name)) name <- paste0("contrast",i)
+            result$table[[name]] <- get(~.$estimates[i])[result$table$index]
+        }
+    }
+
+    result$table$fdr_zero <- fdr_zero
+    result$table$row_mean <- get("weighted_mean")[result$table$index]
+    result$table$typical_obs_err <- sqrt(sigma2*n_present/sum_weight)[result$table$index]
+    if (full) {
+        result$table$F <- F[result$table$index]
+        result$table$n_present <- n_present[result$table$index]
+        result$table$dispersion_seen <- (ss_residuals/df_residuals)[result$table$index]
+        result$table$df_seen <- df_residuals[result$table$index]
+        result$table$dispersion_used <- sigma2[result$table$index]
+        result$table$df_used <- df2[result$table$index]
+    }
+
+    result$table$name <- rownames(weitrix)[result$table$index]
+
+    for(name in colnames(rowData(weitrix)))
+        if (!name %in% colnames(result$table))
+            result$table[[name]] <- rowData(weitrix)[result$table$index,name]
+
+    result$effect_desc <- effect_desc
+
+    # TODO: report these details when printed
+    result$dispersion_est <- dispersion_est
+    result$df_top <- df1
+    if (dispersion_est == "ebayes_limma") {
+        result$df_prior <- squeeze$df.prior
+        result$var_prior <- squeeze$var.prior
+    }
+
+    result
+}
+
+
+

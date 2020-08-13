@@ -51,8 +51,8 @@ calc_rowstats <- function(x, w, row, col) {
 
 #' Find rows with confidently excessive variability in a calibrated weitrix
 #'
-#' Find top confident excess root-mean-square (RMS) variation in a calibrated weitrix. 
-#' The mean referred to here is weighted by weight.
+#' Find rows with confident excess standard deviation beyond what is expected based on the weights of a calibrated weitrix. 
+#' This may be used, for example, to find potential marker genes.
 #'
 #' This is a conversion of the "dispersion" statistic for each row into units that are more readily interpretable, accompanied by confidence bounds with a multiple testing correction.
 #'
@@ -60,7 +60,9 @@ calc_rowstats <- function(x, w, row, col) {
 #'
 #' The weitrix must have been calibrated for results to make sense.
 #'
-#' Top confident effect sizes are found using the \code{topconfects} method, based on the model the observed weighted sum of squared residuals being non-central chi-square distributed.
+#' Top confident effect sizes are found using the \code{topconfects} method, based on the model that the observed weighted sum of squared residuals being non-central chi-square distributed.
+#'
+#' Note that all calculations are based on weighted residuals, with a rescaling to place results on the original scale. When a row has highly variable weights, this is an approximation that is only sensible if the weights are unrelated to the values themselves. 
 #' 
 #' @param weitrix 
 #' A weitrix object, or an object that can be converted to a weitrix 
@@ -95,12 +97,9 @@ calc_rowstats <- function(x, w, row, col) {
 #' weitrix_rms_confects(calwei, ~1)
 #'
 #' @export
-weitrix_rms_confects <- function(
+weitrix_sd_confects <- function(
         weitrix, design=~1,  
         fdr=0.05, step=0.001) {
-    if (!require("topconfects"))
-        stop("topconfects package is required.")
-
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
     
@@ -129,7 +128,7 @@ weitrix_rms_confects <- function(
             ncp=effect_size^2 * df$mean_weight[indices] * df$df[indices])
     }
 
-    result <- topconfects::nest_confects(
+    result <- nest_confects(
         nrow(df), pfunc, fdr=fdr, step=step, full=TRUE)
     
     # Add further useful columns to the results table
@@ -150,7 +149,7 @@ weitrix_rms_confects <- function(
         if (!name %in% colnames(result$table))
             result$table[[name]] <- rowData(weitrix)[result$table$index,name]
 
-    result$effect_desc <- "excess root-mean-square variation"
+    result$effect_desc <- "excess standard deviation"
 
     result
 }

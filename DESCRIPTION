@@ -20,6 +20,7 @@ Imports:
     BiocParallel,
     BiocGenerics,
     limma,
+    topconfects,
     dplyr,
     purrr,
     ggplot2,
@@ -30,15 +31,15 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown,
+    BiocStyle,
     tidyverse,
     airway,
     edgeR,
-    topconfects,
     EnsDb.Hsapiens.v86,
     org.Sc.sgd.db,
     AnnotationDbi,
     ComplexHeatmap,
     testthat (>= 2.1.0)
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 VignetteBuilder: knitr
 biocViews: Software, DataRepresentation, DimensionReduction, GeneExpression, Transcriptomics, RNASeq, SingleCell, Regression
