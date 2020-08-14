@@ -105,7 +105,7 @@ Having obtained a weitrix, everthing discussed for the [poly(A) tail length exam
 We can look for components of variation.
 
 ```{r comp, message=F}
-comp_seq <- weitrix_components_seq(wei, p=10, design=~0)
+comp_seq <- weitrix_components_seq(wei, p=6, design=~0)
 ```
 
 ```{r scree}

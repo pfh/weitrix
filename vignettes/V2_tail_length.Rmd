@@ -277,10 +277,10 @@ Perhaps we should let the data speak for itself.
 
 Perhaps this is what we should have done first!
 
-The weitrix package allows us to look for components of variation. We'll try to explain the data with different numbers of components (from 1 to 10 components).
+The weitrix package allows us to look for components of variation. We'll try to explain the data with different numbers of components (from 1 to 6 components).
 
 ```{r comp, message=F}
-comp_seq <- weitrix_components_seq(cal, p=10)
+comp_seq <- weitrix_components_seq(cal, p=6)
 ```
 
 `weitrix_seq_screeplot` shows how much additional variation in the data is explained as each further component is allowed. However the ultimate decision of how many components to examine is a matter of judgement.
