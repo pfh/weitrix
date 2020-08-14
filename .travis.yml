@@ -1,2 +1,6 @@
 language: r
 r: bioc-devel
+script:
+- travis_wait R CMD build .
+- travis_wait R CMD check *tar.gz
+
