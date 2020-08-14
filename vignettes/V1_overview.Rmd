@@ -42,7 +42,7 @@ The concept of weights used in this package is the same as for weights specified
 
 ### Calibration
 
-Weights can be calibrated per row so they are one over the variance of a measurement. When testing using limma, a calibrated weitrix will produce better results than an uncalibrated one. Two main functions for calibrating weights are provided:
+Weights can be calibrated per row so they are one over the variance of a measurement. When testing using `weitrix_confects` or limma, a calibrated weitrix will produce better results than an uncalibrated one. Two main functions for calibrating weights are provided:
 
 * `weitrix_calibrate_all`: A model is fitted to squared residuals, using as predictors the existing weights, the fitted linear model predictions, or further known covariates. A gamma GLM with log link function is used. The weights then become 1 over the predictions of this model. This is similar to the `voom` and `vooma` functions in limma, but allowing a more complex model.
 
@@ -94,20 +94,22 @@ $$
 
 Similarly where $R^2$ values are reported, these are proportions of *weighted* variation that have been explained.
 
-**Using dispersion for outlier detection:** Genes with high dispersion on a calibrated weitrix and relative to a simple linear model will often be of biological interest. This can be a good starting point for exploratory analysis. Calibration serves to de-emphasize variation that is not of interest, for example higher variability due to low read counts.
+**Using dispersion for outlier detection:** Genes with high dispersion on a calibrated weitrix and relative to a simple linear model will often be of biological interest. This can be a good starting point for exploratory analysis. Calibration serves to de-emphasize variation that is not of interest, for example higher variability due to low read counts. In a calibrated weitrix, the expected dispersion is 1.
+
+Use `weitrix_sd_confects` to find genes with variability confidently exceeding the expected level.
 
 
-## Use with limma and topconfects
+## Testing with topconfects or limma
 
-A weitrix can be converted to an EList object for use with limma: `weitrix_elist`
+A top confident contrasts from linear models fitted to each row can be tested using the function `weitrix_confects`. This follows the [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) approach, finding rows with confidently large effect sizes, which are not necessarily those with the smallest p-values.
 
-The `$col` matrix of a `Components` may be used as a design matrix for differential analysis with limma. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
+If you prefer a more traditional analysis, a weitrix can be converted to an EList object for use with limma with `weitrix_elist`. However note that limma's use of weights is approximate if contrasts are used or if F-tests rather than a t-tests are used.
 
-When there are a small number of columns (such as from a bulk RNA-Seq experiemtn), weights should be "calibrated" to a trend as described above. This should adjust for any known explanations of levels of variation, but there will still remain differences between genes. Some genes (rows) may simply be more biologically variable than others. limma makes a regularaized estimate of the dispersion for each row using its Emprical Bayes approach.
+The `$col` matrix of a `Components` may be used as a design matrix for differential analysis with `weitrix_confects` or with limma. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
 
-When there are many columns (such as from a single cell experiment), the dispersion can be estimated accurately and such considerations are irrelevant. Rows can be tested individually by any means that can use weights, such as `lm`. limma is convenient and there's no harm in using it, but also no advantage. If calibration is still desired, dispersions can be estimated with `weitrix_dispersions` and calibrated directly with `weitrix_calibrate`.
+Whatever method is used, weights should first be calibrated to remove trends due to known covariates as described above. Both `weitrix_confects` and limma analysis estimate the per-row dispersion, apply Empirical Bayes squeezing of dispersions, and then use this when estimating how accurately coefficients and contrasts have been estimated. This can be seen as a sort of further row-by-row calibration step. 
 
-Having tested each row, there is then the question of which results are most interesting. In happy data which has been collected from well behaved organisms (eg all the same strain or breed, grown under controlled conditions) and which has all been measured to the same accuracy, p-values can be abused as a proxy for effect size without much harm. This breaks down when different measurements have very different weights, and different rows have different dispersions. The common default of ordering results by p-value will tend to highly rank results that have been measured to high accuracy or have low variability, and may down-rank other results with much larger effect sizes. For this reason, we recommend following `limma::lmFit` with the use of `topconfects::limma_confects` from our [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) package, to find large confident effect sizes.
+If you have a limited number of columns, then the better the initial calibration step is performed the more effective Empirical Bayes squeezing of dispersions will be and the more significant results will be found. If you have many columns the squeezing of dispersions will only have a minor effect, and these considerations become less important.
 
 
 # Practical details

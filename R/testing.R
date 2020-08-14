@@ -125,19 +125,98 @@ pmvtreat <- function(ss_observed, ss_hypothesized, df1, df2) {
 
 #' Top confident effects based on one or more contrasts of a linear model for each row
 #'
-#' This function provides topconfects-style testing of a linear model contrast, as well as a multi-contrast extension to this method for F-tests with effect sizes.
+#' This function provides topconfects-style testing of a linear model contrast, as well as a multi-contrast extension of this method for F-tests with effect sizes.
+#'
+#' Based on the \code{effect} argument, the estimated effect may be:
+#'
+#' \itemize{
+#' \item{\code{"auto"}} Choose \code{"contrast"} or \code{"sd"} as appropriate. 
+#' \item{\code{"contrast"}} The estimated contrast. This should produce results identical to a limma-topconfects analysis.
+#' \item{\code{"sd"}} Standard deviation explained (i.e. square root of the variance explained) by the part of the model captured by the contrasts provided. 
+#' \item{\code{"cohen_f"}} Cohen's f, i.e. the signal to noise ratio. Ranking is similar to traditional ranking of results by p-value. 
+#' }
+#'
+#' Based on the \code{dispersion_est} argument, the estimated residual dispersion is estimated as:
+#'
+#' \itemize{
+#' \item{\code{"none"}} Weitrix is assumed to be fully calibrated already. Dispersion is assumed to be 1. If the assumption is correct, this is most powerful, as there is no uncertainty to the dispersion.
+#' \item{\code{"row"}} Dispersion is estimated based on the residuals for each row. With a limited number of columns, this estimate is uncertain (low residual degrees of freedom), so may lack power.
+#' \item{\code{"ebayes_limma"}} Default, recommended. Perform Empricial Bayes squeezing of dispersions, using \code{limma::squeezeVar}. This also reduces the uncertainty about the dispersion (mainfesting as extra "prior" degrees of freedom), increasing the power of the test.
+#' }
+#'
+#' In results from this function, whenever we talk about the mean, standard deviation explained, or typical observation error, this should be understood to be weighted. Standard deviation explained is in the same units as the observations, but its estimation is weighted by the weights, so in a row with some high weight observations and other low weight observations, estimated standard deviation explained will mostly be driven by the high weight observations.
+#'
+#' @param weitrix 
+#' A weitrix object, or an object that can be converted to a weitrix 
+#' with \code{as_weitrix}.
+#' @param design 
+#' A formula in terms of \code{colData(weitrix} or a design matrix, 
+#' which will be fitted to the weitrix on each row. 
+#' Can also be a pre-existing Components object, 
+#' in which case the existing fits (\code{design$row}) are used.
+#' @param coef
+#' Give either coef or contrasts but not both.
+#' If coef is given, it is converted into a set of contrasts that simply
+#'   test each given coefficient. 
+#' Coefficients can be specified by number of name.
+#' @param contrasts
+#' Give either coef or contrasts but not both.
+#' One or more contrasts of interest, i.e. specifications of linear combination of coefficients.
+#' Each contrast should be placed in a columns.
+#' The number of rows should match the number of coefficients.
+#' @param effect
+#' Effect to estimate and provide confidence bounds on. See description.
+#' @param dispersion_est
+#' Method of estimating per-row dispersion. See description.
+#' @param fdr 
+#' False Discovery Rate to control for.
+#' @param step 
+#' Granularity of effect sizes to test.
+#' @param full 
+#' If TRUE, output some further columns related to the calculations. 
+#'
+#' @return
+#' A topconfects result. The \code{$table} data frame contains columns:
+#' \itemize{
+#' \item{effect}{ Estimated effect (as requested using the \code{effect} parameter). }
+#' \item{confect}{ An inner confidence bound on effect. }
+#' \item{fdr_zero}{ FDR-adjusted p-value for the null hypothesis that effect is zero. }
+#' \item{row_mean}{ Weighted row mean. }
+#' \item{typical_obs_err}{ Typical residual standard deviation (square root of variance) associated with observations in this row. Note that each observation has its own associated variance, based on its weight and the row dispersion estimate used. This column is calculated from the weighted average variance of observations. }
+#' } 
+#'
+#' @examples
+#'
+#' # Simplest possible test
+#' # Which rows have an average different from zero?
+#' weitrix_confects(simwei, ~1, coef="(Intercept)")
+#'
+#' # See vignettes for more substantial examples
 #'
 #' @export
 weitrix_confects <- function(
-        weitrix, design, contrasts, 
+        weitrix, design, coef=NULL, contrasts=NULL, 
         effect=c("auto","contrast","sd","cohen_f"),
         dispersion_est=c("ebayes_limma","row","none"),
         fdr=0.05, step=NULL, full=FALSE) {
 
     effect_wanted <- match.arg(effect)
     dispersion_est <- match.arg(dispersion_est)
+    assert_that(!is.null(coef) || !is.null(contrasts))
+    assert_that(is.null(coef) || is.null(contrasts))
 
     weitrix <- as_weitrix(weitrix)
+
+    if (is(design, "formula"))
+        design <- model.matrix(design, data=colData(weitrix))
+
+    # Convert coefficients into contrast matrix if given
+    if (!is.null(coef)) {
+        mat <- diag(ncol(design))
+        colnames(mat) <- colnames(design)
+        contrasts <- mat[, coef, drop=FALSE]
+    }
+
     design <- as.matrix(design)
     contrasts <- as.matrix(contrasts)
     n <- nrow(weitrix)
@@ -267,11 +346,20 @@ weitrix_confects <- function(
 
     result$table$effect <- effect[result$table$index]
 
-    if (effect_wanted != "contrast") {
+    if (full || effect_wanted != "contrast") {
         for(i in seq_len(ncol(contrasts))) {
             name <- colnames(contrasts)[i]
             if (is.null(name)) name <- paste0("contrast",i)
             result$table[[name]] <- get(~.$estimates[i])[result$table$index]
+        }
+    }
+
+    if (full) {
+        for(i in seq_len(ncol(contrasts))) {
+            name <- colnames(contrasts)[i]
+            if (is.null(name)) name <- paste0("contrast",i)
+            result$table[[paste0(name,"_se")]] <- 
+                sqrt(get(~.$unscaled_vars[i])*sigma2)[result$table$index]
         }
     }
 
@@ -302,6 +390,9 @@ weitrix_confects <- function(
         result$df_prior <- squeeze$df.prior
         result$var_prior <- squeeze$var.prior
     }
+
+    result$design <- design
+    result$contrasts <- contrasts
 
     result
 }

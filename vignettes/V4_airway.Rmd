@@ -11,17 +11,17 @@ vignette: >
 ---
 
 ```{r echo=F}
-# To test
-# devtools::load_all(".",export_all=F) ; rmarkdown::render("vignettes/V4_airway.Rmd")
+# To examine objects:
+# devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/V4_airway/html")
 
-knitr::opts_chunk$set(fig.width=6, fig.height=4)
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 ```
 
 Let's look at the [airway](http://bioconductor.org/packages/release/data/experiment/html/airway.html) dataset as an example of a typical small-scale RNA-Seq experiment. In this experiment, four Airway Smooth Muscle (ASM) cell lines are treated with the asthma medication dexamethasone.
 
 The function `weitrix_calibrate_all` will be used to assign precision weights to log Counts Per Million values.
 
-```{r setup, warning=F, message=F}
+```{r setup, warning=F, message=F, cache=FALSE}
 library(weitrix)
 library(ComplexHeatmap)
 library(EnsDb.Hsapiens.v86)
@@ -89,7 +89,7 @@ fit <- weitrix_components(airway_weitrix, design=design)
 
 Currently the weitrix has weights uniformly equal to 1. Examining residuals, we see a variance trend relative to the linear model prediction.
 
-Each dot in the plot below is a residual weighted by sqrt(weight). The x-axis is the linear model prediction. The y-axis is the weighted residual (all weights are currently 1). The red line is fitted to the weighted *squared* residuals. (The red line is shown simply mirrored below, i.e. any bias in the residuals will show as a widening in both red lines.)
+Each dot in the plot below is a residual weighted by sqrt(weight). The x-axis is the linear model prediction. The y-axis is the weighted residual (all weights are currently 1). The red lines show the mean and the mean +/- one standard deviation.
 
 ```{r}
 weitrix_calplot(airway_weitrix, fit, covar=mu, guides=FALSE)
@@ -105,7 +105,7 @@ metadata(airway_cal)
 weitrix_calplot(airway_cal, fit, covar=mu)
 ```
 
-The trend line (red) for the calibrated weitrix is now uniformly close to 1 (guide line shown in blue). Weights can now be treated as inverse residual variance.
+The trend lines (red) for the calibrated weitrix are now uniformly close to 1, 0, -1 (guide lines shown in blue). Weights can now be treated as inverse residual variance.
 
 Another way to check this is to plot the unweighted residuals against 1/sqrt(weight), i.e. the residual standard deviation.
 
@@ -115,11 +115,9 @@ weitrix_calplot(airway_cal, fit, funnel=TRUE)
 
 We can also check each sample individually.
 
-```{r}
+```{r fig.height=8}
 weitrix_calplot(airway_cal, fit, covar=mu, cat=col)
 ```
-
-Nothing looks amiss.
 
 ## Advanced calibration
 
@@ -233,13 +231,21 @@ comp_nonvarimax$col[,-1] %>% melt(varnames=c("Run","component")) %>%
 ```
 
 
-## `col` can potentially be used as a design matrix with limma
+## `col` can potentially be used as a design matrix
 
 If you're not sure of the experimental design, for example the exact timing of a time series or how evenly a drug treatment was applied, the extracted component might actually be more accurate.
 
 Note that this ignores uncertainty about the `col` matrix itself.
 
 This may be useful for hypothesis generation -- finding some potentially interesting genes, while discounting noisy or lowly expressed genes -- but don't use it as proof of significance.
+
+First by the [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) method. This will find the largest confident effect sizes, while still correcting for multiple testing.
+
+```{r}
+weitrix_confects(airway_cal, comp$col, "C1")
+```
+
+If you prefer limma and p-values:
 
 ```{r}
 airway_elist <- weitrix_elist(airway_cal)
@@ -256,14 +262,6 @@ topTable(fit, "C1")
 all_top <- topTable(fit, "C1", n=Inf, sort.by="none")
 plotMD(fit, "C1", status=all_top$adj.P.Val <= 0.01)
 ```
-
-You might also consider using my `topconfects` package. This will find the largest confident effect sizes, while still correcting for multiple testing.
-
-```{r}
-library(topconfects)
-limma_confects(fit, "C1")
-```
-
 
 
 

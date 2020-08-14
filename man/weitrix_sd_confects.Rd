@@ -22,11 +22,11 @@ in which case the existing fits (\code{design$row}) are used.}
 \value{
 A topconfects result. The \code{$table} data frame contains columns:
 \itemize{
-\item{effect}{ Estimated excess variation, in the same units as the observations themselves. }
+\item{effect}{ Estimated excess standard deviation, in the same units as the observations themselves. 0 if the dispersion is less than 1. }
 \item{confect}{ A lower confidence bound on effect. }
 \item{typical_obs_err}{ Typical accuracy of each observation. }
-\item{dispersion}{ Dispersion. Weighted sum of squared residuals divided by degrees of freedom. }
-\item{n}{ Number of observations with non-zero weight. }
+\item{dispersion}{ Dispersion. Weighted sum of squared residuals divided by residual degrees of freedom. }
+\item{n_present}{ Number of observations with non-zero weight. }
 \item{df}{ Degrees of freedom. n minus the number of coefficients in the model. }
 \item{fdr_zero}{ FDR-adjusted p-value for the null hypothesis that effect is zero. }
 }
@@ -50,9 +50,9 @@ Note that all calculations are based on weighted residuals, with a rescaling to 
 }
 \examples{
 
-# weitrix_rms_confects can only be used with a calibrated weitrix
+# weitrix_sd_confects should only be used with a calibrated weitrix
 calwei <- weitrix_calibrate_all(simwei, ~1, ~1)
 
-weitrix_rms_confects(calwei, ~1)
+weitrix_sd_confects(calwei, ~1)
 
 }

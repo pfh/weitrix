@@ -27,7 +27,7 @@
 #'    percent
 #'
 #' @importFrom limma
-#'     getEAWP
+#'     getEAWP squeezeVar
 #'
 #' @importFrom topconfects
 #'     nest_confects normal_confects

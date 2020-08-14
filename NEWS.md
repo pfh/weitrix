@@ -1,4 +1,9 @@
 
+# weitrix 1.1.4
+
+* weitrix_confects for differential testing.
+* weitrix_rms_confects now called weitrix_sd_confects.
+* weitrix_calplot now shows mean trend and mean +/- standard deviation trend.
 
 # weitrix 1.1.3
 

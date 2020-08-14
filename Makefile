@@ -25,7 +25,7 @@ install :
 
 vignette :
 	@echo file:///`pwd`/doc
-	Rscript -e "devtools::build_vignettes()"
+	Rscript -e "devtools::build_vignettes(quiet=FALSE,clean=FALSE)"
 
 site : document
 	Rscript -e "pkgdown::build_site(new_process=FALSE)"
@@ -39,7 +39,7 @@ articles-devel :
 	Rscript -e "devtools::load_all('.',export_all=F);pkgdown::build_articles(lazy=TRUE,quiet=FALSE)"
 
 publish : 
-	rsync -rv docs/* logarithmic.net:www/weitrix/
+	rsync -rv docs/* doc/* logarithmic.net:www/weitrix/
 
 clean :
 	rm -rf weitrix.Rcheck vignettes/*.html vignettes/*_cache vignettes/*_files docs weitrix_*.tar.gz

@@ -30,19 +30,18 @@ The weights are the number of reads, however for a randomly chosen read we can e
 
 # Load files
 
-```{r setup, echo=F}
-knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
+```{r echo=F}
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 
 # To examine objects:
 # devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/3_shift_cache/html")
 ```
 
-```{r load, message=F, warning=F}
-library(tidyverse)
-library(reshape2)
-library(limma)
-library(topconfects)
-library(weitrix)
+```{r setup, message=F, warning=F, cache=FALSE}
+library(tidyverse)    # ggplot2, dplyr, etc
+library(patchwork)    # side-by-side ggplots
+library(reshape2)     # melt()
+library(weitrix)      # Matrices with precision weights
 
 # Produce consistent results
 set.seed(12345)
@@ -53,7 +52,9 @@ BiocParallel::register( BiocParallel::SnowParam() )
 
 # The most reliable backed is to use serial processing
 #BiocParallel::register( BiocParallel::SerialParam() )
+```
 
+```{r load, message=F, warning=F}
 peaks <- system.file("GSE83162", "peaks.csv.gz", package="weitrix") %>%
     read_csv()
 
@@ -99,6 +100,8 @@ Having obtained a weitrix, everthing discussed for the [poly(A) tail length exam
 
 # Exploratory analysis
 
+## Components of variation
+
 We can look for components of variation.
 
 ```{r comp, message=F}
@@ -135,71 +138,75 @@ metadata(cal)$weitrix$all_coef
 
 A mean-variance trend is visible in the uncalibrated weighted residuals. Calibration has removed this, by making use of the information in `per_read_var`.
 
-```{r calibrate_all_fig1,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, covar=mu) + labs(title="Before")
-weitrix_calplot(cal, comp, covar=mu) + labs(title="After")
+```{r calibrate_all_fig1}
+(weitrix_calplot(wei, comp, covar=mu) + labs(title="Before")) +
+(weitrix_calplot(cal, comp, covar=mu) + labs(title="After"))
 ```
 
 We can look at the calibration to `per_read_var` directly.
 
-```{r calibrate_all_fig2,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, covar=per_read_var) + labs(title="Before")
-weitrix_calplot(cal, comp, covar=per_read_var) + labs(title="After")
+```{r calibrate_all_fig2}
+(weitrix_calplot(wei, comp, covar=per_read_var) + labs(title="Before")) +
+(weitrix_calplot(cal, comp, covar=per_read_var) + labs(title="After"))
 ```
 
 Weights were too large for large read counts. Calibration has applied a non-linear transformation to the weights that fixes this.
 
-```{r calibrate_all_fig3,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")
-weitrix_calplot(cal, comp, covar=log2(weitrix_weights(wei))) + labs(title="After")
+```{r calibrate_all_fig3}
+(weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")) +
+(weitrix_calplot(cal, comp, covar=log2(weitrix_weights(wei))) + labs(title="After"))
 ```
 
 Another way of looking at this is with a "funnel" plot of 1/sqrt(weight) vs residuals. This should make a cone shape. Note how before calibration the pointy end of the cone is too wide.
 
-```{r calibrate_all_fig4,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, funnel=TRUE, guides=FALSE) + labs(title="Before")
-weitrix_calplot(cal, comp, funnel=TRUE, guides=FALSE) + labs(title="After")
+```{r calibrate_all_fig4}
+(weitrix_calplot(wei, comp, funnel=TRUE, guides=FALSE) + labs(title="Before")) +
+(weitrix_calplot(cal, comp, funnel=TRUE, guides=FALSE) + labs(title="After"))
 ```
 
-## Using the calibrated weitrix with limma
+## Using the calibrated weitrix with weitrix_confects
 
-```{r limma}
-fit_comp <- cal %>%
-    weitrix_elist() %>%
-    lmFit(comp$col)
-```
+We will estimate confident loadings for the different components using `weitrix_confects`.
 
 **Treat these results with caution.** Confindence bounds take into account uncertainty in the loadings but not in the scores! What follows is best regarded as exploratory rather than a final result.
 
-## Gene loadings for C1
+### Gene loadings for C1
 
 ```{r C1}
-limma_confects(fit_comp, "C1", fdr=0.05)
+weitrix_confects(cal, comp$col, "C1", fdr=0.05)
 ```
 
-## Gene loadings for C2
+### Gene loadings for C2
 
 ```{r C2}
-limma_confects(fit_comp, "C2", fdr=0.05)
+weitrix_confects(cal, comp$col, "C2", fdr=0.05)
 ```
 
-## Gene loadings for C3
+### Gene loadings for C3
 
 ```{r C3}
-limma_confects(fit_comp, "C3", fdr=0.05)
+weitrix_confects(cal, comp$col, "C3", fdr=0.05)
 ```
 
-## Gene loadings for C4
+### Gene loadings for C4
 
 ```{r C4}
-limma_confects(fit_comp, "C4", fdr=0.05)
+weitrix_confects(cal, comp$col, "C4", fdr=0.05)
+```
+
+## Genes with high variability
+
+Instead of looking for genes following some particular pattern, we can look for genes that simply have surprisingly high variability with `weitrix_sd_confects`.
+
+```{r sdconfects}
+weitrix_sd_confects(cal)
 ```
 
 ## Examine individual genes
 
 Let's examine peak-level read counts for some genes we've identified.
 
-```{r examiner, message=F, warning=F, fig.height=3}
+```{r examiner, message=F, warning=F, fig.show="hold", fig.height=3}
 examine <- function(gene_wanted, title) {
     peak_names <- filter(peaks, gene_name==gene_wanted)$name
 
@@ -215,6 +222,8 @@ examine("YLR333C", "RPS25B, from C2")
 examine("YDR077W", "SED1, from C3")
 examine("YIL015W", "BAR1, from C4")
 examine("tK(CUU)M", "tK(CUU)M, from C4")
+examine("YKL081W", "TEF4, from weitrix_sd_confects")
+examine("YPR080W", "TEF1, from weitrix_sd_confects")
 ```
 
 
@@ -228,21 +237,21 @@ cal_trend <- weitrix_calibrate_trend(wei, comp, ~log(per_read_var)+splines::ns(t
 
 A mean-variance trend is visible in the uncalibrated weighted residuals. Calibration removes this, by making use of the information in `per_read_var`.
 
-```{r calibrate_trend_fig1,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, covar=mu) + labs(title="Before")
-weitrix_calplot(cal_trend, comp, covar=mu) + labs(title="After")
+```{r calibrate_trend_fig1}
+(weitrix_calplot(wei, comp, covar=mu) + labs(title="Before")) +
+(weitrix_calplot(cal_trend, comp, covar=mu) + labs(title="After"))
 ```
 
 We can look at the calibration to `per_read_var` directly.
 
-```{r calibrate_trend_fig2,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, covar=per_read_var) + labs(title="Before")
-weitrix_calplot(cal_trend, comp, covar=per_read_var) + labs(title="After")
+```{r calibrate_trend_fig2}
+(weitrix_calplot(wei, comp, covar=per_read_var) + labs(title="Before")) +
+(weitrix_calplot(cal_trend, comp, covar=per_read_var) + labs(title="After"))
 ```
 
 Weights were too large for large read counts. Calibration has applied a row-level adjustment for this based on the total number of reads for each row.
 
-```{r calibrate_trend_fig3,fig.width=3,fig.height=5,fig.show="hold"}
-weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")
-weitrix_calplot(cal_trend, comp, covar=log2(weitrix_weights(wei))) + labs(title="After")
+```{r calibrate_trend_fig3}
+(weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")) +
+(weitrix_calplot(cal_trend, comp, covar=log2(weitrix_weights(wei))) + labs(title="After"))
 ```

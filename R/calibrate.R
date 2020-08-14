@@ -455,19 +455,18 @@ weitrix_calibrate_all <- function(
 #' This function is not memory efficient.
 #' It is suitable for typical bulk data, but generally not not for single-cell.
 #'
-#' Defaults to a boxplot of weighted squared residuals.
+#' Defaults to a boxplot of sqrt(weight) weighted residuals.
 #' Blue guide bars are shown for the expected quartiles,
 #'     these will ideally line up with the boxplot.
 #'
 #' If \code{cat} is given, it will be used to break the elements down
 #'     into categories.
 #'
-#' If \code{covar} is given, weighted squared residuals are plotted versus
-#'     the covariate, with a red trend line.
-#' If the weitrix is calibrated, the trend line should be a horizontal line
-#'     with y intercept close to 1
-#'     (slightly less due to degrees of freedom lost to model fitting).
-#' A blue guide line is shown for this ideal.
+#' If \code{covar} is given, sqrt(weight) weighted residuals are plotted versus
+#'     the covariate, with red trend lines for the mean and for the mean +/- one standard deviation.
+#' If the weitrix is calibrated, the trend lines should be horizontal lines
+#'     with y intercept close to -1, 0 and 1.
+#' Blue guide lines are shown for this ideal outcome.
 #'
 #' Any of the variables available with \code{weitrix_calibrate_all}
 #'     can be used for \code{covar} or \code{cat}.
@@ -578,9 +577,10 @@ weitrix_calplot <- function(
 
         # Calculate a trend line, needs to be square-unbiassed
         # Could be made more efficient
-        bin_x <- c()
-        bin_y <- c()
         bin_cat <- c()
+        bin_x <- c()
+        bin_mean <- c()
+        bin_sd <- c()
         for(level in levels(cat)) {
             this_x <- x[ cat == level ]
             this_y <- y[ cat == level ]
@@ -588,21 +588,23 @@ weitrix_calplot <- function(
             n_bins_wanted <- ceiling(n^(1/3))
             bins <- droplevels(cut(rank(this_x), 
                 seq(0.5,n+0.5,length.out=n_bins_wanted+1)))
-            bin_x <- c(bin_x, tapply(this_x, list(bins), mean))
-            bin_y <- c(bin_y, sqrt(tapply(this_y^2, list(bins), mean)))
             bin_cat <- c(bin_cat, rep(level, length(levels(bins))))
+            bin_x <- c(bin_x, tapply(this_x, list(bins), mean))
+            bin_mean <- c(bin_mean, tapply(this_y, list(bins), mean))
+            bin_sd <- c(bin_sd, tapply(this_y, list(bins), sd))
         }
         bin_cat <- factor(bin_cat, levels=levels(cat))
 
-        line_data <- data.frame(x=bin_x,y=bin_y,cat=bin_cat)
+        line_data <- data.frame(x=bin_x,mean=bin_mean,sd=bin_sd,cat=bin_cat)
 
         ggplot(plot_data, aes(y=.data$y, x=.data$x)) + 
             {if (have_cat) facet_wrap(vars(.data$cat))} +
             geom_point(stroke=0, size=0.5, alpha=0.5, na.rm=TRUE) + 
-            {if (guides && !funnel) geom_hline(yintercept=c(-guide_pos,guide_pos), color="blue")} + 
-            {if (guides && funnel) geom_abline(slope=c(guide_pos,-guide_pos),intercept=c(0,0),color="blue")} +
-            geom_line(data=line_data, size=1, color="red")+
-            geom_line(aes(y=-.data$y), data=line_data, size=1, color="red")+
+            {if (guides && !funnel) geom_hline(yintercept=c(-guide_pos,0,guide_pos), color="blue")} + 
+            {if (guides && funnel) geom_abline(slope=c(guide_pos,0,-guide_pos),intercept=c(0,0,0),color="blue")} +
+            geom_line(aes(y=.data$mean), data=line_data, size=1, color="red")+
+            geom_line(aes(y=.data$mean+.data$sd), data=line_data, size=1, color="red")+
+            geom_line(aes(y=.data$mean-.data$sd), data=line_data, size=1, color="red")+
             labs(
                 y=if (funnel) "residual" else "sqrt(weight) * residual", 
                 x=as_label(covar_var))

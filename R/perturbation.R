@@ -31,7 +31,7 @@ calc_rowstats_inner <- function(args) with(args, {
         wss=wss,
         total_weight=total_weight,
         df=df,
-        n=n_present)
+        n_present=n_present)
 })
 
 calc_rowstats <- function(x, w, row, col) {
@@ -78,11 +78,11 @@ calc_rowstats <- function(x, w, row, col) {
 #' @return
 #' A topconfects result. The \code{$table} data frame contains columns:
 #' \itemize{
-#' \item{effect}{ Estimated excess variation, in the same units as the observations themselves. }
+#' \item{effect}{ Estimated excess standard deviation, in the same units as the observations themselves. 0 if the dispersion is less than 1. }
 #' \item{confect}{ A lower confidence bound on effect. }
 #' \item{typical_obs_err}{ Typical accuracy of each observation. }
-#' \item{dispersion}{ Dispersion. Weighted sum of squared residuals divided by degrees of freedom. }
-#' \item{n}{ Number of observations with non-zero weight. }
+#' \item{dispersion}{ Dispersion. Weighted sum of squared residuals divided by residual degrees of freedom. }
+#' \item{n_present}{ Number of observations with non-zero weight. }
 #' \item{df}{ Degrees of freedom. n minus the number of coefficients in the model. }
 #' \item{fdr_zero}{ FDR-adjusted p-value for the null hypothesis that effect is zero. }
 #' }
@@ -91,10 +91,10 @@ calc_rowstats <- function(x, w, row, col) {
 #'
 #' @examples
 #'
-#' # weitrix_rms_confects can only be used with a calibrated weitrix
+#' # weitrix_sd_confects should only be used with a calibrated weitrix
 #' calwei <- weitrix_calibrate_all(simwei, ~1, ~1)
 #'
-#' weitrix_rms_confects(calwei, ~1)
+#' weitrix_sd_confects(calwei, ~1)
 #'
 #' @export
 weitrix_sd_confects <- function(
@@ -115,7 +115,7 @@ weitrix_sd_confects <- function(
         comp$col)
     
     df$dispersion <- df$wss / df$df
-    df$mean_weight <- df$total_weight / df$n
+    df$mean_weight <- df$total_weight / df$n_present
     df$typical_obs_err <- sqrt(1/df$mean_weight)
     df$effect <- sqrt(pmax(0, (df$dispersion-1)/df$mean_weight ))
 
@@ -138,7 +138,7 @@ weitrix_sd_confects <- function(
     
     result$table$effect <- df$effect[result$table$index]
 
-    for(name in c("typical_obs_err","dispersion","n","df"))
+    for(name in c("typical_obs_err","dispersion","n_present","df"))
         result$table[[name]] <- df[result$table$index,name]
 
     result$table$fdr_zero <- fdr_zero

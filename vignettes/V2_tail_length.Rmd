@@ -13,7 +13,7 @@ vignette: >
 poly(A) tail length of transcripts can be measured using the [PAT-Seq protocol](https://rnajournal.cshlp.org/content/21/8/1502.long). This protocol produces 3'-end focussed reads that include the poly(A) tail. We examine [GSE83162](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE83162). This is a time-series experiment in which two strains of yeast are released into synchronized cell cycling and observed through two cycles. Yeast are treated with $\alpha$-factor, which causes them to stop dividing in antici... pation of a chance to mate. When the $\alpha$-factor is washed away, they resume cycling.
 
 ```{r echo=F}
-knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 
 # To examine objects:
 # devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/V2_tail_length_cache/html")
@@ -21,14 +21,13 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, cache=TRUE, autodep=TRUE)
 
 # Read files, extract experimental design from sample names
 
-```{r load, message=F}
-library(tidyverse)
-library(reshape2)
-library(SummarizedExperiment)
-library(limma)
-library(topconfects)
-library(org.Sc.sgd.db)
-library(weitrix)
+```{r setup, message=F, warning=F, cache=FALSE}
+library(tidyverse)     # ggplot2, etc
+library(patchwork)     # side-by-side plots
+library(limma)         # differential testing
+library(topconfects)   # differential testing - top confident effect sizes
+library(org.Sc.sgd.db) # Yeast organism info
+library(weitrix)       # Matrices with precisions weights
 
 # Produce consistent results
 set.seed(12345)
@@ -39,7 +38,9 @@ BiocParallel::register( BiocParallel::SnowParam() )
 
 # The most reliable backed is to use serial processing
 #BiocParallel::register( BiocParallel::SerialParam() )
+```
 
+```{r load, message=F}
 tail <- system.file("GSE83162", "tail.csv.gz", package="weitrix") %>%
     read_csv() %>%
     column_to_rownames("Feature") %>%
@@ -114,53 +115,31 @@ Calibration should remove any pattern in the weighted residuals, compared to kno
 
 First look for any pattern relative to the linear model prediction ("mu"). A trend has been removed by the calibration.
 
-```{r cal-fig1,fig.width=2,fig.height=4,fig.show="hold"}
-weitrix_calplot(unwei, fit, covar=mu, guides=FALSE) + labs(title="Unweighted\n")
-weitrix_calplot(wei, fit, covar=mu, guides=FALSE) + labs(title="Weighted by\nread count")
+```{r cal-fig1}
+weitrix_calplot(unwei, fit, covar=mu, guides=FALSE) + labs(title="Unweighted\n") |
+weitrix_calplot(wei, fit, covar=mu, guides=FALSE) + labs(title="Weighted by\nread count") |
 weitrix_calplot(cal, fit, covar=mu, guides=FALSE) + labs(title="Calibrated\n")
 ```
 
 Next look for any pattern relative to the number of reads (recall these were the original weights). Again, a trend has been removed by the calibration.
 
-```{r cal-fig2,fig.width=2,fig.height=4,fig.show="hold"}
-weitrix_calplot(unwei, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Unweighted\n")
-weitrix_calplot(wei, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Weighted by\nread count")
+```{r cal-fig2}
+weitrix_calplot(unwei, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Unweighted\n") |
+weitrix_calplot(wei, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Weighted by\nread count") |
 weitrix_calplot(cal, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Calibrated\n")
 ```
 
 
 # Testing
 
-We are now ready to test things. We feed our calibrated weitrix to [limma](https://bioconductor.org/packages/release/bioc/html/limma.html).
+## Top confident effects
 
+We are now ready to test things. 
 
-```{r limmadesign}
-fit_cal_design <- cal %>%
-    weitrix_elist() %>%
-    lmFit(design)
+My recommended approach is to find top confident effects, here top confident differential tail length. Core functionality is implemented in my package [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html). Applying this to a weitrix is done using the `weitrix_confects` function. Rather than picking "most significant" genes, it will highlight genes with a large effect size. 
 
-ebayes_fit <- eBayes(fit_cal_design)
-result_signif <- topTable(ebayes_fit, "strainDeltaSet1", n=Inf)
-
-result_signif %>%
-    dplyr::select(gene,diff_tail=logFC,ave_tail=AveExpr,
-        adj.P.Val,total_reads) %>%
-    head(20)
-```
-
-My package [topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) can be used to find top confident differential tail length. Rather than picking "most significant" genes, it will highlight genes with a large effect size.
-
-
-```{r confectsdesign}
-result_confects <- limma_confects(
-    fit_cal_design, "strainDeltaSet1", full=TRUE, fdr=0.05)
-
-result_confects$table %>% 
-    dplyr::select(gene,diff_tail=effect,confect,total_reads) %>% 
-    head(20)
-
-cat(sum(!is.na(result_confects$table$confect)), 
-    "genes significantly non-zero at FDR 0.05\n")
+```{r testconfects}
+weitrix_confects(cal, design, coef="strainDeltaSet1", fdr=0.05)
 ```
 
 This lists the largest confident changes in poly(A) tail length.
@@ -168,18 +147,53 @@ The `confect` column is an inner confidence bound on
 the difference in tail length,
 adjusted for multiple testing.
 
-We discover some genes with less total reads, but large change in tail length.
-
 Note that due to PCR amplification slippage and limited read length, the observed poly(A) tail lengths may be an underestimate. However as all samples have been prepared in the same way, observed differences should indicate the existence of true differences.
 
+If you prefer to rank by signal to noise ratio, it is possible to use Cohen's f as an effect size. This is similar to ranking by p-value, but Cohen's f can be interpreted meaningfully as a signal to noise ratio.
 
+```{r testcohen}
+weitrix_confects(cal, design, coef="strainDeltaSet1", effect="cohen_f", fdr=0.05)
+```
+
+
+## Testing with limma
+
+If you prefer a more traditional approach, we can feed our calibrated weitrix to [limma](https://bioconductor.org/packages/release/bioc/html/limma.html).
+
+```{r limmadesign}
+fit_cal_design <- cal %>%
+    weitrix_elist() %>%
+    lmFit(design)
+
+ebayes_fit <- eBayes(fit_cal_design)
+
+topTable(ebayes_fit, "strainDeltaSet1", n=10) %>%
+    dplyr::select(
+        gene,diff_tail=logFC,ave_tail=AveExpr,adj.P.Val,total_reads)
+```
+
+## Testing multiple contrasts
+
+`weitrix_confects` can also be used as an omnibus test of multiple contrasts. Here the default effect size will be standard deviation of observations explained by the part of the model captured by the contrasts. The standardized effect size "Cohen's f" can also be used.
+
+Here we will look for any step changes between time steps, ignoring the "tpre" timepoint. The exact way these contrasts are specified will not modify the ranking, so long as they specify the same subspace of coefficients.
+
+```{r testf}
+multiple_contrasts <- limma::makeContrasts(
+    timet15m-timet0m, timet30m-timet15m, timet45m-timet30m, 
+    timet60m-timet45m,  timet75m-timet60m, timet90m-timet75m, 
+    timet105m-timet90m, timet120m-timet105m, 
+    levels=design)
+
+weitrix_confects(cal, design, contrasts=multiple_contrasts, fdr=0.05)
+```
 
 
 ## Examine individual genes
 
 Having discovered genes with differential tail length, let's look at some genes in detail.
 
-```{r examine, fig.show="hold", fig.width=3, fig.height=3}
+```{r examine, fig.height=6}
 view_gene <- function(id) {
     gene <- rowData(wei)[id,"gene"]
     if (is.na(gene)) gene <- ""
@@ -191,6 +205,20 @@ view_gene <- function(id) {
        theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
 }
 
+# Top confident differences between WT and deltaSet1
+view_gene("YDR170W-A") +
+view_gene("YIL015W") +
+view_gene("YAR009C") +
+view_gene("YJR027W/YJR026W")
+
+# Top confident changes over time
+view_gene("YNL036W") +
+view_gene("YBL097W") +
+view_gene("YBL016W") +
+view_gene("YKR093W")
+```
+
+```{r echo=F,eval=F}
 # Top "significant" genes
 view_gene("YDR170W-A")
 view_gene("YJR027W/YJR026W")
@@ -205,18 +233,21 @@ view_gene("YCR014C")
 
 Genes with high dispersion (weighted residual variance) may be of biological interest. Here we examine dispersion relative to a simple model with only an intercept term. When the dispersion is greater than 1, there is variation in excess of that expected from our calibrated weights. The function `weitrix_dispersions` can be used to calculate dispersions.
 
-To make this a bit more concrete, we can estimate how much extra variation there is per observation not explained by the model. The function `weitrix_sd_confects` provides this, and further provides a confident lower bound on this excess with a multiple testing correction. The "effect" column in the output is excess variation, and the "confect" column is a confident lower bound on this. Results are sorted by confect. The units are root-(weighted)mean-square variation, i.e. in the same units as the observations themselves.
+To make this a bit more concrete, we can estimate how much extra variation there is per observation not explained by the model. The function `weitrix_sd_confects` provides this, and further provides a confident lower bound on this excess with a multiple testing correction. The "effect" column in the output is excess variation, and the "confect" column is a confident lower bound on this. Results are sorted by confect. These effects are in the same units as the observations themselves. They can be interpreted as the standard deviation if there was no observational error.
 
 ```{r excess, warning=F}
 confects <- weitrix_sd_confects(cal, ~1)
 confects
 ```
 
-```{r excess2, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+```{r excess2, echo=FALSE}
 plot(effect ~ total_reads, data=confects$table, log="x", cex=0.5, col="gray",
    ylab="confect (black) and effect (gray)")
 points(confect ~ total_reads, data=confects$table, cex=0.5)
-for(id in confects$table$name[1:5]) print(view_gene(id))
+
+confects$table$name[1:2] %>% map(view_gene) %>% purrr::reduce(`+`)
+confects$table$name[3:4] %>% map(view_gene) %>% purrr::reduce(`+`)
+confects$table$name[5:6] %>% map(view_gene) %>% purrr::reduce(`+`)
 ```
 
 The genes discovered tend to be changing over time. If we use a model that accounts for time, differences between the two strains will be emphasized instead.
@@ -226,11 +257,14 @@ confects2 <- weitrix_sd_confects(cal, ~time)
 confects2
 ```
 
-```{r excess4, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+```{r excess4, echo=FALSE}
 plot(effect ~ total_reads, data=confects2$table, log="x", cex=0.5, col="gray",
    ylab="confect (black) and effect (gray)")
 points(confect ~ total_reads, data=confects2$table, cex=0.5)
-for(id in confects2$table$name[1:5]) print(view_gene(id))
+
+confects2$table$name[1:2] %>% map(view_gene) %>% purrr::reduce(`+`)
+confects2$table$name[3:4] %>% map(view_gene) %>% purrr::reduce(`+`)
+confects2$table$name[5:6] %>% map(view_gene) %>% purrr::reduce(`+`)
 ```
 
 
@@ -277,21 +311,15 @@ We observe:
 
 The tail lengths are approximated by `comp$row %*% t(comp$col)` where `comp$col` is an $n_\text{sample} \times (p+1)$ matrix of scores (shown above), and `comp$row` is an $n_\text{gene} \times (p+1)$ matrix of gene loadings, which we will now examine. (The $+1$ is the intercept "component", allowing each gene to have a different baseline tail length.)
 
-```{r limmacomp}
-fit_comp <- cal %>%
-    weitrix_elist() %>%
-    lmFit(comp$col)
-```
-
 **Treat these results with caution.** Confindence bounds take into account uncertainty in the loadings but not in the scores! What follows is best regarded as exploratory rather than a final result.
 
 ## Gene loadings for C1: gradual lengthing over time
 
 ```{r C1}
-result_C1 <- limma_confects(fit_comp, "C1")
+result_C1 <- weitrix_confects(cal, comp$col, coef="C1")
 ```
 
-```{r examine_C1, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+```{r examine_C1, echo=FALSE, fig.height=6}
 result_C1$table %>% 
     dplyr::select(gene,loading=effect,confect,total_reads) %>% 
     head(10)
@@ -299,7 +327,7 @@ result_C1$table %>%
 cat(sum(!is.na(result_C1$table$confect)), 
     "genes significantly non-zero at FDR 0.05\n")
 
-for(id in result_C1$table$name[1:4]) print(view_gene(id))
+result_C1$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`)
 ```
 
 FUS3 is involved in yeast mating. We see here a poly(A) tail signature of yeast realizing there are not actually any $\alpha$ cells around to mate with.
@@ -308,10 +336,10 @@ FUS3 is involved in yeast mating. We see here a poly(A) tail signature of yeast 
 ## Gene loadings for C2: cell-cycle associated changes
 
 ```{r C2}
-result_C2 <- limma_confects(fit_comp, "C2")
+result_C2 <- weitrix_confects(cal, comp$col, coef="C2")
 ```
 
-```{r examine_C2, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+```{r examine_C2, echo=FALSE, fig.height=6}
 result_C2$table %>% 
     dplyr::select(gene,loading=effect,confect,total_reads) %>% 
     head(10)
@@ -319,18 +347,18 @@ result_C2$table %>%
 cat(sum(!is.na(result_C2$table$confect)), 
     "genes significantly non-zero at FDR 0.05\n")
 
-for(id in result_C2$table$name[1:4]) print(view_gene(id))
+result_C2$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`)
 ```
 
 ## Gene loadings for C3: longer tails in set1 mutant
 
 ```{r C3}
-result_C3 <- limma_confects(fit_comp, "C3")
+result_C3 <- weitrix_confects(cal, comp$col, coef="C3")
 ```
 
 Given the mixture of signs for effects in C3, different genes are longer in different stages of the cell cycle. We see many genes to do with replication.
 
-```{r examine_C3, echo=FALSE, fig.show="hold", fig.width=3, fig.height=3}
+```{r examine_C3, echo=FALSE, fig.height=6}
 result_C3$table %>% 
     dplyr::select(gene,loading=effect,confect,total_reads) %>% 
     head(10)
@@ -338,7 +366,7 @@ result_C3$table %>%
 cat(sum(!is.na(result_C3$table$confect)), 
     "genes significantly non-zero at FDR 0.05\n")
 
-for(id in result_C3$table$name[1:4]) print(view_gene(id))
+result_C3$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`)
 
 #view_gene("YDR461W") #MFA1
 ```
