@@ -1,6 +1,6 @@
 language: r
 r: bioc-devel
 script:
-- travis_wait R CMD build .
-- travis_wait R CMD check *tar.gz
+- R CMD build --no-build-vignettes .
+- travis_wait 30 R CMD check *tar.gz
 
