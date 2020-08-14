@@ -1,6 +1,5 @@
 
 
-# 
 
 test_that("weitrix_confects behaves", {
     set.seed(1)
@@ -14,7 +13,8 @@ test_that("weitrix_confects behaves", {
         y <- t(design %*% t(beta)) +          
             matrix(rnorm(n*m),nrow=n)*scaling # random residuals
 
-        res1 <- weitrix_confects(y, design, c(0,0,1), step=0.001, full=TRUE)
+        res1 <- weitrix_confects(y, design, 
+            contrasts=c(0,0,1), step=0.001, full=TRUE)
 
         # ==== Results should exactly match limma ====
         library(limma)
@@ -30,10 +30,10 @@ test_that("weitrix_confects behaves", {
 
         # ==== sd confects should be invariant to equivalent contrasts ====
         res3 <- weitrix_confects(y, design, 
-            cbind(foo=c(0,1,0),bar=c(0,0,1)), full=TRUE)
+            contrasts=cbind(foo=c(0,1,0),bar=c(0,0,1)), full=TRUE)
 
         res4 <- weitrix_confects(y, design, 
-            cbind(foo=c(0,1,1),bar=c(0,-1,1)), full=TRUE)
+            contrasts=cbind(foo=c(0,1,1),bar=c(0,-1,1)), full=TRUE)
 
         t1 <- res3$table[res1$table$index,]
         t2 <- res4$table[res2$table$index,]
@@ -43,10 +43,12 @@ test_that("weitrix_confects behaves", {
 
         # ==== Cohen's f confects should be invariant to equivalent contrasts ==
         res5 <- weitrix_confects(y, design, 
-            cbind(foo=c(0,1,0),bar=c(0,0,1)), effect="cohen_f", full=TRUE)
+            contrasts=cbind(foo=c(0,1,0),bar=c(0,0,1)), 
+            effect="cohen_f", full=TRUE)
 
         res6 <- weitrix_confects(y, design, 
-            cbind(foo=c(0,1,1),bar=c(0,-1,1)), effect="cohen_f", full=TRUE)
+            contrasts=cbind(foo=c(0,1,1),bar=c(0,-1,1)), 
+            effect="cohen_f", full=TRUE)
 
         t1 <- res5$table[res1$table$index,]
         t2 <- res6$table[res2$table$index,]
