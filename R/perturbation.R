@@ -106,6 +106,9 @@ weitrix_sd_confects <- function(
     assert_that(nrow(comp$row) == nrow(weitrix))
     assert_that(nrow(comp$col) == ncol(weitrix))
 
+    if (is.null(step))
+        step <- 0.001
+
     # Collect some numbers
 
     df <- calc_rowstats(
