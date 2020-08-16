@@ -199,7 +199,7 @@ weitrix_confects(cal, comp$col, "C4", fdr=0.05)
 Instead of looking for genes following some particular pattern, we can look for genes that simply have surprisingly high variability with `weitrix_sd_confects`.
 
 ```{r sdconfects}
-weitrix_sd_confects(cal)
+weitrix_sd_confects(cal, step=0.01)
 ```
 
 ## Examine individual genes

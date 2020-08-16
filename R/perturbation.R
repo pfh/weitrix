@@ -12,26 +12,31 @@ calc_rowstats_inner <- function(args) with(args, {
     total_weight <- rep(NA_real_,n)
     n_present <- rep(NA_real_,n)
     df <- rep(NA_real_,n)
+    row_mean <- rep(NA_real_,n)
     
     for(i in seq_len(n)) {
         wi <- w[i,]
         present <- wi > 0
         wi_present <- wi[present]
+        xi_present <- x[i,present]
         n_present[i] <- length(wi_present)
         df[i] <- n_present[i]-p
         total_weight[i] <- sum(wi_present)
         if (df[i] > 0) {
-            errors <- as.vector(x[i,present]) - 
+            errors <- as.vector(xi_present) - 
                 as.vector(col[present,,drop=FALSE] %*% row[i,]) 
             wss[i] <- sum(errors*errors*wi_present)
         }
+        if (n_present[i] > 0)
+            row_mean[i] <- weighted.mean(xi_present, wi_present)
     }
 
     data.frame(
         wss=wss,
         total_weight=total_weight,
         df=df,
-        n_present=n_present)
+        n_present=n_present,
+        row_mean=row_mean)
 })
 
 calc_rowstats <- function(x, w, row, col) {
@@ -80,6 +85,7 @@ calc_rowstats <- function(x, w, row, col) {
 #' \itemize{
 #' \item{effect}{ Estimated excess standard deviation, in the same units as the observations themselves. 0 if the dispersion is less than 1. }
 #' \item{confect}{ A lower confidence bound on effect. }
+#' \item{row_mean}{ Weighted mean of observations in this row. }
 #' \item{typical_obs_err}{ Typical accuracy of each observation. }
 #' \item{dispersion}{ Dispersion. Weighted sum of squared residuals divided by residual degrees of freedom. }
 #' \item{n_present}{ Number of observations with non-zero weight. }
@@ -141,7 +147,7 @@ weitrix_sd_confects <- function(
     
     result$table$effect <- df$effect[result$table$index]
 
-    for(name in c("typical_obs_err","dispersion","n_present","df"))
+    for(name in c("row_mean","typical_obs_err","dispersion","n_present","df"))
         result$table[[name]] <- df[result$table$index,name]
 
     result$table$fdr_zero <- fdr_zero
