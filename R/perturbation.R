@@ -150,6 +150,7 @@ weitrix_sd_confects <- function(
             result$table[[name]] <- rowData(weitrix)[result$table$index,name]
 
     result$effect_desc <- "excess standard deviation"
+    result$design <- comp$col
 
     result
 }
