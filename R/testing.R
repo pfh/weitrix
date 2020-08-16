@@ -231,11 +231,12 @@ weitrix_confects <- function(
             effect_wanted <- "sd"
     }
 
+    # sd confects are currently ver slow. Take large steps.
     if (is.null(step)) {
-        if (effect_wanted == "contrast")
-            step <- 0.001
+        if (effect_wanted == "sd")
+            step <- 0.1
         else
-            step <- 0.01
+            step <- 0.001
     }
 
     assert_that(effect_wanted != "contrast" || ncol(contrasts) == 1, 
