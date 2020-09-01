@@ -266,7 +266,7 @@ weitrix_components_inner <- function(
         R2 <- 1-ratio
 
         end <- proc.time()["elapsed"]
-        if (verbose && (i <= 5 || i %% 10 == 0)) {
+        if (verbose && max_iter > 1 && (i <= 5 || i %% 10 == 0)) {
             message(sprintf("Iter %4d R^2=%7.5f %.1fsec",i,R2,end-start))
         }
 

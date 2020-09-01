@@ -100,7 +100,10 @@ fit <- weitrix_components(wei, design=design)
 A gamma GLM with log link function can then be fitted to the squared residuals. 1 over the predictions from this models will serve as the new weights.
 
 ```{r cal2}
-cal <- weitrix_calibrate_all(wei, fit, ~splines::ns(mu,4)+splines::ns(log(weight),4))
+cal <- weitrix_calibrate_all(
+    wei, 
+    design = fit, 
+    trend_formula = ~well_knotted_spline(mu,3)+well_knotted_spline(log(weight),3))
 ```
 
 For comparison, we'll also look at completely unweighted residuals.
@@ -124,9 +127,9 @@ weitrix_calplot(cal, fit, covar=mu, guides=FALSE) + labs(title="Calibrated\n")
 Next look for any pattern relative to the number of reads (recall these were the original weights). Again, a trend has been removed by the calibration.
 
 ```{r cal-fig2}
-weitrix_calplot(unwei, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Unweighted\n") |
-weitrix_calplot(wei, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Weighted by\nread count") |
-weitrix_calplot(cal, fit, covar=log2(weitrix_weights(wei)), guides=FALSE) + labs(title="Calibrated\n")
+weitrix_calplot(unwei, fit, covar=log(weitrix_weights(wei)), guides=FALSE) + labs(title="Unweighted\n") |
+weitrix_calplot(wei, fit, covar=log(weitrix_weights(wei)), guides=FALSE) + labs(title="Weighted by\nread count") |
+weitrix_calplot(cal, fit, covar=log(weitrix_weights(wei)), guides=FALSE) + labs(title="Calibrated\n")
 ```
 
 

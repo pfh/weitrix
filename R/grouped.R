@@ -122,6 +122,6 @@ counts_proportions <- function(counts, grouping, verbose=TRUE) {
     colnames(result) <- colnames(counts)
     result <- bless_weitrix(result, "x", "weights")
     metadata(result)$weitrix$trend_formula <- 
-        "~log(per_read_var)+splines::ns(log(total_reads),3)"
+        "~log(per_read_var)+well_knotted_spline(log(total_reads),3)"
     result
 }

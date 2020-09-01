@@ -131,7 +131,10 @@ matrix_long(comp$col, row_info=samples, varnames=c("sample","component")) %>%
 Weights can be calibrated. Ideally the weights should be 1 over the residual variance. We will fit a gamma GLM with log link function to the squared residuals, and use the predictions from this to produce better weights. This model uses the `per_read_var` information present in the rowData, as well as applying a non-linear transformation to the existing weights.
 
 ```{r calibrate_all}
-cal <- weitrix_calibrate_all(wei, comp, ~log(per_read_var)+splines::ns(log(weight),4))
+cal <- weitrix_calibrate_all(
+    wei, 
+    design = comp, 
+    trend_formula = ~log(per_read_var)+well_knotted_spline(log2(weight),3))
 
 metadata(cal)$weitrix$all_coef
 ```
@@ -153,8 +156,8 @@ We can look at the calibration to `per_read_var` directly.
 Weights were too large for large read counts. Calibration has applied a non-linear transformation to the weights that fixes this.
 
 ```{r calibrate_all_fig3}
-(weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")) +
-(weitrix_calplot(cal, comp, covar=log2(weitrix_weights(wei))) + labs(title="After"))
+(weitrix_calplot(wei, comp, covar=log(weitrix_weights(wei))) + labs(title="Before")) +
+(weitrix_calplot(cal, comp, covar=log(weitrix_weights(wei))) + labs(title="After"))
 ```
 
 Another way of looking at this is with a "funnel" plot of 1/sqrt(weight) vs residuals. This should make a cone shape. Note how before calibration the pointy end of the cone is too wide.
@@ -229,10 +232,13 @@ examine("YPR080W", "TEF1, from weitrix_sd_confects")
 
 # Alternative calibration method
 
-For larger datasets, `weitrix_calibrate_all` may use a lot of memory. The weitrix packages has an older version of calibration that operates, `weitrix_calibrate_trend`. Rather than operating on weights individually, it applies a scaling to the weights of each *row*.
+For larger datasets, `weitrix_calibrate_all` may use a lot of memory. The weitrix packages also has an older version of calibration, `weitrix_calibrate_trend`. Rather than operating on weights individually, it applies a scaling to the weights of each *row*.
 
 ```{r calibrate}
-cal_trend <- weitrix_calibrate_trend(wei, comp, ~log(per_read_var)+splines::ns(total_reads,4))
+cal_trend <- weitrix_calibrate_trend(
+    wei, 
+    design = comp, 
+    trend_formula = ~log(per_read_var)+well_knotted_spline(log(total_reads),3))
 ```
 
 A mean-variance trend is visible in the uncalibrated weighted residuals. Calibration removes this, by making use of the information in `per_read_var`.
@@ -252,6 +258,6 @@ We can look at the calibration to `per_read_var` directly.
 Weights were too large for large read counts. Calibration has applied a row-level adjustment for this based on the total number of reads for each row.
 
 ```{r calibrate_trend_fig3}
-(weitrix_calplot(wei, comp, covar=log2(weitrix_weights(wei))) + labs(title="Before")) +
-(weitrix_calplot(cal_trend, comp, covar=log2(weitrix_weights(wei))) + labs(title="After"))
+(weitrix_calplot(wei, comp, covar=log(weitrix_weights(wei))) + labs(title="Before")) +
+(weitrix_calplot(cal_trend, comp, covar=log(weitrix_weights(wei))) + labs(title="After"))
 ```

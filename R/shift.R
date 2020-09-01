@@ -155,9 +155,9 @@ counts_shift <- function(counts, grouping, verbose=TRUE) {
     colnames(result) <- colnames(counts)
     result <- bless_weitrix(result, "x", "weights")
     metadata(result)$weitrix$calibrate_trend_formula <- 
-        "~log(per_read_var)+splines::ns(log(total_reads),4)"
+        "~log(per_read_var)+well_knotted_spline(log(total_reads),3)"
     metadata(result)$weitrix$calibrate_all_formula <- 
-        "~log(per_read_var)+splines::ns(log(weight),4)"
+        "~log(per_read_var)+well_knotted_spline(log(weight),3)"
     
     result
 }

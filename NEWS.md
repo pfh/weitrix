@@ -1,9 +1,16 @@
 
+
+# weitrix 1.1.5
+
+* well_knotted_spline for natural splines with good choice of knots.
+
+
 # weitrix 1.1.4
 
 * weitrix_confects for differential testing.
 * weitrix_rms_confects now called weitrix_sd_confects.
 * weitrix_calplot now shows mean trend and mean +/- standard deviation trend.
+
 
 # weitrix 1.1.3
 
@@ -12,6 +19,7 @@
   model.
 * weitrix_calplot blue guidelines are similarly adjusted.
 * Add weitrix_rms_confects to find rows with confidently excessive variation.
+
 
 # weitrix 1.1.2
 

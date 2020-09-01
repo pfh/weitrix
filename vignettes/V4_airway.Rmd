@@ -95,10 +95,13 @@ Each dot in the plot below is a residual weighted by sqrt(weight). The x-axis is
 weitrix_calplot(airway_weitrix, fit, covar=mu, guides=FALSE)
 ```
 
-We will use the function `weitrix_calibrate_all` to set the weights by fitting a gamma GLM with log link function to the weighted squared residuals. 1 over the predictions from this GLM are used as weights. Here we fit a natural spline based on the linear model predictions from `fit`, which are referred to in the formula as `mu`.
+We will use the function `weitrix_calibrate_all` to set the weights by fitting a gamma GLM with log link function to the weighted squared residuals. 1 over the predictions from this GLM are used as weights. Here we fit a natural spline based on the linear model predictions from `fit`, which are referred to in the formula as `mu`. `well_knotted_spline` is a wrapper around `splines::ns` for natural splines with improved choice of knot locations.
 
 ```{r}
-airway_cal <- weitrix_calibrate_all(airway_weitrix, fit, ~splines::ns(mu,4))
+airway_cal <- weitrix_calibrate_all(
+    airway_weitrix, 
+    design = fit, 
+    trend_formula = ~well_knotted_spline(mu,5))
 
 metadata(airway_cal)
 
@@ -121,10 +124,13 @@ weitrix_calplot(airway_cal, fit, covar=mu, cat=col)
 
 ## Advanced calibration
 
-If there was an odd sample, we could use a more complex trend formula such as `~col*splines::ns(mu,4)`:
+If there was an odd sample, we could use a more complex trend formula such as `~col*well_knotted_spline(mu,4)`:
 
 ```{r eval=FALSE}
-airway_cal <- weitrix_calibrate_all(airway_weitrix, fit, ~col*splines::ns(mu,4))
+airway_cal <- weitrix_calibrate_all(
+    airway_weitrix, 
+    design = fit, 
+    trend_formula = ~col*well_knotted_spline(mu,4))
 ```
 
 ## Similar to limma voom
@@ -146,12 +152,13 @@ weitrix_calplot(airway_voomed, design, covar=mu)
 
 RNA-Seq expression is well trodden ground. The main contribution of the weitrix package here is to aid exploration by discovering components of variation, providing not just column scores but row loadings and respecting precision weights.
 
+
 ## Find genes with excess variation
 
 `weitrix_sd_confects` will find genes with excess variation in a *calibrated* weitrix.
 
 ```{r warning=FALSE}
-confects <- weitrix_sd_confects(airway_cal, ~1)
+confects <- weitrix_sd_confects(airway_cal)
 confects
 ```
 

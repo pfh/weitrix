@@ -41,6 +41,7 @@ reference:
   - weitrix_sd_confects
 - title: Other
   contents:
+  - well_knotted_spline
   - weitrix_randomize
   - matrix_long
   - simwei

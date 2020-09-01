@@ -55,5 +55,11 @@
 #' @importFrom BiocGenerics
 #'     rowSums colSums rbind cbind
 #'
+#' @importFrom splines
+#'     ns
+#'
+#' @importFrom Ckmeans.1d.dp
+#'     Ckmeans.1d.dp
+#'
 NULL
 

@@ -24,6 +24,7 @@ A topconfects result. The \code{$table} data frame contains columns:
 \itemize{
 \item{effect}{ Estimated excess standard deviation, in the same units as the observations themselves. 0 if the dispersion is less than 1. }
 \item{confect}{ A lower confidence bound on effect. }
+\item{row_mean}{ Weighted mean of observations in this row. }
 \item{typical_obs_err}{ Typical accuracy of each observation. }
 \item{dispersion}{ Dispersion. Weighted sum of squared residuals divided by residual degrees of freedom. }
 \item{n_present}{ Number of observations with non-zero weight. }
