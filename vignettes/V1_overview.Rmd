@@ -107,7 +107,7 @@ If you prefer a more traditional analysis, a weitrix can be converted to an ELis
 
 The `$col` matrix of a `Components` may be used as a design matrix for differential analysis with `weitrix_confects` or with limma. **Warning:** This may produce liberal results, because the design matrix is itself uncertain and this isn't taken into account. Use this with caution.
 
-Whatever method is used, weights should first be calibrated to remove trends due to known covariates as described above. Both `weitrix_confects` and limma analysis estimate the per-row dispersion, apply Empirical Bayes squeezing of dispersions, and then use this when estimating how accurately coefficients and contrasts have been estimated. This can be seen as a sort of further row-by-row calibration step. 
+Whatever method is used, weights should first be calibrated to remove trends due to known covariates as described above. Both `weitrix_confects` and limma analysis estimate the per-row dispersion, apply Empirical Bayes squeezing of dispersions, and then use this when estimating how accurately coefficients and contrasts have been estimated. This can be seen as a further row-by-row calibration step. 
 
 If you have a limited number of columns, then the better the initial calibration step is performed the more effective Empirical Bayes squeezing of dispersions will be and the more significant results will be found. If you have many columns the squeezing of dispersions will only have a minor effect, and these considerations become less important.
 
@@ -144,12 +144,19 @@ setHDF5DumpDir("__dump__")
 
 ### BiocParallel problems
 
-Parallel processing in R and Bioconductor remains finicky but is necessary for large datasets. weitrix uses BiocParallel's default parallel processing settings.
+Parallel processing in R and Bioconductor remains finicky but is necessary for large datasets. weitrix uses BiocParallel's default parallel processing settings. It will temporarily start worker processes when needed.
 
 If weitrix hangs or produces weird errors, try configuring BiocParallel to use serial processing by default:
 
 ```
 BiocParallel::register( BiocParallel::SerialParam() )
+```
+
+If you are using `weitrix` interactively, fork-based worker processes seem to mess up X11-based plotting. Start workers before opening any plots: 
+
+```
+RhpcBLASctl::blas_set_num_threads(1)
+BiocParallel::bpstart()
 ```
 
 ### OpenBLAS
@@ -160,7 +167,7 @@ If using parallel processing, multi-threaded linear algebra libraries will just 
 RhpcBLASctl::blas_set_num_threads(1)
 ```
 
-This needs to be done before using `BiocParallel::bpup`. In the default case of using `MulticoreParam` and not having used `bpup`, weitrix temporarily starts a worker pool for large computations, and ensures this is set for workers. If you stray from this default case we assume you know what you are doing.
+This needs to be done before using `BiocParallel::bpstart()`. In the default case of using `MulticoreParam` and not having used `bpstart()`, weitrix temporarily starts a worker pool for large computations, and ensures this is set for workers. If you stray from this default case we assume you know what you are doing.
 
 
 

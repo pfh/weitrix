@@ -14,7 +14,12 @@ well_knotted_spline(x, n_knots, verbose = TRUE)
 \item{verbose}{If TRUE, produce a message about the knots chosen.}
 }
 \value{
-A matrix of predictors, similar to \code{splines::ns}.
+A matrix of predictors, similar to \code{\link[splines]{ns}}.
+
+This function supports "safe prediction" 
+(see \code{\link[stats]{makepredictcall}}). 
+Original knot locations will be used for prediction with 
+\code{\link[stats]{predict}}.
 }
 \description{
 For use in model formulas, 
@@ -24,22 +29,25 @@ k-means rather than quantiles.
 Automatically uses less knots if there are insufficient distinct values.
 }
 \details{
-Compared to using quantiles (the default for \code{splines::ns}),
+Compared to using quantiles (the default for \code{\link[splines]{ns}}),
 choosing knots using k-means produces a better spread of knot locations
 if the distribution of values is very uneven.
 
-k-means is computed in an optimal, deterministic way using package
-\code{Ckmeans.1d.dp}.
+k-means is computed in an optimal, deterministic way using
+\code{\link[Ckmeans.1d.dp]{Ckmeans.1d.dp}}.
 }
 \examples{
-lm(mpg ~ well_knotted_spline(wt, 3), data=mtcars)
-
-library(ggplot2)
-ggplot(mtcars, aes(wt,mpg)) + 
-    geom_point() + 
-    geom_smooth(method="lm", formula=y~well_knotted_spline(x,3))
+lm(mpg ~ well_knotted_spline(wt,3), data=mtcars)
 
 # When insufficient unique values exist, less knots are used
-lm(mpg ~ well_knotted_spline(gear, 3, verbose=TRUE), data=mtcars)
+lm(mpg ~ well_knotted_spline(gear,3), data=mtcars)
 
+library(ggplot2)
+ggplot(diamonds, aes(carat, price)) + 
+   geom_point() + 
+   geom_smooth(method="lm", formula=y~well_knotted_spline(x,10))
+
+}
+\seealso{
+\code{\link[splines]{ns}}, \code{\link[stats]{makepredictcall}}
 }
