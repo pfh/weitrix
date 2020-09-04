@@ -1,5 +1,5 @@
 ---
-title: "2. poly(A) tail length example"
+title: "2. PAT-Seq poly(A) tail length example"
 author: "Paul Harrison"
 date: "`r Sys.Date()`"
 output: 

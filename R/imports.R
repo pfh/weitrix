@@ -48,6 +48,7 @@
 #'
 #' @importFrom BiocParallel
 #'     bplapply bpnworkers bpisup bpnworkers bpstart bpstop bpparam
+#'     SerialParam
 #'
 #' @importFrom RhpcBLASctl
 #'     blas_get_num_procs blas_set_num_threads
@@ -60,6 +61,9 @@
 #'
 #' @importFrom Ckmeans.1d.dp
 #'     Ckmeans.1d.dp
+#'
+#' @importFrom glm2
+#'     glm2
 #'
 NULL
 

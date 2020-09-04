@@ -20,7 +20,7 @@ bioccheck : document
 test :
 	Rscript -e "devtools::test()"
 
-install :
+install : document
 	R CMD INSTALL .
 
 vignette :

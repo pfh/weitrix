@@ -55,6 +55,14 @@ partitions <- function(
 this_function_bp_up <- function() {
     BPPARAM <- bpparam()
 
+    if (is(BPPARAM, "MulticoreParam") && 
+            names(dev.cur()) %in% c("quartz","X11cairo","X11")) {
+        message(
+            "Disabling forking parallel processing as graphics device is open.")
+        BPPARAM <- SerialParam()
+        BiocParallel::register(BPPARAM)
+    }
+
     # Make sure DelayedArray will use the default bpparam
     # Clean up on function exit
     old_auto_bpparam <- getAutoBPPARAM()
@@ -75,6 +83,10 @@ this_function_bp_up <- function() {
     # Make sure the workers are running
     # Clean up on exit
     if (!bpisup(BPPARAM)) {
+        # Deactive X11 graphics before starting forking multiprocessing.
+        # May need to add to list of affected devices.
+
+        # Only use 1 thread for linear algebra
         old_threads <- blas_get_num_procs()
         blas_set_num_threads(1)
         

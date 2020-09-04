@@ -238,12 +238,13 @@ weitrix_calibrate_trend <- function(weitrix, design=~1, trend_formula=NULL) {
     n <- nrow(data)
 
     fit <- eval(substitute(
-        glm(
+        glm2(
             trend_formula, 
             data=data,
             weights=deg_free,
             family=quasi(link="log", variance="mu^2"),
-            mustart=rep(mustart, n)
+            mustart=rep(mustart, n),
+            control=glm.control(maxit=100)
         ),
         list(trend_formula=trend_formula, mustart=mustart, n=n)
     ))
@@ -411,12 +412,13 @@ weitrix_calibrate_all <- function(
     trend_formula <- update(trend_formula, .y ~ .)
     
     fit <- eval(substitute(
-        glm(
+        glm2(
             trend_formula,
             data=good_data,
             family=quasi(link="log", variance="mu^2"),
             mustart=rep(mustart, n),
-            model=FALSE, x=FALSE, y=FALSE
+            model=FALSE, x=FALSE, y=FALSE,
+            control=glm.control(maxit=100)
         ),
         list(trend_formula=trend_formula, mustart=mustart, n=n)
     ))

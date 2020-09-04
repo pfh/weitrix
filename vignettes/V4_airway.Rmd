@@ -1,5 +1,5 @@
 ---
-title: "4. RNA-Seq expression example, components of the airway dataset"
+title: "4. RNA-Seq expression example"
 author: "Paul Harrison"
 date: "`r Sys.Date()`"
 output: 

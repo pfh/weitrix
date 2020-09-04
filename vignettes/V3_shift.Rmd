@@ -1,5 +1,5 @@
 ---
-title: "3. Alternative polyadenylation"
+title: "3. PAT-Seq alternative polyadenylation example"
 author: "Paul Harrison"
 date: "`r Sys.Date()`"
 output: 

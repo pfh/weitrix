@@ -23,22 +23,22 @@ reference:
   - weitrix_x
   - weitrix_weights
   - weitrix_elist
-- title: Components
-  contents:
-  - weitrix_components
-  - components_seq_scree
 - title: Summary statistics and calibration
   contents:
-  - weitrix_dispersions
-  - weitrix_hill
-  - weitrix_calibrate
-  - weitrix_calibrate_trend
   - weitrix_calibrate_all
+  - weitrix_calibrate_trend
+  - weitrix_calibrate
+  - weitrix_dispersions
   - weitrix_calplot
+  - weitrix_hill
 - title: Statistical testing
   contents:
   - weitrix_confects
   - weitrix_sd_confects
+- title: Components
+  contents:
+  - weitrix_components
+  - components_seq_scree
 - title: Other
   contents:
   - well_knotted_spline

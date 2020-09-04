@@ -18,8 +18,8 @@ fit_and_contrast <- function(K, X, w, y) {
     swX <- sw*X
     decomp <- svd(swX)
     
-    # Fail if singular
-    if (any(decomp$d == 0)) 
+    # Fail if singular or very nearly singular
+    if (min(decomp$d) <= 1e-9*max(decomp$d)) 
         return(NULL) 
 
     solver <- decomp$v %*% (t(decomp$u)/decomp$d)
@@ -104,6 +104,9 @@ mvtreat_inner <- function(q, ss_observed, ss_hypothesized, df1, df2) {
 # (Note: divide out "var" from everything before calling.)
 #
 pmvtreat <- function(ss_observed, ss_hypothesized, df1, df2) {
+    if (is.na(ss_hypothesized) || is.na(ss_observed))
+        return(NA)
+
     if (ss_hypothesized == 0)
         return(pf(ss_observed/df1, df1, df2, lower.tail=FALSE))
     

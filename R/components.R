@@ -84,7 +84,7 @@ least_squares_func <- function(A) {
             # - (near)zero singular values nuked            
             sw <- sqrt(w)
             decomp <- svd(A[present,,drop=FALSE]*sw)
-            good <- decomp$d >= 1e-9
+            good <- decomp$d > 1e-9*max(decomp$d)
             state$solver <- 
                 decomp$v[,good,drop=FALSE] %*% 
                 (t(decomp$u[,good,drop=FALSE]*sw)/decomp$d[good])
