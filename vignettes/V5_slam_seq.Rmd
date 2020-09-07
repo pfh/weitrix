@@ -12,7 +12,7 @@ vignette: >
 
 ```{r echo=F}
 # To examine objects:
-# devtools::load_all(".", export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/V5_slam_seq_cache/html")
+# devtools::load_all(export_all=F) ; qwraps2::lazyload_cache_dir("vignettes/V5_slam_seq_cache/html")
 
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 ```
@@ -148,6 +148,7 @@ Heatmap(
 ```
 
 Further analysis would involve an explicit model of the decay over time, which is beyond the scope of `weitrix` but the estimated precisions might be [propagated](https://www.bipm.org/en/publications/guides/gum.html) through such a calculation..
+
 
 # Appendix: data download and extraction
 

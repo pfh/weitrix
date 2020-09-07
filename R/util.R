@@ -55,7 +55,8 @@ partitions <- function(
 this_function_bp_up <- function() {
     BPPARAM <- bpparam()
 
-    if (is(BPPARAM, "MulticoreParam") && 
+    if (is(BPPARAM, "MulticoreParam") &&
+            !bpisup(BPPARAM) && 
             names(dev.cur()) %in% c("quartz","X11cairo","X11")) {
         message(
             "Disabling forking parallel processing as graphics device is open.")
