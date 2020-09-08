@@ -55,120 +55,6 @@ scale_cols <- function(A,s) {
 }
 
 
-# Least squares, always producing an answer
-# Returns a function, which will cache last weighting used for future calls
-# Where multiple solutions exist, one should be chosen arbitrarily
-# NA is treated as 0 (should be given weight 0 or not present in any case!)
-least_squares_func <- function(A) {
-    state <- new.env()
-    state$last_present <- NULL
-    state$last_w <- NULL
-    state$solver <- NULL
-
-    function(present,w,b) {
-        # No data or no non-zero weights?
-        if (max(0,w) == 0) 
-            return(rep(0, ncol(A)))
-
-        # Scaling of weights doesn't matter, normalize out
-        w <- w/max(w)
-
-        # Treat as equal if within 1e-9
-        if (!identical(state$last_present, present) ||
-            max(abs(state$last_w-w)) >= 1e-9) {
-            state$last_present <- present
-            state$last_w <- w
-
-            # Soldier on:
-            # - Missing values become NA
-            # - (near)zero singular values nuked            
-            sw <- sqrt(w)
-            decomp <- svd(A[present,,drop=FALSE]*sw)
-            good <- decomp$d > 1e-9*max(decomp$d)
-            state$solver <- 
-                decomp$v[,good,drop=FALSE] %*% 
-                (t(decomp$u[,good,drop=FALSE]*sw)/decomp$d[good])
-        }
-
-        b[is.na(b)] <- 0.0
-        as.vector(state$solver %*% b)
-    }
-}
-
-
-fit_all_cols_inner <- function(args) {
-    y <- as.matrix(args$y)
-    w <- as.matrix(args$w)
-    solver <- args$least_squares_func(args$x)
-
-    result <- lapply(seq_len(ncol(y)), function(i) {
-        wi <- w[,i]
-        present <- wi > 0
-        fixed <- as.vector(
-            args$fixed_row[present,,drop=FALSE] %*% args$fixed_col[i,])
-        solver(present,wi[present],y[present,i] - fixed)
-    })
-    
-    do.call(rbind, result)
-}
-
-fit_all_cols <- function(x,y,w, fixed_row,fixed_col) {
-    if (ncol(x) == 0)
-        return(matrix(0, nrow=ncol(y), ncol=0))
-        
-    BPPARAM <- bpparam()
-
-    parts <- partitions(ncol(y), nrow(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
-    #cat("cols",length(parts),"\n")
-    feed <- map(parts, function(part) {
-        list(
-            x=x,
-            y=y[,part,drop=FALSE],
-            w=w[,part,drop=FALSE],
-            fixed_row=fixed_row,
-            fixed_col=fixed_col[part,,drop=FALSE],
-            least_squares_func=least_squares_func)
-    })
-
-    result <- bplapply(feed, fit_all_cols_inner, BPPARAM=BPPARAM)
-
-    do.call(rbind, result)
-}
-
-fit_all_rows_inner <- function(args) {
-    y <- as.matrix(args$y)
-    w <- as.matrix(args$w)
-    solver <- args$least_squares_func(args$x)
-
-    result <- lapply(seq_len(nrow(y)), function(i) {
-        wi <- w[i,]
-        present <- wi > 0
-        solver(present,wi[present],y[i,present])
-    })
-    
-    do.call(rbind, result)
-}
-
-fit_all_rows <- function(x,y,w) {
-    if (ncol(x) == 0)
-        return(matrix(0, nrow=nrow(y), ncol=0))
-
-    BPPARAM <- bpparam()
-
-    parts <- partitions(nrow(y), ncol(y)*2, BPPARAM=BPPARAM, cpu_heavy=TRUE)
-    feed <- map(parts, function(part) {
-        list(
-            x=x,
-            y=y[part,,drop=FALSE],
-            w=w[part,,drop=FALSE],
-            least_squares_func=least_squares_func)
-    })
-    #cat("rows",length(parts),"\n")
-    result <- bplapply(feed, fit_all_rows_inner, BPPARAM=BPPARAM)
-
-    do.call(rbind, result)
-}
-
 # Turn decomposition rows %*% t(cols) into an orthogonal version
 # Furthermore, the columns of rows will have unit variance
 orthogonalize_decomp <- function(rows,cols) {
@@ -231,8 +117,8 @@ calc_weighted_ss <- function(x, w, row, col) {
 
 
 weitrix_components_inner <- function(
-        weitrix, x, weights, p, p_design, design, max_iter, col_mat, 
-        ind_components, ind_design, ss_total, tol, verbose
+        weitrix, x, weights, p, p_design, design, lower, upper, 
+        max_iter, col_mat, ind_components, ind_design, ss_total, tol, verbose
         ) {
     R2 <- -Inf
 
@@ -246,11 +132,12 @@ weitrix_components_inner <- function(
             qr.Q(qr(col_mat))[,ind_components,drop=FALSE]
 
         # Update row_mat
-        row_mat <- fit_all_rows(col_mat, x, weights)
+        row_mat <- fit_all_rows(col_mat, x, weights, lower=lower, upper=upper)
 
         # Update col_mat
         col_mat <- fit_all_cols(row_mat[,p_design+seq_len(p),drop=FALSE], 
-            x, weights, row_mat[,ind_design,drop=FALSE], design)
+            x, weights, row_mat[,ind_design,drop=FALSE], design,
+            lower=lower, upper=upper)
         col_mat <- cbind(design, col_mat)
 
         # Make decomposition matrices orthogonal
@@ -316,6 +203,14 @@ weitrix_components_inner <- function(
 #' Increase \code{n_restarts} to 
 #'     increase the odds of finding the global minimum.
 #'
+#' Constraints on the lower and upper bounds of predicted values may be applied.
+#' If the data by definition lies within a certain range,
+#'    this will avoid producing any predictions outside of the range.
+#' The constraints apply even if the actual observation is missing.
+#' This may help with numerical stability.
+#' This may help finding a meaningful representation of the data.
+#' This may be useful for calibration (see the proportions data vignette).
+#'
 #' @param weitrix 
 #' A weitrix object, or an object that can be converted to a weitrix 
 #'     with \code{as_weitrix}.
@@ -328,6 +223,16 @@ weitrix_components_inner <- function(
 #'     i.e. rows are centered before finding components. 
 #' A more complex formula might be used to account for batch effects. 
 #' \code{~0} can be used if rows are already centered.
+#' @param lower
+#' Lower bound on predictions (even for missing values).
+#' Constrains the components found.
+#' Requires package \code{osqp}.
+#' Numerical accuracy may be limited.
+#' @param upper
+#' Upper bound on predictions (even for missing values).
+#' Constrains the components found.
+#' Requires package \code{osqp}.
+#' Numerical accuracy may be limited.
 #' @param n_restarts 
 #' Number of restarts of the iteration to use.
 #' @param max_iter 
@@ -392,7 +297,8 @@ weitrix_components_inner <- function(
 #' Find a matrix decomposition with the specified number of components.
 #' @export
 weitrix_components <- function(
-        weitrix, p=0, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
+        weitrix, p=0, design=~1, lower=-Inf, upper=Inf,
+        n_restarts=1, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, initial=NULL, verbose=TRUE
         ) {
     this_function_bp_up()
@@ -433,7 +339,7 @@ weitrix_components <- function(
         colnames(design) <- map_chr(seq_len(p_design), ~paste0("design",.))
 
     # Centering to compare against
-    row_mat_center <- fit_all_rows(design, x, weights)
+    row_mat_center <- fit_all_rows(design, x, weights, lower=lower, upper=upper)
     #centered <- x - row_mat_center %*% t(design)
     #ss_total <- sum(centered^2*weights, na.rm=TRUE)
     ss_total <- calc_weighted_ss(x, weights, row_mat_center, design)
@@ -462,6 +368,7 @@ weitrix_components <- function(
         this_result <- weitrix_components_inner(
             weitrix=weitrix, x=x, weights=weights, 
             p=p, p_design=p_design, design=design,
+            lower=lower, upper=upper,
             max_iter=max_warmup_iter, col_mat=col_mat, 
             ind_components=ind_components, ind_design=ind_design, 
             ss_total=ss_total, tol=tol, verbose=verbose)
@@ -478,6 +385,7 @@ weitrix_components <- function(
         result <- weitrix_components_inner(
             weitrix=weitrix, x=x, weights=weights, 
             p=p, p_design=p_design, design=design,
+            lower=lower, upper=upper,
             max_iter=max_iter, col_mat=result$col, 
             ind_components=ind_components, ind_design=ind_design,
             ss_total=ss_total, tol=tol, verbose=verbose)    
@@ -502,7 +410,8 @@ weitrix_components <- function(
 #' Produce a sequence of weitrix decompositions with 1 to p components.
 #' @export
 weitrix_components_seq <- function(
-        weitrix, p, design=~1, n_restarts=3, max_iter=1000, tol=1e-5, 
+        weitrix, p, design=~1, lower=-Inf, upper=Inf, 
+        n_restarts=1, max_iter=1000, tol=1e-5, 
         use_varimax=TRUE, verbose=TRUE
         ) {
     this_function_bp_up()
@@ -517,7 +426,8 @@ weitrix_components_seq <- function(
         message("Finding ",p," components")
 
     result[[p]] <- weitrix_components(weitrix, p=p, 
-        design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
+        design=design, lower=lower, upper=upper, 
+        n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
         verbose=verbose)
     
     for(i in rev(seq_len(p-1))) {
@@ -529,7 +439,8 @@ weitrix_components_seq <- function(
             result[[i+1]]$col[,result[[i+1]]$ind_components,drop=FALSE]
 
         result[[i]] <- weitrix_components(weitrix, p=i, 
-            design=design, n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
+            design=design, lower=lower, upper=upper,
+            n_restarts=n_restarts, max_iter=max_iter, tol=tol, 
             use_varimax=use_varimax, verbose=verbose, initial=initial)
     }
 

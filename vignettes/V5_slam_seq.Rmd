@@ -76,32 +76,35 @@ We want to estimate the variance of each observation. We could model this exactl
 
 $$ \sigma^2 = \frac{\mu(1-\mu)}{n} $$
 
-However if our estimate of $\mu$ is exactly zero, the variance would become zero and so the weight would become infinite. To avoid infinities, we clip the variance to be above a small constant. There is a background rate of "T" to "C" conversions of around 0.001,attributed to sequencing errors, which provides a reasonable value to clip at.
+However if our estimate of $\mu$ is exactly zero, the variance would become zero and so the weight would become infinite. To avoid infinities, for purpose of calibration we constrain our model to never predict exactly zero. There is a background rate of "T" to "C" conversions of around 0.001, attributed to sequencing errors, which provides a reasonable constraint.
 
 A further problem is that biological variation does not disappear with greater and greater $n$, so dividing by $n$ may be over-optimistic.
 
-We will supply $n$ (stored in weights) and this slightly modified Bernoulli variance to a gamma GLM with log link, and let it choose coefficients to fit the real residuals.
+We will supply $n$ (stored in weights) to a gamma GLM with log link, and let it choose coefficients to fit the real residuals. This means instead of variance being inversely proportional to the number of reads, it may follow some more moderate power law. The Bernoulli variance is used as an offset.
 
 ```{r calibrate}
-# Compute an initial fit to provide residuals
-comp <- weitrix_components(wei, design=~group)
-
-log_clipped <- function(x, clip=0.001) log(pmax(x,clip))
+# Compute a constrained fit for calibration
+comp_constrained <- 
+    weitrix_components(wei, design=~group, lower=0.001, upper=0.99)
 
 cal <- weitrix_calibrate_all(wei, 
-    design = comp,
+    design = comp_constrained,
     trend_formula = 
-        ~ log(weight) + log_clipped(mu*(1-mu)), 
-    keep_fit = TRUE)
+        ~ log(weight) + offset(log(mu*(1-mu))))
 
 metadata(cal)$weitrix$all_coef
 ```
 
-This trend formula was validated as adequate (although not perfect) by examining calibration plots, as demonstrated below.
+The slope on `log(weight)` somewhat shallower than -1 indicates reads are not completely indepdendent, i.e. there is some biological variation.
+
+This calibration was validated by examining calibration plots, as demonstrated below.
 
 The amount of conversion differs a great deal between timepoints, so we examine them individually.
 
 ```{r calplot_mu, fig.height=8}
+# Compute an unconstrained fit for visualization
+comp <- weitrix_components(wei, design=~group)
+
 weitrix_calplot(wei, comp, cat=group, covar=mu, guides=FALSE) + 
     coord_cartesian(xlim=c(0,0.1)) + labs(title="Before calibration")
 weitrix_calplot(cal, comp, cat=group, covar=mu) + 
@@ -148,6 +151,7 @@ Heatmap(
 ```
 
 Further analysis would involve an explicit model of the decay over time, which is beyond the scope of `weitrix` but the estimated precisions might be [propagated](https://www.bipm.org/en/publications/guides/gum.html) through such a calculation..
+
 
 
 # Appendix: data download and extraction

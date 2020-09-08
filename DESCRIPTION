@@ -32,6 +32,7 @@ Imports:
     glm2,
     RhpcBLASctl
 Suggests: 
+    osqp,
     knitr,
     rmarkdown,
     BiocStyle,
