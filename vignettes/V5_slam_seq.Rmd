@@ -76,23 +76,24 @@ We want to estimate the variance of each observation. We could model this exactl
 
 $$ \sigma^2 = \frac{\mu(1-\mu)}{n} $$
 
-However if our estimate of $\mu$ is exactly zero, the variance would become zero and so the weight would become infinite. To avoid infinities, we clip the variance to be above a small constant. There is a background rate of "T" to "C" conversions of around 0.001,attributed to sequencing errors, which provides a reasonable value to clip at.
+However if our estimate of $\mu$ is exactly zero, the variance would become zero and so the weight would become infinite. To avoid infinities:
 
-A further problem is that biological variation does not disappear with greater and greater $n$, so dividing by $n$ may be over-optimistic.
+* For calibration purposes, we ignore observations where the $\mu$ is smaller than a certain value.
+* We then assign weights based on clipping $\mu$ to that value.
 
-We will supply $n$ (stored in weights) and this slightly modified Bernoulli variance to a gamma GLM with log link, and let it choose coefficients to fit the real residuals.
+This is achieved using the `mu_min` argument to `weitrix_calibrate_all`. A natural choice to clip at is 0.001, the background rate of apparent T to C conversions seen due to sequencing errors.
+
+A further possible problem is that biological variation does not disappear with greater and greater $n$, so dividing by $n$ may be over-optimistic. We will supply $n$ (stored in weights) to a gamma GLM on the squared residuals with log link, using the Bernoulli variance as an offset. This GLM is then used to assign calibrated weights.
 
 ```{r calibrate}
 # Compute an initial fit to provide residuals
 comp <- weitrix_components(wei, design=~group)
 
-log_clipped <- function(x, clip=0.001) log(pmax(x,clip))
-
 cal <- weitrix_calibrate_all(wei, 
     design = comp,
     trend_formula = 
-        ~ log(weight) + log_clipped(mu*(1-mu)), 
-    keep_fit = TRUE)
+        ~ log(weight) + offset(log(mu*(1-mu))), 
+    mu_min=0.001, mu_max=0.999)
 
 metadata(cal)$weitrix$all_coef
 ```
@@ -139,7 +140,7 @@ result <- weitrix_confects(
 result
 ```
 
-```{r visualize}
+```{r visualize, fig.height=8}
 interesting <- dplyr::filter(result$table, !is.na(confect))$name
 Heatmap(
     weitrix_x(cal)[interesting,], 

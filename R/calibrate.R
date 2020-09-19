@@ -295,8 +295,9 @@ all_names <- function(obj) {
 #'     where n is the number of non-missing values in the weitrix.
 #'
 #' \code{trend_formula} may reference any row or column variables,
-#'     or special factors \code{row} and \code{col},
-#'     or \code{weight} for the existing weights.
+#'     or \code{mu} for the predicted value,
+#'     or \code{weight} for the existing weights,
+#'     or special factors \code{row} and \code{col}.
 #' Keep in mind also that a log link function is used.
 #' 
 #' Unlike in \code{weitrix_calibrate_trend},
@@ -309,7 +310,7 @@ all_names <- function(obj) {
 #'     when constructing the data frame on which to fit the glm, 
 #'     only columns referenced in \code{trend_formula} are included.
 #'
-#' Example formulae:
+#' Example formulas:
 #'
 #' \code{trend_formula=~1+offset(-log(weight))} 
 #' Apply a global scaling, otherwise keeping weights the same.
@@ -344,6 +345,17 @@ all_names <- function(obj) {
 #' A formula specification for predicting squared residuals. See below.
 #' If absent, metadata(weitrix)$weitrix$calibrate_all_formula is used.
 #'
+#' @param mu_min
+#' When fitting the GLM, omit observations 
+#'     where the estimated mu is less than this value.
+#' When calculating weights from the fitted GLM, 
+#'     clip mu to be at least this value.
+#' @param mu_max
+#' When fitting the GLM, omit observations 
+#'     where the estimated mu is greater than this value.
+#' When calculating weights from the fitted GLM, 
+#'     clip mu to be at most this value.
+#'
 #' @param keep_fit
 #' Keep glm fit and the data used to create it. This can be large!
 #' If TRUE, these will be stored in \code{metadata(weitrix)$weitrix$all_fit}
@@ -363,7 +375,9 @@ all_names <- function(obj) {
 #'
 #' @export
 weitrix_calibrate_all <- function(
-        weitrix, design=~1, trend_formula=NULL, keep_fit=FALSE) {
+        weitrix, design=~1, trend_formula=NULL, 
+        mu_min=NA, mu_max=NA,
+        keep_fit=FALSE) {
 
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
@@ -400,7 +414,22 @@ weitrix_calibrate_all <- function(
     data$weight <- as.vector(weitrix_weights(weitrix))
     data$mu <- as.vector(comp$row %*% t(comp$col))
     data$.y <- (as.vector(weitrix_x(weitrix)) - data$mu)^2
-    
+
+    # mu may be clipped to a range of values
+    # - data outside the range is treated as missing
+    # - when assigning weights, mu is clipped to this range
+    if (!is.na(mu_min)) {
+        clip <- data$mu < mu_min
+        data$.y[clip] <- NA
+        data$mu[clip] <- mu_min
+    }
+
+    if (!is.na(mu_max)) {
+        clip <- data$mu > mu_max
+        data$.y[clip] <- NA
+        data$mu[clip] <- mu_max
+    }
+
     # Want to be able to use poly(log(weight),2)
     # so zero weights need to be dropped.
     good <- data$weight > 0 

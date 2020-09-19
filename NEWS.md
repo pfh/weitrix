@@ -1,9 +1,15 @@
 
+# weitrix 1.1.7
+
+* Add mu_min, mu_max arguments to weitrix_calibrate_all.
+
+
 # weitrix 1.1.6
 
 * Use glm2, which is less prone to optimization failure.
 * Auto-disable parallel processing if X11 device is open.
 * Add SLAM-Seq vignette.
+
 
 # weitrix 1.1.5
 
