@@ -87,10 +87,10 @@ A further possible problem is that biological variation does not disappear with 
 
 ```{r calibrate}
 # Compute an initial fit to provide residuals
-comp <- weitrix_components(wei, design=~group)
+fit <- weitrix_components(wei, design=~group)
 
 cal <- weitrix_calibrate_all(wei, 
-    design = comp,
+    design = fit,
     trend_formula = 
         ~ log(weight) + offset(log(mu*(1-mu))), 
     mu_min=0.001, mu_max=0.999)
@@ -103,9 +103,9 @@ This trend formula was validated as adequate (although not perfect) by examining
 The amount of conversion differs a great deal between timepoints, so we examine them individually.
 
 ```{r calplot_mu, fig.height=8}
-weitrix_calplot(wei, comp, cat=group, covar=mu, guides=FALSE) + 
+weitrix_calplot(wei, fit, cat=group, covar=mu, guides=FALSE) + 
     coord_cartesian(xlim=c(0,0.1)) + labs(title="Before calibration")
-weitrix_calplot(cal, comp, cat=group, covar=mu) + 
+weitrix_calplot(cal, fit, cat=group, covar=mu) + 
     coord_cartesian(xlim=c(0,0.1)) + labs(title="After calibration")
 ```
 
@@ -114,41 +114,55 @@ Ideally the red lines would all be horizontal. This isn't possible for very smal
 We can also examine the weighted residuals vs the original weights (the coverage of "T"s).
 
 ```{r calplot_weight, fig.height=8}
-weitrix_calplot(wei, comp, cat=group, covar=log(weitrix_weights(wei)), guides=FALSE) + 
+weitrix_calplot(wei, fit, cat=group, covar=log(weitrix_weights(wei)), guides=FALSE) + 
     labs(title="Before calibration")
-weitrix_calplot(cal, comp, cat=group, covar=log(weitrix_weights(wei))) + 
+weitrix_calplot(cal, fit, cat=group, covar=log(weitrix_weights(wei))) + 
     labs(title="After calibration")
 ```
 
-# Testing
 
-We will look for variation in the first hour.
+# Components of variation
 
-Since each timepoint is quite different, we will subset down to the relevant timepoints rather than trying to estimate the row dispersions based on all of the timepoints.
+As a quick way to examine the data, we look for two components of variation. This reveals fast decaying and slow decaying genes.
 
-The effect size we use here will be the standard deviation explained (square root of variance explained) by the differences between timepoints. Results are ranked by confidence bounds on these effect sizes, with a multiple testing adjustment, using the [Topconfects](https://bioconductor.org/packages/release/bioc/html/topconfects.html) method.
-
-```{r test}
-subset <- 
-    cal[, colData(cal)$group %in% c("0h_chase", "0.5h_chase", "1h_chase") ]
-
-design <- model.matrix(~group, data=droplevels(colData(subset)))
-
-result <- weitrix_confects(
-    subset, design, coef=colnames(design)[-1], step=0.0001)
-
-result
+```{r comp, message=FALSE}
+comp <- weitrix_components(cal, 2, n_restarts=1)
 ```
 
-```{r visualize, fig.height=8}
-interesting <- dplyr::filter(result$table, !is.na(confect))$name
+These are the scores for the two components:
+
+```{r showcomp}
+matrix_long(comp$col[,-1], row_info=colData(cal)) %>% 
+    ggplot(aes(x=group,y=value)) + 
+    geom_jitter(width=0.2,height=0) + 
+    facet_grid(col~.)
+```
+
+Component C1 highlights fast-decaying genes:
+
+```{r comp1}
+fast <- weitrix_confects(cal, comp$col, "C1")
+fast
+
 Heatmap(
-    weitrix_x(cal)[interesting,], 
+    weitrix_x(cal)[ head(fast$table$name, 10) ,], 
     name="Proportion converted", 
     cluster_columns=FALSE, cluster_rows=FALSE)
 ```
 
-Further analysis would involve an explicit model of the decay over time, which is beyond the scope of `weitrix` but the estimated precisions might be [propagated](https://www.bipm.org/en/publications/guides/gum.html) through such a calculation..
+Component C2 highlights slow decaying genes:
+
+```{r comp2}
+slow <- weitrix_confects(cal, comp$col, "C2")
+slow
+
+Heatmap(
+    weitrix_x(cal)[ head(slow$table$name, 10) ,], 
+    name="Proportion converted", 
+    cluster_columns=FALSE, cluster_rows=FALSE)
+```
+
+Further examination might be based on explicitly modelling the decay process.
 
 
 # Appendix: data download and extraction

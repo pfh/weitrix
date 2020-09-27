@@ -7,9 +7,11 @@
 #' k-means rather than quantiles.
 #' Automatically uses less knots if there are insufficient distinct values.
 #'
+#' Wong (1982, 1984) showed the asymptotic density of k-means in 1 dimension is 
+#'     proportional to the cube root of the density of x. 
 #' Compared to using quantiles (the default for \code{\link[splines]{ns}}),
-#' choosing knots using k-means produces a better spread of knot locations
-#' if the distribution of values is very uneven.
+#'     choosing knots using k-means produces a better spread of knot locations
+#'     if the distribution of values is very uneven.
 #'
 #' k-means is computed in an optimal, deterministic way using
 #' \code{\link[Ckmeans.1d.dp]{Ckmeans.1d.dp}}.
@@ -41,6 +43,18 @@
 #' ggplot(diamonds, aes(carat, price)) + 
 #'    geom_point() + 
 #'    geom_smooth(method="lm", formula=y~well_knotted_spline(x,10))
+#'
+#' @references
+#'
+#' Wong, M. (1982).
+#' Asymptotic properties of univariate sample k-means clusters.
+#' Working paper #1341-82, Sloan School of Management, MIT.
+#' \url{https://dspace.mit.edu/handle/1721.1/46876}
+#'
+#' Wong, M. (1984). 
+#' Asymptotic properties of univariate sample k-means clusters.
+#' \emph{Journal of Classification}, 1(1), 255–270.
+#' \url{https://doi.org/10.1007/BF01890126}
 #'
 #' @export
 well_knotted_spline <- function(x, n_knots, verbose=TRUE) {

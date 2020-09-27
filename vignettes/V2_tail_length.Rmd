@@ -200,25 +200,35 @@ Having discovered genes with differential tail length, let's look at some genes 
 view_gene <- function(id) {
     gene <- rowData(wei)[id,"gene"]
     if (is.na(gene)) gene <- ""
-    ggplot(samples, aes(x=time,color=strain,group=strain, y=tail[id,])) +
-       geom_hline(yintercept=0) + 
-       geom_line() + 
-       geom_point(aes(size=tail_count[id,])) +
-       labs(x="Time", y="Tail length", size="Read count", title=paste(id,gene)) +
-       theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
+    tails <- weitrix_x(cal)[id,]
+    std_errs <- weitrix_weights(cal)[id,] ^ -0.5
+    ggplot(samples) +
+        aes(x=time,color=strain,group=strain, 
+            y=tails, ymin=tails-std_errs, ymax=tails+std_errs) +
+        geom_errorbar(width=0.2) + 
+        geom_hline(yintercept=0) + 
+        geom_line() + 
+        geom_point(aes(size=tail_count[id,])) +
+        labs(x="Time", y="Tail length", size="Read count", title=paste(id,gene)) +
+        theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5))
 }
+
+caption <- plot_annotation(
+    caption="Error bars show +/- one standard error of measurement.")
 
 # Top confident differences between WT and deltaSet1
 view_gene("YDR170W-A") +
 view_gene("YIL015W") +
 view_gene("YAR009C") +
-view_gene("YJR027W/YJR026W")
+view_gene("YJR027W/YJR026W") +
+caption
 
 # Top confident changes over time
 view_gene("YNL036W") +
 view_gene("YBL097W") +
 view_gene("YBL016W") +
-view_gene("YKR093W")
+view_gene("YKR093W") +
+caption
 ```
 
 ```{r echo=F,eval=F}
@@ -250,7 +260,7 @@ points(confect ~ total_reads, data=confects$table, cex=0.5)
 
 confects$table$name[1:2] %>% map(view_gene) %>% purrr::reduce(`+`)
 confects$table$name[3:4] %>% map(view_gene) %>% purrr::reduce(`+`)
-confects$table$name[5:6] %>% map(view_gene) %>% purrr::reduce(`+`)
+confects$table$name[5:6] %>% map(view_gene) %>% purrr::reduce(`+`) + caption
 ```
 
 The genes discovered tend to be changing over time. If we use a model that accounts for time, differences between the two strains will be emphasized instead.
@@ -267,7 +277,7 @@ points(confect ~ total_reads, data=confects2$table, cex=0.5)
 
 confects2$table$name[1:2] %>% map(view_gene) %>% purrr::reduce(`+`)
 confects2$table$name[3:4] %>% map(view_gene) %>% purrr::reduce(`+`)
-confects2$table$name[5:6] %>% map(view_gene) %>% purrr::reduce(`+`)
+confects2$table$name[5:6] %>% map(view_gene) %>% purrr::reduce(`+`) + caption
 ```
 
 
@@ -330,7 +340,7 @@ result_C1$table %>%
 cat(sum(!is.na(result_C1$table$confect)), 
     "genes significantly non-zero at FDR 0.05\n")
 
-result_C1$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`)
+result_C1$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`) + caption
 ```
 
 FUS3 is involved in yeast mating. We see here a poly(A) tail signature of yeast realizing there are not actually any $\alpha$ cells around to mate with.
@@ -350,7 +360,7 @@ result_C2$table %>%
 cat(sum(!is.na(result_C2$table$confect)), 
     "genes significantly non-zero at FDR 0.05\n")
 
-result_C2$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`)
+result_C2$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`) + caption
 ```
 
 ## Gene loadings for C3: longer tails in set1 mutant
@@ -369,7 +379,7 @@ result_C3$table %>%
 cat(sum(!is.na(result_C3$table$confect)), 
     "genes significantly non-zero at FDR 0.05\n")
 
-result_C3$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`)
+result_C3$table$name[1:4] %>% map(view_gene) %>% purrr::reduce(`+`) + caption
 
 #view_gene("YDR461W") #MFA1
 ```
