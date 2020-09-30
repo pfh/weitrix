@@ -630,7 +630,8 @@ weitrix_calplot <- function(
 
         ggplot(plot_data, aes(y=.data$y, x=.data$x)) + 
             {if (have_cat) facet_wrap(vars(.data$cat))} +
-            geom_point(stroke=0, size=0.5, alpha=0.5, na.rm=TRUE) + 
+            #geom_point(stroke=0, size=0.5, alpha=0.5, na.rm=TRUE) + 
+            geom_bin2d(bins=200) + scale_fill_viridis_c() +
             {if (guides && !funnel) geom_hline(yintercept=c(-guide_pos,0,guide_pos), color="blue")} + 
             {if (guides && funnel) geom_abline(slope=c(guide_pos,0,-guide_pos),intercept=c(0,0,0),color="blue")} +
             geom_line(aes(y=.data$mean), data=line_data, size=1, color="red")+
@@ -638,7 +639,11 @@ weitrix_calplot <- function(
             geom_line(aes(y=.data$mean-.data$sd), data=line_data, size=1, color="red")+
             labs(
                 y=if (funnel) "residual" else "sqrt(weight) * residual", 
-                x=as_label(covar_var))
+                x=as_label(covar_var),
+                fill="Count")+
+            theme(
+                legend.position=c(1,1), 
+                legend.justification=c(1,1))
     } else {
         ggplot(data, aes(
                 y=.data$weighted_residual, 

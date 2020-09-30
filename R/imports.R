@@ -18,7 +18,7 @@
 #' @importFrom ggplot2
 #'    ggplot aes aes_string geom_point geom_line geom_hline labs coord_cartesian
 #'    geom_smooth coord_trans geom_hline geom_boxplot geom_abline theme
-#'    element_text facet_wrap vars
+#'    element_text element_blank facet_wrap vars geom_bin2d scale_fill_viridis_c
 #'
 #' @importFrom rlang
 #'    eval_tidy enquo quo quo_get_expr as_label .data
