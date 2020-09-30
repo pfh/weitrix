@@ -641,9 +641,7 @@ weitrix_calplot <- function(
                 y=if (funnel) "residual" else "sqrt(weight) * residual", 
                 x=as_label(covar_var),
                 fill="Count")+
-            theme(
-                legend.position=c(1,1), 
-                legend.justification=c(1,1))
+            theme(legend.position="bottom", legend.justification=c(1,1))
     } else {
         ggplot(data, aes(
                 y=.data$weighted_residual, 
