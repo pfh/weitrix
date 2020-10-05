@@ -1,4 +1,9 @@
 
+# weitrix 1.1.8
+
+* Use geom_bin2d in weitrix_calplot scatterplots.
+
+
 # weitrix 1.1.7
 
 * Add mu_min, mu_max arguments to weitrix_calibrate_all.

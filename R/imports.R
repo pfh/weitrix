@@ -65,5 +65,8 @@
 #' @importFrom glm2
 #'     glm2
 #'
+#' @importFrom grDevices
+#'     dev.cur
+#'
 NULL
 
