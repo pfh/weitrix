@@ -1,3 +1,8 @@
+# weitrix 1.1.10
+
+* Fix bug with weitrix_confects due to [[ ]] <- NULL deleting elements from
+  a list instead of storing NULL in the list.
+
 
 # weitrix 1.1.9
 

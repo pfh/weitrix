@@ -56,11 +56,9 @@ fit_and_contrast <- function(K, X, w, y) {
 }
 
 fit_and_contrast_inner <- function(args) {
-    n <- nrow(args$Y)
-    result <- rep(list(NULL), n)
-    for(i in seq_len(n))
-        result[[i]] <- fit_and_contrast(args$K,args$X,args$W[i,],args$Y[i,])
-    result
+    map(seq_len(nrow(args$Y)), function(i) {
+        fit_and_contrast(args$K,args$X,args$W[i,],args$Y[i,])
+    })
 }
 
 
