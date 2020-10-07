@@ -1,4 +1,11 @@
 
+# weitrix 1.1.9
+
+* Peaks were sometimes in reverse order in APA example, data file updated.
+* Try to get rid of an odd new build error about stack usage by using serial 
+  processing in vignettes.
+
+
 # weitrix 1.1.8
 
 * Use geom_bin2d in weitrix_calplot scatterplots.

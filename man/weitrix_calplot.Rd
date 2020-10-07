@@ -53,7 +53,8 @@ If \code{cat} is given, it will be used to break the elements down
     into categories.
 
 If \code{covar} is given, sqrt(weight) weighted residuals are plotted versus
-    the covariate, with red trend lines for the mean and for the mean +/- one standard deviation.
+    the covariate, with red trend lines for 
+    the mean and for the mean +/- one standard deviation.
 If the weitrix is calibrated, the trend lines should be horizontal lines
     with y intercept close to -1, 0 and 1.
 Blue guide lines are shown for this ideal outcome.

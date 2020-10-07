@@ -6,12 +6,20 @@ data :
 	Rscript -e 'devtools::load_all("."); source("data-raw/simwei.R")'
 
 check.Renviron :
-	curl https://raw.githubusercontent.com/Bioconductor/packagebuilder/master/check.Renviron >check.Renviron
+	#curl https://raw.githubusercontent.com/Bioconductor/packagebuilder/master/check.Renviron >check.Renviron
+	curl http://bioconductor.org/checkResults/devel/bioc-LATEST/Renviron.bioc >check.Renviron
 
 check : document check.Renviron
 	rm weitrix_*.tar.gz || echo No old tarball
 	time R CMD build .
 	R_CHECK_ENVIRON=check.Renviron time R CMD check weitrix_*.tar.gz
+	ls -lh weitrix_*.tar.gz
+
+# Should complete in less than 10 minutes
+check-once : document check.Renviron
+	rm weitrix_*.tar.gz || echo No old tarball
+	time R CMD build .
+	R_CHECK_ENVIRON=check.Renviron time R CMD check --no-build-vignettes weitrix_*.tar.gz
 	ls -lh weitrix_*.tar.gz
 
 bioccheck : document

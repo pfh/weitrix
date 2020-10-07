@@ -494,7 +494,8 @@ weitrix_calibrate_all <- function(
 #'     into categories.
 #'
 #' If \code{covar} is given, sqrt(weight) weighted residuals are plotted versus
-#'     the covariate, with red trend lines for the mean and for the mean +/- one standard deviation.
+#'     the covariate, with red trend lines for 
+#'     the mean and for the mean +/- one standard deviation.
 #' If the weitrix is calibrated, the trend lines should be horizontal lines
 #'     with y intercept close to -1, 0 and 1.
 #' Blue guide lines are shown for this ideal outcome.
@@ -577,7 +578,8 @@ weitrix_calplot <- function(
     
     if ("col" %in% needed)
         data$col <- 
-            rep(factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+            rep(factor(colnames(weitrix), colnames(weitrix)), 
+                each=nrow(weitrix))
 
     data$weight <- as.vector(weitrix_weights(weitrix))
     data$mu <- as.vector(comp$row %*% t(comp$col))
@@ -632,11 +634,16 @@ weitrix_calplot <- function(
             {if (have_cat) facet_wrap(vars(.data$cat))} +
             #geom_point(stroke=0, size=0.5, alpha=0.5, na.rm=TRUE) + 
             geom_bin2d(bins=200) + scale_fill_viridis_c() +
-            {if (guides && !funnel) geom_hline(yintercept=c(-guide_pos,0,guide_pos), color="blue")} + 
-            {if (guides && funnel) geom_abline(slope=c(guide_pos,0,-guide_pos),intercept=c(0,0,0),color="blue")} +
+            {if (guides && !funnel) geom_hline(
+                yintercept=c(-guide_pos,0,guide_pos), color="blue")} + 
+            {if (guides && funnel) geom_abline(
+                slope=c(guide_pos,0,-guide_pos),
+                intercept=c(0,0,0),color="blue")} +
             geom_line(aes(y=.data$mean), data=line_data, size=1, color="red")+
-            geom_line(aes(y=.data$mean+.data$sd), data=line_data, size=1, color="red")+
-            geom_line(aes(y=.data$mean-.data$sd), data=line_data, size=1, color="red")+
+            geom_line(aes(y=.data$mean+.data$sd), 
+                data=line_data, size=1, color="red")+
+            geom_line(aes(y=.data$mean-.data$sd), 
+                data=line_data, size=1, color="red")+
             labs(
                 y=if (funnel) "residual" else "sqrt(weight) * residual", 
                 x=as_label(covar_var),

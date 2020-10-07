@@ -55,13 +55,13 @@ fit_and_contrast <- function(K, X, w, y) {
     )
 }
 
-fit_and_contrast_inner <- function(args) with(args, {
-    n <- nrow(Y)
+fit_and_contrast_inner <- function(args) {
+    n <- nrow(args$Y)
     result <- rep(list(NULL), n)
     for(i in seq_len(n))
-        result[[i]] <- fit_and_contrast(K,X,W[i,],Y[i,])
+        result[[i]] <- fit_and_contrast(args$K,args$X,args$W[i,],args$Y[i,])
     result
-})
+}
 
 
 fit_and_contrast_all <- function(K, X, W, Y) {
@@ -300,14 +300,14 @@ weitrix_confects <- function(
 
 
     if (effect_wanted == "contrast") {
-       # ==== Topconfects for single contrast =====
+        # ==== Topconfects for single contrast =====
 
-       effect_desc = "contrast"
-       effect <- get("estimates")
-       se <- sqrt( get("unscaled_vars")*sigma2 )
+        effect_desc = "contrast"
+        effect <- get("estimates")
+        se <- sqrt( get("unscaled_vars")*sigma2 )
 
-       result <- normal_confects(
-           effect, se, df=df2, fdr=fdr, step=step, full=TRUE)
+        result <- normal_confects(
+            effect, se, df=df2, fdr=fdr, step=step, full=TRUE)
     } else if (effect_wanted == "cohen_f") {
         # ==== Topconfects for one or more contrasts ====
 

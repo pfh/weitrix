@@ -48,10 +48,8 @@ set.seed(12345)
 
 # BiocParallel supports multiple backends. 
 # If the default hangs or errors, try others.
-BiocParallel::register( BiocParallel::SnowParam() )
-
 # The most reliable backed is to use serial processing
-#BiocParallel::register( BiocParallel::SerialParam() )
+BiocParallel::register( BiocParallel::SerialParam() )
 ```
 
 ```{r load, message=F, warning=F}
