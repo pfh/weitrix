@@ -39,6 +39,8 @@ Find rows with confident excess standard deviation beyond what is expected based
 This may be used, for example, to find potential marker genes.
 }
 \details{
+Important note: The "confect" values produced by this method are only valid if the weighted residuals are close to normally distributed.
+
 This is a conversion of the "dispersion" statistic for each row into units that are more readily interpretable, accompanied by confidence bounds with a multiple testing correction.
 
 We are looking for further perturbation of observed values beyond what is accounted for by a linear model and, further, beyond what is expected based on the observation weights (assumed to be calibrated and so interpreted as 1/variance). We are seeking to estimate the standard deviation of this further perturbation.
