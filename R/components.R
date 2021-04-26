@@ -201,6 +201,7 @@ calc_weighted_ss_inner <- function(args) with(args, {
             as.vector(row[present,,drop=FALSE] %*% col[i,]) 
         total <- total + sum(errors*errors*wi[present])
     }
+
     total
 })
 
@@ -209,8 +210,8 @@ calc_weighted_ss <- function(x, w, row, col) {
     parts <- partitions(ncol(x), nrow(x)*2, BPPARAM=BPPARAM)
     feed <- map(parts, function(part) {
         list(
-            x=x[,part,drop=FALSE],
-            w=w[,part,drop=FALSE],
+            x=as.matrix(x[,part,drop=FALSE]),
+            w=as.matrix(w[,part,drop=FALSE]),
             row=row,
             col=col[part,,drop=FALSE])
     })
@@ -420,7 +421,10 @@ weitrix_components <- function(
     p_design <- ncol(design)
     p_total <- p_design+p
 
-    assert_that(nrow(design) == m, n >= p_total, m >= p)
+    assert_that(
+        nrow(design) == m, 
+        p == 0 || n >= p_total, 
+        m >= p)
 
     df_total <- sum(weights > 0)
     df_model <- n*p_total-m*p

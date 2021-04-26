@@ -84,9 +84,6 @@ this_function_bp_up <- function() {
     # Make sure the workers are running
     # Clean up on exit
     if (!bpisup(BPPARAM)) {
-        # Deactive X11 graphics before starting forking multiprocessing.
-        # May need to add to list of affected devices.
-
         # Only use 1 thread for linear algebra
         old_threads <- blas_get_num_procs()
         blas_set_num_threads(1)

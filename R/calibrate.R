@@ -392,28 +392,30 @@ weitrix_calibrate_all <- function(
     needed_rowdata <- intersect(colnames(rowData(weitrix)), needed)
     needed_coldata <- intersect(colnames(colData(weitrix)), needed)
 
-    data <- cbind(
-        as.data.frame(rowData(weitrix)[
-            rep(seq_len(nrow(weitrix)), ncol(weitrix)),
-            needed_rowdata,
-            drop=FALSE]),
-        as.data.frame(colData(weitrix)[
-            rep(seq_len(ncol(weitrix)), each=nrow(weitrix)),
-            needed_coldata,
-            drop=FALSE])
-    )
+    which_index <- which(as.vector(weitrix_weights(weitrix)>0))-1
+    which_row <- which_index %% nrow(weitrix)
+    which_col <- which_index %/% nrow(weitrix)  
+    which_index <- which_index + 1
+    which_row <- which_row + 1
+    which_col <- which_col + 1
+
+    data <- data.frame(row.names=seq_along(which_index))
+
+    for(name in needed_rowdata)
+        data[[name]] <- rowData(weitrix)[[name]][which_row]
+
+    for(name in needed_coldata)
+        data[[name]] <- colData(weitrix)[[name]][which_col]
 
     if ("row" %in% needed)
-        data$row <- rep(
-            factor(rownames(weitrix), rownames(weitrix)), ncol(weitrix))
+        data$row <- factor(rownames(weitrix)[which_row], rownames(weitrix))
 
     if ("col" %in% needed)
-        data$col <- rep(
-            factor(colnames(weitrix), colnames(weitrix)), each=nrow(weitrix))
+        data$col <- factor(colnames(weitrix)[which_col], colnames(weitrix))
     
-    data$weight <- as.vector(weitrix_weights(weitrix))
-    data$mu <- as.vector(comp$row %*% t(comp$col))
-    data$.y <- (as.vector(weitrix_x(weitrix)) - data$mu)^2
+    data$weight <- as.vector(weitrix_weights(weitrix))[which_index]
+    data$mu <- as.vector(comp$row %*% t(comp$col))[which_index]      #TODO: make more efficient
+    data$.y <- (as.vector(weitrix_x(weitrix))[which_index] - data$mu)^2
 
     # mu may be clipped to a range of values
     # - data outside the range is treated as missing
@@ -430,20 +432,15 @@ weitrix_calibrate_all <- function(
         data$mu[clip] <- mu_max
     }
 
-    # Want to be able to use poly(log(weight),2)
-    # so zero weights need to be dropped.
-    good <- data$weight > 0 
-    good_data <- data[good,,drop=FALSE]
-
     mustart <- mean(data$.y, na.rm=TRUE)
-    n <- nrow(good_data)
+    n <- nrow(data)
 
     trend_formula <- update(trend_formula, .y ~ .)
     
     fit <- eval(substitute(
         glm2(
             trend_formula,
-            data=good_data,
+            data=data,
             family=quasi(link="log", variance="mu^2"),
             mustart=rep(mustart, n),
             model=FALSE, x=FALSE, y=FALSE,
@@ -452,13 +449,13 @@ weitrix_calibrate_all <- function(
         list(trend_formula=trend_formula, mustart=mustart, n=n)
     ))
 
-    n_good <- nrow(good_data)
+    n_good <- sum(!is.na(data$.y))
     overfitting_adjustment <- (n_good-ncol(comp$col)*nrow(weitrix)) / n_good
 
-    pred <- predict(fit, newdata=good_data, type="response")
+    pred <- predict(fit, newdata=data, type="response")
     pred[is.na(pred)] <- Inf
     new_weights <- matrix(0, nrow=nrow(weitrix), ncol=ncol(weitrix))
-    new_weights[good] <- overfitting_adjustment/pred
+    new_weights[which_index] <- overfitting_adjustment/pred
     rownames(new_weights) <- rownames(weitrix)
     colnames(new_weights) <- colnames(weitrix)
 
@@ -468,7 +465,7 @@ weitrix_calibrate_all <- function(
 
     if (keep_fit) {
         metadata(weitrix)$weitrix$all_fit <- fit
-        data$new_weight <- as.vector(weitrix_weights(weitrix))
+        data$new_weight <- as.vector(weitrix_weights(weitrix))[which_index]
         metadata(weitrix)$weitrix$all_data <- data
     }
 
