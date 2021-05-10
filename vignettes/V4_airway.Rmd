@@ -162,7 +162,12 @@ confects
 
 "effect" is root-mean-square variation in residuals relative to a fitted model in *excess* of what is expected from the calibrated weights. Here the model only has an intercept term, so the residuals represent variation from the weighted mean. "confect" scores are lower confidence bounds on the effect, adjusted for multiple testing using the `topconfects` method.
 
-In single-cell experiments, this should be a good way to find marker genes.
+The default method assumes errors are normally distributed. If you have a large number of columns, this assumption can be relaxed. This is more appropriate for single cell data, which will typically have a large number of cells, and also not have normally distributed errors due to the sparse nature of the data. In single-cell experiments, this should be a good way to find marker genes.
+
+```{r warning=FALSE}
+confects2 <- weitrix_sd_confects(airway_cal, assume_normal=FALSE)
+confects2
+```
 
 Top genes can then be examined to find a reason for their variation. For example, we see that XIST is highly expressed in a particular cell type.
 

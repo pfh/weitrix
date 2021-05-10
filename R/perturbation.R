@@ -9,6 +9,7 @@ calc_rowstats_inner <- function(args) with(args, {
     result <- rep(NA_real_,n)
 
     wss <- rep(NA_real_,n)
+    wswss <- rep(NA_real_,n)
     total_weight <- rep(NA_real_,n)
     n_present <- rep(NA_real_,n)
     df <- rep(NA_real_,n)
@@ -25,7 +26,9 @@ calc_rowstats_inner <- function(args) with(args, {
         if (df[i] > 0) {
             errors <- as.vector(xi_present) - 
                 as.vector(col[present,,drop=FALSE] %*% row[i,]) 
-            wss[i] <- sum(errors*errors*wi_present)
+            werrors2 <- wi_present*errors*errors
+            wss[i] <- sum(werrors2)
+            wswss[i] <- sum(werrors2*werrors2)
         }
         if (n_present[i] > 0)
             row_mean[i] <- weighted.mean(xi_present, wi_present)
@@ -33,6 +36,7 @@ calc_rowstats_inner <- function(args) with(args, {
 
     data.frame(
         wss=wss,
+        wswss=wswss,
         total_weight=total_weight,
         df=df,
         n_present=n_present,
@@ -59,7 +63,7 @@ calc_rowstats <- function(x, w, row, col) {
 #' Find rows with confident excess standard deviation beyond what is expected based on the weights of a calibrated weitrix. 
 #' This may be used, for example, to find potential marker genes.
 #'
-#' Important note: The "confect" values produced by this method are only valid if the weighted residuals are close to normally distributed.
+#' Important note: With the default setting of \code{assume_normal=TRUE}, the "confect" values produced by this method are only valid if the weighted residuals are close to normally distributed. If you have a reasonably large number of columns (eg single cell data), you can and should relax this assumption by specifying \code{assume_normal=FALSE}.
 #'
 #' This is a conversion of the "dispersion" statistic for each row into units that are more readily interpretable, accompanied by confidence bounds with a multiple testing correction.
 #'
@@ -81,6 +85,7 @@ calc_rowstats <- function(x, w, row, col) {
 #' in which case the existing fits (\code{design$row}) are used.
 #' @param fdr False Discovery Rate to control for.
 #' @param step Granularity of effect sizes to test.
+#' @param assume_normal Assume weighted residuals are normally distributed? Assumption of normality is quite a strong assemption here. If TRUE, tests are based on the weighted squared residuals following a chi-squared distribution. If FALSE, tests are based on assuming the dispersion follows an asymptotically normal distribution, with variance estimated from the weighted squared residuals. If FALSE, a reasonably large number of columns is required. Defaults to TRUE.
 #'
 #' @return
 #' A topconfects result. The \code{$table} data frame contains columns:
@@ -107,7 +112,8 @@ calc_rowstats <- function(x, w, row, col) {
 #' @export
 weitrix_sd_confects <- function(
         weitrix, design=~1,  
-        fdr=0.05, step=0.001) {
+        fdr=0.05, step=0.001,
+        assume_normal=TRUE) {
     weitrix <- as_weitrix(weitrix)
     comp <- as_components(design, weitrix)
     
@@ -130,18 +136,39 @@ weitrix_sd_confects <- function(
     df$typical_obs_err <- sqrt(1/df$mean_weight)
     df$effect <- sqrt(pmax(0, (df$dispersion-1)/df$mean_weight ))
 
-    # Do the topconfects
+    if (assume_normal) {
+        # Do the topconfects, assuming normally distributed residuals
 
-    pfunc <- function(indices, effect_size) {
-        1 - pchisq(
-            df$wss[indices],
-            df$df[indices],
-            ncp=effect_size^2 * df$mean_weight[indices] * df$df[indices])
+        pfunc <- function(indices, effect_size) {
+            1 - pchisq(
+                df$wss[indices],
+                df$df[indices],
+                ncp=effect_size^2 * df$mean_weight[indices] * df$df[indices])
+        }
+
+        result <- nest_confects(
+            nrow(df), pfunc, fdr=fdr, step=step, full=TRUE)
+    } else {
+        # Do the topconfects, estimating the variance of the squared residuals
+
+        # Estimate variance of weighted squared residuals (ws)
+        df$ws_var <- (df$wswss - df$wss^2/df$n_present)/(df$n_present-1)
+        
+        # An option would be to not allow estimated variance to be less than for chi-squared.
+        #df$ws_var <- pmax(2*df$wss/df$n_present, df$ws_var)
+        
+        df$dispersion_var <- (df$ws_var*df$n_present)/(df$df^2)
+
+        df$effect2     <- pmax(0, (df$dispersion-1)/df$mean_weight)
+        df$effect2_var <- df$dispersion_var/(df$mean_weight^2) 
+
+        result <- normal_confects(df$effect2, sqrt(df$effect2_var), df=df$n_present-1, signed=FALSE, fdr=fdr, step=step, full=TRUE)
+        result$table$effect <- sqrt( result$table$effect )
+        result$table$confect <- sqrt( result$table$confect )
+        result$table$se <- NULL
+        result$table$df <- NULL
     }
 
-    result <- nest_confects(
-        nrow(df), pfunc, fdr=fdr, step=step, full=TRUE)
-    
     # Add further useful columns to the results table
 
     fdr_zero <- result$table$fdr_zero

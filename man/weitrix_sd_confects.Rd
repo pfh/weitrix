@@ -4,7 +4,13 @@
 \alias{weitrix_sd_confects}
 \title{Find rows with confidently excessive variability in a calibrated weitrix}
 \usage{
-weitrix_sd_confects(weitrix, design = ~1, fdr = 0.05, step = 0.001)
+weitrix_sd_confects(
+  weitrix,
+  design = ~1,
+  fdr = 0.05,
+  step = 0.001,
+  assume_normal = TRUE
+)
 }
 \arguments{
 \item{weitrix}{A weitrix object, or an object that can be converted to a weitrix 
@@ -18,6 +24,8 @@ in which case the existing fits (\code{design$row}) are used.}
 \item{fdr}{False Discovery Rate to control for.}
 
 \item{step}{Granularity of effect sizes to test.}
+
+\item{assume_normal}{Assume weighted residuals are normally distributed? Assumption of normality is quite a strong assemption here. If TRUE, tests are based on the weighted squared residuals following a chi-squared distribution. If FALSE, tests are based on assuming the dispersion follows an asymptotically normal distribution, with variance estimated from the weighted squared residuals. If FALSE, a reasonably large number of columns is required. Defaults to TRUE.}
 }
 \value{
 A topconfects result. The \code{$table} data frame contains columns:
@@ -39,7 +47,7 @@ Find rows with confident excess standard deviation beyond what is expected based
 This may be used, for example, to find potential marker genes.
 }
 \details{
-Important note: The "confect" values produced by this method are only valid if the weighted residuals are close to normally distributed.
+Important note: With the default setting of \code{assume_normal=TRUE}, the "confect" values produced by this method are only valid if the weighted residuals are close to normally distributed. If you have a reasonably large number of columns (eg single cell data), you can and should relax this assumption by specifying \code{assume_normal=FALSE}.
 
 This is a conversion of the "dispersion" statistic for each row into units that are more readily interpretable, accompanied by confidence bounds with a multiple testing correction.
 

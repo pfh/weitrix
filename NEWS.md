@@ -1,3 +1,9 @@
+# weitrix 1.3.1
+
+* weitrix_sd_confects now has an option to drop the assumption of normally 
+  distributed weighted residuals.
+
+
 # weitrix 1.1.10
 
 * Fix bug with weitrix_confects due to [[ ]] <- NULL deleting elements from
