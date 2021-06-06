@@ -1,4 +1,5 @@
-# weitrix 1.3.1
+
+# weitrix 1.5.1
 
 * weitrix_sd_confects now has an option to drop the assumption of normally 
   distributed weighted residuals.
