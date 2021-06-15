@@ -4,7 +4,7 @@
 \alias{counts_shift}
 \title{Produce a weitrix of shift scores}
 \usage{
-counts_shift(counts, grouping, verbose = TRUE)
+counts_shift(counts, grouping, verbose = TRUE, typecast = identity)
 }
 \arguments{
 \item{counts}{A matrix of read counts. Rows are peaks and columns are samples.}
@@ -16,6 +16,10 @@ Should have a column "group" naming the gene and
 Within each group, peak names should be ordered from 5' to 3' position.}
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
+
+\item{typecast}{A function to convert a matrix to a matrix-like type.
+Applied at the chunk level, before all chunks are \code{rbind}ed.
+Allows use of memory-efficient matrix representations.}
 }
 \value{
 A SummarizedExperiment object with metadata fields marking it as a weitrix.

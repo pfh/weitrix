@@ -39,7 +39,7 @@ weighted_proportions <- function(mat, name) {
 }
 
 
-counts_proportions_inner <- function(counts, groups) {
+counts_proportions_inner <- function(counts, groups, typecast) {
     relevant <- unique(unlist(groups))
     counts <- as.matrix(counts[relevant,,drop=FALSE])
     
@@ -55,8 +55,8 @@ counts_proportions_inner <- function(counts, groups) {
     
     SummarizedExperiment(
         assays=list(
-            x=realize_if_delayed(props),
-            weights=realize_if_delayed(weights)),
+            x=typecast(props),
+            weights=typecast(weights)),
         rowData=df)
 }
 
@@ -81,6 +81,11 @@ counts_proportions_inner <- function(counts, groups) {
 #' @param verbose 
 #' If TRUE, output some debugging and progress information.
 #'
+#' @param typecast
+#' A function to convert a matrix to a matrix-like type.
+#' Applied at the chunk level, before all chunks are \code{rbind}ed.
+#' Allows use of memory-efficient matrix representations.
+#'
 #' @return 
 #' A SummarizedExperiment object with metadata fields marking it as a weitrix.
 #'
@@ -103,7 +108,7 @@ counts_proportions_inner <- function(counts, groups) {
 #' rowData(wei)
 #'
 #' @export
-counts_proportions <- function(counts, grouping, verbose=TRUE) {
+counts_proportions <- function(counts, grouping, verbose=TRUE, typecast=identity) {
     assert_that(
         is.data.frame(grouping), 
         "group" %in% colnames(grouping), 
@@ -116,7 +121,7 @@ counts_proportions <- function(counts, grouping, verbose=TRUE) {
         message("Calculating proportions in ",length(parts)," blocks")
     
     result <- lapply(parts, function(part) {
-        counts_proportions_inner(counts, groups[part])
+        counts_proportions_inner(counts, groups[part], typecast=typecast)
     })
     result <- do.call(rbind, result)
     colnames(result) <- colnames(counts)

@@ -1,4 +1,8 @@
 
+* counts_shifts and counts_proportions now have a "typecast" argument, 
+  allowing use of memory-efficient matrix types.
+
+
 # weitrix 1.5.1
 
 * weitrix_sd_confects now has an option to drop the assumption of normally 

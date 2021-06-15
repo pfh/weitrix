@@ -4,7 +4,7 @@
 \alias{counts_proportions}
 \title{Produce a weitrix of proportions within groups}
 \usage{
-counts_proportions(counts, grouping, verbose = TRUE)
+counts_proportions(counts, grouping, verbose = TRUE, typecast = identity)
 }
 \arguments{
 \item{counts}{A matrix of read counts. 
@@ -16,6 +16,10 @@ Should have a column "group" naming the group and
     (corresponding to \code{rownames(counts)}).}
 
 \item{verbose}{If TRUE, output some debugging and progress information.}
+
+\item{typecast}{A function to convert a matrix to a matrix-like type.
+Applied at the chunk level, before all chunks are \code{rbind}ed.
+Allows use of memory-efficient matrix representations.}
 }
 \value{
 A SummarizedExperiment object with metadata fields marking it as a weitrix.
