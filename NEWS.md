@@ -1,4 +1,6 @@
 
+# weitrix 1.7.1
+
 * counts_shifts and counts_proportions now have a "typecast" argument, 
   allowing use of memory-efficient matrix types.
 
