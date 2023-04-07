@@ -108,8 +108,6 @@ as_weitrix <- function(object, weights=NULL) {
 #' weitrix_x(weitrix)
 #' weitrix_weights(weitrix)
 #'
-#' @return
-#'
 #' @export
 bless_weitrix <- function(object, x_name, weights_name) {
     assert_that(is(object, "SummarizedExperiment"))

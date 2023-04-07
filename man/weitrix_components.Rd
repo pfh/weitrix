@@ -115,11 +115,11 @@ Increase \code{n_restarts} to
 }
 \section{Functions}{
 \itemize{
-\item \code{weitrix_components}: Find a matrix decomposition with the specified number of components.
+\item \code{weitrix_components()}: Find a matrix decomposition with the specified number of components.
 
-\item \code{weitrix_components_seq}: Produce a sequence of weitrix decompositions with 1 to p components.
+\item \code{weitrix_components_seq()}: Produce a sequence of weitrix decompositions with 1 to p components.
+
 }}
-
 \examples{
 # Variables in rows, observations in columns, as per Bioconductor convention
 dat <- t(iris[,1:4])

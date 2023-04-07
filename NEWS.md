@@ -1,4 +1,9 @@
 
+# weitrix 1.11.1
+
+* Don't import colSums, rowSums, which have disappeared from BiocGenerics.
+
+
 # weitrix 1.7.1
 
 * counts_shifts and counts_proportions now have a "typecast" argument, 

@@ -15,8 +15,6 @@ bless_weitrix(object, x_name, weights_name)
 }
 \value{
 A SummarizedExperiment object with metadata fields marking it as a weitrix.
-
-
 }
 \description{
 Set metadata entries in a SummarizedExperiment object

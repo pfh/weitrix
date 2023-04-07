@@ -54,8 +54,13 @@
 #' @importFrom RhpcBLASctl
 #'     blas_get_num_procs blas_set_num_threads
 #'
+#
+# Missing from Bioconductor 3.17 2023-04-07. Let's hope it works without it.
+# @importFrom BiocGenerics
+#     rowSums colSums
+#
 #' @importFrom BiocGenerics
-#'     rowSums colSums rbind cbind
+#'     rbind cbind
 #'
 #' @importFrom splines
 #'     ns
