@@ -45,3 +45,5 @@ rsconnect/
 inst/doc
 doc
 Meta
+/doc/
+/Meta/

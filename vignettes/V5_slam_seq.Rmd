@@ -40,12 +40,12 @@ As an initial weighting, we use the coverage. Notionally, each proportion is an 
 
 ```{r load, message=FALSE}
 coverage <- system.file("GSE99970", "GSE99970_T_coverage.csv.gz", package="weitrix") %>%
-    read_csv() %>%
+    read.csv(check.names=FALSE) %>%
     column_to_rownames("gene") %>%
     as.matrix()
 
 conversions <- system.file("GSE99970", "GSE99970_T_C_conversions.csv.gz", package="weitrix") %>%
-    read_csv() %>%
+    read.csv(check.names=FALSE) %>%
     column_to_rownames("gene") %>%
     as.matrix()
 

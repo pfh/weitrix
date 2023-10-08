@@ -1,4 +1,11 @@
 
+# weitrix 1.13.1
+
+* Use read.csv rather than read_csv in vignettes, as read_csv was causing 
+  a hard-to-reproduce error when building vignettes.
+
+
+
 # weitrix 1.11.1
 
 * Don't import colSums, rowSums, which have disappeared from BiocGenerics.

@@ -54,15 +54,15 @@ BiocParallel::register( BiocParallel::SerialParam() )
 
 ```{r load, message=F, warning=F}
 peaks <- system.file("GSE83162", "peaks.csv.gz", package="weitrix") %>%
-    read_csv()
+    read.csv(check.names=FALSE)
 
 counts <- system.file("GSE83162", "peak_count.csv.gz", package="weitrix") %>%
-    read_csv() %>%
+    read.csv(check.names=FALSE) %>%
     column_to_rownames("name") %>%
     as.matrix()
 
 genes <- system.file("GSE83162", "genes.csv.gz", package="weitrix") %>%
-    read_csv() %>%
+    read.csv(check.names=FALSE) %>%
     column_to_rownames("name")
     
 samples <- data.frame(sample=I(colnames(counts))) %>%

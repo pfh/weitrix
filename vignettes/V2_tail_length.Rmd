@@ -40,12 +40,12 @@ BiocParallel::register( BiocParallel::SerialParam() )
 
 ```{r load, message=F}
 tail <- system.file("GSE83162", "tail.csv.gz", package="weitrix") %>%
-    read_csv() %>%
+    read.csv(check.names=FALSE) %>%
     column_to_rownames("Feature") %>%
     as.matrix()
 
 tail_count <- system.file("GSE83162", "tail_count.csv.gz", package="weitrix") %>%
-    read_csv() %>%
+    read.csv(check.names=FALSE) %>%
     column_to_rownames("Feature") %>%
     as.matrix()
     
