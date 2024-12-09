@@ -290,28 +290,28 @@ weitrix_confects <- function(
         else
             sigma2 <- (ss_residuals+squeeze$var.prior*squeeze$df.prior)/df2
     }
-
-
+    
+    
     # ==== Calculate F ratio ====
-
+    
     F <- (ss1/df1)/sigma2
-
-
+    
+    
     if (effect_wanted == "contrast") {
         # ==== Topconfects for single contrast =====
-
+        
         effect_desc = "contrast"
         effect <- get("estimates")
         se <- sqrt( get("unscaled_vars")*sigma2 )
-
+        
         result <- normal_confects(
             effect, se, df=df2, fdr=fdr, step=step, full=TRUE)
     } else if (effect_wanted == "cohen_f") {
         # ==== Topconfects for one or more contrasts ====
-
+        
         effect_desc <- "Cohen's f"
         effect <- sqrt( (F*df1)/n_present )
-
+        
         pfunc <- function(indices, mag) {
             1 - pf(
                 F[indices],
@@ -319,12 +319,15 @@ weitrix_confects <- function(
                 df2=df2[indices],
                 ncp=mag^2 * n_present[indices])
         }
-
+        
         result <- nest_confects(
             n, pfunc, fdr=fdr, step=step, full=TRUE)
+        
+        # Indicate these are non-negative confects
+        result$limits <- c(0,NA)
     } else {
         # ==== Mutlivariate version of TREAT ====
-
+        
         effect_desc <- "standard deviation explained"
         effect <- sqrt( ss1/sum_weight )
 
@@ -338,9 +341,12 @@ weitrix_confects <- function(
 
         result <- nest_confects(
             n, pfunc, fdr=fdr, step=step, full=TRUE)
+        
+        # Indicate these are non-negative confects
+        result$limits <- c(0,NA)
     }
-
-
+    
+    
     # ==== Provide further information in result ====
     
     fdr_zero <- result$table$fdr_zero
